@@ -1,0 +1,2680 @@
+[
+ {
+  "wave": 1,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "中 物理",
+   "多 物理",
+   "中 物理"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只",
+   "RU": "中: 每0.6s/每口 共32只(或15)"
+  },
+  "monsterPool": [
+   {
+    "id": "n08Q",
+    "name": "强壮的强盗",
+    "hp": 16.0,
+    "armor": 0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 200.0,
+    "bounty": 2.0
+   },
+   {
+    "id": "nban",
+    "name": "强盗",
+    "hp": 7.0,
+    "armor": 0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 210.0,
+    "bounty": 2.0
+   },
+   {
+    "id": "ndth",
+    "name": "民兵",
+    "hp": 8.0,
+    "armor": 0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 200.0,
+    "bounty": 1.0
+   },
+   {
+    "id": "hfoo",
+    "name": "步兵",
+    "hp": 5.0,
+    "armor": 0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 200.0,
+    "bounty": 1.0
+   }
+  ]
+ },
+ {
+  "wave": 2,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "中 魔法",
+   "多 魔法"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只",
+   "RU": "中: 每0.6s/每口 共32只(或15)"
+  },
+  "monsterPool": [
+   {
+    "id": "n090",
+    "name": "大蜘蛛",
+    "hp": 80.0,
+    "armor": 30.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 180.0,
+    "bounty": 6.0
+   },
+   {
+    "id": "nspb",
+    "name": "黑蜘蛛",
+    "hp": 21.0,
+    "armor": 2.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 230.0,
+    "bounty": 3.0
+   },
+   {
+    "id": "nssp",
+    "name": "敏捷的蜘蛛",
+    "hp": 40.0,
+    "armor": 5.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 250.0,
+    "bounty": 5.0
+   },
+   {
+    "id": "n08L",
+    "name": "坚硬的森林蜘蛛",
+    "hp": 10.0,
+    "armor": 90.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 210.0,
+    "bounty": 4.0
+   },
+   {
+    "id": "nspg",
+    "name": "森林蜘蛛",
+    "hp": 21.0,
+    "armor": 30.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 210.0,
+    "bounty": 4.0
+   },
+   {
+    "id": "hrif",
+    "name": "矮人火枪手",
+    "hp": 8.0,
+    "armor": 5.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 270.0,
+    "bounty": 2.0
+   }
+  ]
+ },
+ {
+  "wave": 3,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "少 物理"
+  ],
+  "spawners": {
+   "RV": "少: 每1s/每口 共15只"
+  },
+  "monsterPool": [
+   {
+    "id": "h07M",
+    "name": "暗黑的女巫",
+    "hp": 220.0,
+    "armor": 10.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 230.0,
+    "bounty": 25.0
+   },
+   {
+    "id": "hsor",
+    "name": "女巫",
+    "hp": 120.0,
+    "armor": 0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 210.0,
+    "bounty": 25.0
+   },
+   {
+    "id": "h06V",
+    "name": "小鱼人",
+    "hp": 300.0,
+    "armor": 5.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 280.0,
+    "bounty": 25.0
+   },
+   {
+    "id": "ngrk",
+    "name": "泥潭傀儡",
+    "hp": 110.0,
+    "armor": 20.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 200.0,
+    "bounty": 14.0
+   }
+  ]
+ },
+ {
+  "wave": 4,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "中 抗性",
+   "少 抗性"
+  ],
+  "spawners": {
+   "RU": "中: 每0.6s/每口 共32只(或15)",
+   "RV": "少: 每1s/每口 共15只"
+  },
+  "monsterPool": [
+   {
+    "id": "h07Y",
+    "name": "智慧的魔法破坏者",
+    "hp": 45.0,
+    "armor": 0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 300.0,
+    "bounty": 6.0
+   },
+   {
+    "id": "hspt",
+    "name": "魔法破坏者",
+    "hp": 35.0,
+    "armor": 0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 220.0,
+    "bounty": 6.0
+   },
+   {
+    "id": "nenf",
+    "name": "强制者",
+    "hp": 50.0,
+    "armor": 8.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 200.0,
+    "bounty": 19.0
+   },
+   {
+    "id": "h083",
+    "name": "迅捷的小蜥蜴",
+    "hp": 16.0,
+    "armor": 0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 310.0,
+    "bounty": 10.0
+   }
+  ]
+ },
+ {
+  "wave": 5,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "中 神圣",
+   "多 神圣"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只",
+   "RU": "中: 每0.6s/每口 共32只(或15)"
+  },
+  "monsterPool": [
+   {
+    "id": "nder",
+    "name": "小小强",
+    "hp": 14.0,
+    "armor": 0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 200.0,
+    "bounty": 14.0
+   },
+   {
+    "id": "h07L",
+    "name": "大牧师",
+    "hp": 18.0,
+    "armor": 13.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 240.0,
+    "bounty": 4.0
+   },
+   {
+    "id": "hmpr",
+    "name": "牧师",
+    "hp": 15.0,
+    "armor": 3.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 240.0,
+    "bounty": 5.0
+   },
+   {
+    "id": "ndmu",
+    "name": "大小强",
+    "hp": 600.0,
+    "armor": 15.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 350.0,
+    "bounty": 166.0
+   }
+  ]
+ },
+ {
+  "wave": 6,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "少 物理",
+   "多 物理",
+   "中 物理"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只",
+   "RU": "中: 每0.6s/每口 共32只(或15)",
+   "RV": "少: 每1s/每口 共15只"
+  },
+  "monsterPool": [
+   {
+    "id": "h09H",
+    "name": "金色的骑士",
+    "hp": 50.0,
+    "armor": 20.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 440.0,
+    "bounty": 1.0
+   },
+   {
+    "id": "hkni",
+    "name": "骑士",
+    "hp": 25.0,
+    "armor": 10.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 260.0,
+    "bounty": 6.0
+   },
+   {
+    "id": "hgyr",
+    "name": "血精灵工人",
+    "hp": 300.0,
+    "armor": 0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 220.0,
+    "bounty": 42.0
+   },
+   {
+    "id": "ndrf",
+    "name": "达拉内尔守卫",
+    "hp": 250.0,
+    "armor": 0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 250.0,
+    "bounty": 15.0
+   },
+   {
+    "id": "ndrd",
+    "name": "屠杀者",
+    "hp": 1500.0,
+    "armor": 100.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 320.0,
+    "bounty": 300.0
+   }
+  ]
+ },
+ {
+  "wave": 7,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "多 抗性"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只",
+   "RU": "中: 每0.6s/每口 共32只(或15)"
+  },
+  "monsterPool": [
+   {
+    "id": "ncea",
+    "name": "半人马弓箭手",
+    "hp": 60.0,
+    "armor": 100.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 180.0,
+    "bounty": 6.0
+   },
+   {
+    "id": "nspd",
+    "name": "小蚂蚁",
+    "hp": 110.0,
+    "armor": 0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 200.0,
+    "bounty": 7.0
+   },
+   {
+    "id": "hmtm",
+    "name": "迫击炮小队",
+    "hp": 62.0,
+    "armor": 0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 270.0,
+    "bounty": 8.0
+   },
+   {
+    "id": "njg1",
+    "name": "人马将领",
+    "hp": 3000.0,
+    "armor": 0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 300.0,
+    "bounty": 288.0
+   }
+  ]
+ },
+ {
+  "wave": 8,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "中 神圣",
+   "少 神圣"
+  ],
+  "spawners": {
+   "RU": "中: 每0.6s/每口 共32只(或15)",
+   "RV": "少: 每1s/每口 共15只"
+  },
+  "monsterPool": [
+   {
+    "id": "h07B",
+    "name": "敏捷的蒸汽机车",
+    "hp": 210.0,
+    "armor": 1.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 380.0,
+    "bounty": 66.0
+   },
+   {
+    "id": "hmtt",
+    "name": "蒸汽机车",
+    "hp": 120.0,
+    "armor": 18.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 250.0,
+    "bounty": 60.0
+   },
+   {
+    "id": "n08T",
+    "name": "大苦工",
+    "hp": 110.0,
+    "armor": 0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 350.0,
+    "bounty": 18.0
+   },
+   {
+    "id": "ncpn",
+    "name": "邪恶的苦工",
+    "hp": 25.0,
+    "armor": 0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 240.0,
+    "bounty": 18.0
+   }
+  ]
+ },
+ {
+  "wave": 9,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "中 抗性",
+   "少 抗性"
+  ],
+  "spawners": {
+   "RU": "中: 每0.6s/每口 共32只(或15)",
+   "RV": "少: 每1s/每口 共15只"
+  },
+  "monsterPool": [
+   {
+    "id": "h07X",
+    "name": "剑士",
+    "hp": 270.0,
+    "armor": 1.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 310.0,
+    "bounty": 20.0
+   },
+   {
+    "id": "hcth",
+    "name": "船长",
+    "hp": 150.0,
+    "armor": 1.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 320.0,
+    "bounty": 20.0
+   },
+   {
+    "id": "ogru",
+    "name": "兽族步兵",
+    "hp": 303.0,
+    "armor": 5.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 230.0,
+    "bounty": 78.0
+   }
+  ]
+ },
+ {
+  "wave": 10,
+  "isBoss": true,
+  "variant": "one of several random BOSS variants",
+  "hints": [
+   "BOSS波",
+   "多 魔法"
+  ],
+  "spawners": {
+   "RU": "中: 每0.6s/每口 共32只(或15)"
+  },
+  "monsterPool": [
+   {
+    "id": "nsqo",
+    "name": "小红牛",
+    "hp": 500.0,
+    "armor": 5.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 300.0,
+    "bounty": 10.0
+   },
+   {
+    "id": "nsqt",
+    "name": "大红牛",
+    "hp": 10000.0,
+    "armor": 5.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 200.0,
+    "bounty": 168.0
+   }
+  ]
+ },
+ {
+  "wave": 10,
+  "isBoss": true,
+  "variant": "one of several random BOSS variants",
+  "hints": [
+   "BOSS波",
+   "多 魔法"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只",
+   "RV": "少: 每1s/每口 共15只"
+  },
+  "monsterPool": [
+   {
+    "id": "n09B",
+    "name": "大豪猪",
+    "hp": 2500.0,
+    "armor": 50.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 250.0,
+    "bounty": 230.0
+   },
+   {
+    "id": "nsqa",
+    "name": "大豪猪",
+    "hp": 4000.0,
+    "armor": 30.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 230.0,
+    "bounty": 200.0
+   },
+   {
+    "id": "nsty",
+    "name": "小豪猪",
+    "hp": 300.0,
+    "armor": 0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 330.0,
+    "bounty": 3.0
+   }
+  ]
+ },
+ {
+  "wave": 11,
+  "isBoss": false,
+  "variant": "",
+  "hints": [],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只"
+  },
+  "monsterPool": [
+   {
+    "id": "o009",
+    "name": "邪恶的狼骑士",
+    "hp": 95.0,
+    "armor": 9.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 150.0,
+    "bounty": 3.0
+   },
+   {
+    "id": "oosc",
+    "name": "狼骑士",
+    "hp": 65.0,
+    "armor": 0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 320.0,
+    "bounty": 8.0
+   },
+   {
+    "id": "o005",
+    "name": "强壮的巨魔",
+    "hp": 160.0,
+    "armor": 80.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 220.0,
+    "bounty": 15.0
+   },
+   {
+    "id": "ohun",
+    "name": "巨魔猎头者",
+    "hp": 86.0,
+    "armor": 12.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 250.0,
+    "bounty": 10.0
+   }
+  ]
+ },
+ {
+  "wave": 12,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "少 神圣",
+   "多 神圣"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只",
+   "RV": "少: 每1s/每口 共15只"
+  },
+  "monsterPool": [
+   {
+    "id": "n094",
+    "name": "邪恶的堕落树人",
+    "hp": 480.0,
+    "armor": 15.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 200.0,
+    "bounty": 36.0
+   },
+   {
+    "id": "nenc",
+    "name": "堕落树人",
+    "hp": 240.0,
+    "armor": 12.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 250.0,
+    "bounty": 36.0
+   },
+   {
+    "id": "nenp",
+    "name": "毒性树人",
+    "hp": 200.0,
+    "armor": 0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 250.0,
+    "bounty": 12.0
+   },
+   {
+    "id": "odoc",
+    "name": "巨魔巫医",
+    "hp": 73.0,
+    "armor": 5.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 260.0,
+    "bounty": 10.0
+   },
+   {
+    "id": "o00C",
+    "name": "大巨魔巫医",
+    "hp": 473.0,
+    "armor": 50.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 320.0,
+    "bounty": 100.0
+   }
+  ]
+ },
+ {
+  "wave": 13,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "少 物理",
+   "多 物理"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只",
+   "RV": "少: 每1s/每口 共15只"
+  },
+  "monsterPool": [
+   {
+    "id": "n07C",
+    "name": "幽灵",
+    "hp": 300.0,
+    "armor": 180.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 400.0,
+    "bounty": 110.0
+   },
+   {
+    "id": "nbdm",
+    "name": "龙卵盗贼",
+    "hp": 1000.0,
+    "armor": 1.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 250.0,
+    "bounty": 90.0
+   },
+   {
+    "id": "oshm",
+    "name": "萨满祭司",
+    "hp": 357.0,
+    "armor": 0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 260.0,
+    "bounty": 12.0
+   },
+   {
+    "id": "ndrh",
+    "name": "萨满头领",
+    "hp": 15000.0,
+    "armor": 0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 270.0,
+    "bounty": 1.0
+   }
+  ]
+ },
+ {
+  "wave": 14,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "多 抗性"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只"
+  },
+  "monsterPool": [
+   {
+    "id": "o00B",
+    "name": "极速掠夺者",
+    "hp": 250.0,
+    "armor": 0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 400.0,
+    "bounty": 13.0
+   },
+   {
+    "id": "orai",
+    "name": "掠夺者",
+    "hp": 250.0,
+    "armor": 0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 250.0,
+    "bounty": 13.0
+   },
+   {
+    "id": "n07X",
+    "name": "埃瑞达法师",
+    "hp": 580.0,
+    "armor": 9.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 250.0,
+    "bounty": 8.0
+   },
+   {
+    "id": "ners",
+    "name": "埃瑞达男巫",
+    "hp": 200.0,
+    "armor": 14.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 250.0,
+    "bounty": 8.0
+   },
+   {
+    "id": "nsgt",
+    "name": "掠夺者首领",
+    "hp": 18000.0,
+    "armor": 1.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 300.0,
+    "bounty": 99.0
+   }
+  ]
+ },
+ {
+  "wave": 15,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "多 神圣",
+   "少 神圣"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只",
+   "RV": "少: 每1s/每口 共15只"
+  },
+  "monsterPool": [
+   {
+    "id": "n091",
+    "name": "巨大的蛇女",
+    "hp": 2800.0,
+    "armor": 24.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 250.0,
+    "bounty": 129.0
+   },
+   {
+    "id": "nplb",
+    "name": "蛇女",
+    "hp": 1620.0,
+    "armor": 8.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 250.0,
+    "bounty": 116.0
+   },
+   {
+    "id": "otau",
+    "name": "牛头人",
+    "hp": 152.0,
+    "armor": 10.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 380.0,
+    "bounty": 14.0
+   },
+   {
+    "id": "o004",
+    "name": "牛头人",
+    "hp": 260.0,
+    "armor": 120.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 220.0,
+    "bounty": 11.0
+   }
+  ]
+ },
+ {
+  "wave": 16,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "多 魔法",
+   "少 魔法",
+   "中 魔法"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只",
+   "RU": "中: 每0.6s/每口 共32只(或15)",
+   "RV": "少: 每1s/每口 共15只"
+  },
+  "monsterPool": [
+   {
+    "id": "o007",
+    "name": "坚硬的科多兽",
+    "hp": 120.0,
+    "armor": 160.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 250.0,
+    "bounty": 15.0
+   },
+   {
+    "id": "okod",
+    "name": "科多兽",
+    "hp": 200.0,
+    "armor": 10.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 250.0,
+    "bounty": 14.0
+   },
+   {
+    "id": "ushd",
+    "name": "阴影",
+    "hp": 1115.0,
+    "armor": 0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 400.0,
+    "bounty": 30.0
+   },
+   {
+    "id": "nzom",
+    "name": "僵尸",
+    "hp": 900.0,
+    "armor": 16.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 270.0,
+    "bounty": 32.0
+   }
+  ]
+ },
+ {
+  "wave": 17,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "多 物理"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只"
+  },
+  "monsterPool": [
+   {
+    "id": "o006",
+    "name": "恐怖的霜狼",
+    "hp": 1335.0,
+    "armor": 12.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 320.0,
+    "bounty": 14.0
+   },
+   {
+    "id": "o00E",
+    "name": "霜狼精英",
+    "hp": 1870.0,
+    "armor": 24.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 420.0,
+    "bounty": 14.0
+   },
+   {
+    "id": "otbr",
+    "name": "霜冻之狼",
+    "hp": 635.0,
+    "armor": 12.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 250.0,
+    "bounty": 14.0
+   },
+   {
+    "id": "e005",
+    "name": "猫头鹰",
+    "hp": 1100.0,
+    "armor": 0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 400.0,
+    "bounty": 15.0
+   },
+   {
+    "id": "nbdo",
+    "name": "魔导师",
+    "hp": 1100.0,
+    "armor": 2.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 250.0,
+    "bounty": 12.0
+   }
+  ]
+ },
+ {
+  "wave": 18,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "中 抗性"
+  ],
+  "spawners": {
+   "RU": "中: 每0.6s/每口 共32只(或15)"
+  },
+  "monsterPool": [
+   {
+    "id": "n08S",
+    "name": "迅捷的窃贼",
+    "hp": 1200.0,
+    "armor": 20.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 400.0,
+    "bounty": 31.0
+   },
+   {
+    "id": "nfra",
+    "name": "窃贼",
+    "hp": 1500.0,
+    "armor": 20.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 230.0,
+    "bounty": 31.0
+   },
+   {
+    "id": "o008",
+    "name": "强壮的灵魂行者",
+    "hp": 1620.0,
+    "armor": 0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 150.0,
+    "bounty": 37.0
+   },
+   {
+    "id": "ospw",
+    "name": "灵魂行者",
+    "hp": 412.0,
+    "armor": 0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 260.0,
+    "bounty": 34.0
+   }
+  ]
+ },
+ {
+  "wave": 19,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "多 神圣",
+   "中 神圣",
+   "少 神圣"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只",
+   "RU": "中: 每0.6s/每口 共32只(或15)",
+   "RV": "少: 每1s/每口 共15只"
+  },
+  "monsterPool": [
+   {
+    "id": "n09H",
+    "name": "致命的掘地者",
+    "hp": 585.0,
+    "armor": 30.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 350.0,
+    "bounty": 20.0
+   },
+   {
+    "id": "nane",
+    "name": "掘地者",
+    "hp": 285.0,
+    "armor": 0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 350.0,
+    "bounty": 20.0
+   },
+   {
+    "id": "ugho",
+    "name": "食尸鬼",
+    "hp": 2382.0,
+    "armor": 10.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 230.0,
+    "bounty": 51.0
+   },
+   {
+    "id": "ucry",
+    "name": "穴居恶魔",
+    "hp": 1042.0,
+    "armor": 10.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 310.0,
+    "bounty": 185.0
+   }
+  ]
+ },
+ {
+  "wave": 20,
+  "isBoss": true,
+  "variant": "one of several random BOSS variants",
+  "hints": [
+   "BOSS波",
+   "多 抗性"
+  ],
+  "spawners": {
+   "RV": "少: 每1s/每口 共15只"
+  },
+  "monsterPool": [
+   {
+    "id": "nsog",
+    "name": "小骷髅",
+    "hp": 5000.0,
+    "armor": 30.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 250.0,
+    "bounty": 18.0
+   },
+   {
+    "id": "nsko",
+    "name": "大骷髅",
+    "hp": 40000.0,
+    "armor": 0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 170.0,
+    "bounty": 100.0
+   }
+  ]
+ },
+ {
+  "wave": 20,
+  "isBoss": true,
+  "variant": "one of several random BOSS variants",
+  "hints": [
+   "BOSS波",
+   "多 抗性"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只",
+   "RU": "中: 每0.6s/每口 共32只(或15)",
+   "RV": "少: 每1s/每口 共15只"
+  },
+  "monsterPool": [
+   {
+    "id": "n06Z",
+    "name": "小骷髅",
+    "hp": 2000.0,
+    "armor": 30.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 250.0,
+    "bounty": 12.0
+   },
+   {
+    "id": "n071",
+    "name": "骷髅法师",
+    "hp": 40000.0,
+    "armor": 0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 150.0,
+    "bounty": 200.0
+   }
+  ]
+ },
+ {
+  "wave": 21,
+  "isBoss": false,
+  "variant": "",
+  "hints": [],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只"
+  },
+  "monsterPool": [
+   {
+    "id": "n08H",
+    "name": "坚强的痛苦女王",
+    "hp": 600.0,
+    "armor": 300.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 320.0,
+    "bounty": 23.0
+   },
+   {
+    "id": "ndqs",
+    "name": "苦难女王",
+    "hp": 2600.0,
+    "armor": 1.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 250.0,
+    "bounty": 19.0
+   },
+   {
+    "id": "earc",
+    "name": "弓箭手",
+    "hp": 1622.0,
+    "armor": 20.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 250.0,
+    "bounty": 22.0
+   },
+   {
+    "id": "uban",
+    "name": "女妖",
+    "hp": 616.0,
+    "armor": 0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 300.0,
+    "bounty": 21.0
+   }
+  ]
+ },
+ {
+  "wave": 22,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "多 魔法",
+   "少 魔法"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只",
+   "RV": "少: 每1s/每口 共15只"
+  },
+  "monsterPool": [
+   {
+    "id": "nmfs",
+    "name": "两栖重击者",
+    "hp": 400.0,
+    "armor": 100.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 400.0,
+    "bounty": 22.0
+   },
+   {
+    "id": "nmrr",
+    "name": "两栖人猎手",
+    "hp": 900.0,
+    "armor": 0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 400.0,
+    "bounty": 22.0
+   },
+   {
+    "id": "u003",
+    "name": "浅滩怪物",
+    "hp": 2890.0,
+    "armor": 0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 400.0,
+    "bounty": 152.0
+   },
+   {
+    "id": "unec",
+    "name": "不死族巫师",
+    "hp": 2490.0,
+    "armor": 5.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 300.0,
+    "bounty": 142.0
+   },
+   {
+    "id": "njgb",
+    "name": "变异巫师",
+    "hp": 18000.0,
+    "armor": 200.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 400.0,
+    "bounty": 300.0
+   }
+  ]
+ },
+ {
+  "wave": 23,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "中 神圣",
+   "少 神圣"
+  ],
+  "spawners": {
+   "RU": "中: 每0.6s/每口 共32只(或15)",
+   "RV": "少: 每1s/每口 共15只"
+  },
+  "monsterPool": [
+   {
+    "id": "u007",
+    "name": "强壮的骷髅战士",
+    "hp": 857.0,
+    "armor": 13.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 250.0,
+    "bounty": 41.0
+   },
+   {
+    "id": "ugar",
+    "name": "骷髅战士",
+    "hp": 557.0,
+    "armor": 3.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 320.0,
+    "bounty": 46.0
+   },
+   {
+    "id": "n092",
+    "name": "强壮的犀牛",
+    "hp": 3000.0,
+    "armor": 80.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 350.0,
+    "bounty": 100.0
+   },
+   {
+    "id": "nhrq",
+    "name": "犀牛",
+    "hp": 4000.0,
+    "armor": 5.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 200.0,
+    "bounty": 100.0
+   }
+  ]
+ },
+ {
+  "wave": 24,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "多 抗性"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只"
+  },
+  "monsterPool": [
+   {
+    "id": "uabo",
+    "name": "憎恶",
+    "hp": 1400.0,
+    "armor": 2.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 320.0,
+    "bounty": 24.0
+   },
+   {
+    "id": "nfel",
+    "name": "邪恶漫步者",
+    "hp": 750.0,
+    "armor": 50.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 250.0,
+    "bounty": 24.0
+   },
+   {
+    "id": "nchg",
+    "name": "憎恶之主",
+    "hp": 55555.0,
+    "armor": 0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 400.0,
+    "bounty": 555.0
+   }
+  ]
+ },
+ {
+  "wave": 25,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "少 魔法",
+   "中 魔法",
+   "多 魔法"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只",
+   "RU": "中: 每0.6s/每口 共32只(或15)",
+   "RV": "少: 每1s/每口 共15只"
+  },
+  "monsterPool": [
+   {
+    "id": "n093",
+    "name": "傀儡战将",
+    "hp": 26000.0,
+    "armor": 30.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 330.0,
+    "bounty": 115.0
+   },
+   {
+    "id": "nwrg",
+    "name": "战争傀儡",
+    "hp": 11000.0,
+    "armor": 60.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 270.0,
+    "bounty": 115.0
+   },
+   {
+    "id": "narg",
+    "name": "傀儡战士",
+    "hp": 9200.0,
+    "armor": 30.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 300.0,
+    "bounty": 115.0
+   },
+   {
+    "id": "nkol",
+    "name": "狗头人首领",
+    "hp": 4000.0,
+    "armor": 0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 400.0,
+    "bounty": 50.0
+   },
+   {
+    "id": "umtw",
+    "name": "绞肉车",
+    "hp": 803.0,
+    "armor": 35.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 310.0,
+    "bounty": 24.0
+   }
+  ]
+ },
+ {
+  "wave": 26,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "中 物理",
+   "多 物理"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只",
+   "RU": "中: 每0.6s/每口 共32只(或15)"
+  },
+  "monsterPool": [
+   {
+    "id": "u004",
+    "name": "恢复女魔",
+    "hp": 1000.0,
+    "armor": 60.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 400.0,
+    "bounty": 43.0
+   },
+   {
+    "id": "uobs",
+    "name": "恢复女巫",
+    "hp": 800.0,
+    "armor": 80.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 300.0,
+    "bounty": 43.0
+   },
+   {
+    "id": "nlpr",
+    "name": "巨虾",
+    "hp": 5000.0,
+    "armor": 55.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 200.0,
+    "bounty": 30.0
+   },
+   {
+    "id": "nlkl",
+    "name": "千年老虾",
+    "hp": 60000.0,
+    "armor": 55.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 320.0,
+    "bounty": 300.0
+   }
+  ]
+ },
+ {
+  "wave": 27,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "少 抗性"
+  ],
+  "spawners": {
+   "RV": "少: 每1s/每口 共15只"
+  },
+  "monsterPool": [
+   {
+    "id": "ngbl",
+    "name": "地精爆破工",
+    "hp": 6000.0,
+    "armor": 50.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 200.0,
+    "bounty": 180.0
+   },
+   {
+    "id": "n080",
+    "name": "坚硬的地精",
+    "hp": 4000.0,
+    "armor": 220.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 160.0,
+    "bounty": 180.0
+   },
+   {
+    "id": "u00K",
+    "name": "邪恶的黑暗游侠",
+    "hp": 9000.0,
+    "armor": 80.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 250.0,
+    "bounty": 186.0
+   },
+   {
+    "id": "ufro",
+    "name": "黑暗游侠",
+    "hp": 4500.0,
+    "armor": 40.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 350.0,
+    "bounty": 166.0
+   }
+  ]
+ },
+ {
+  "wave": 28,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "多 物理"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只"
+  },
+  "monsterPool": [
+   {
+    "id": "esen",
+    "name": "女猎手",
+    "hp": 2022.0,
+    "armor": 2.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 340.0,
+    "bounty": 20.0
+   },
+   {
+    "id": "e001",
+    "name": "耐力猎手",
+    "hp": 2022.0,
+    "armor": 2.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 300.0,
+    "bounty": 25.0
+   },
+   {
+    "id": "nfrs",
+    "name": "刺蛇",
+    "hp": 2280.0,
+    "armor": 188.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 320.0,
+    "bounty": 28.0
+   },
+   {
+    "id": "n08U",
+    "name": "大刺蛇",
+    "hp": 3880.0,
+    "armor": 248.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 320.0,
+    "bounty": 200.0
+   }
+  ]
+ },
+ {
+  "wave": 29,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "少 魔法"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只",
+   "RV": "少: 每1s/每口 共15只"
+  },
+  "monsterPool": [
+   {
+    "id": "e002",
+    "name": "坚固的投刃车",
+    "hp": 5500.0,
+    "armor": 150.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 400.0,
+    "bounty": 181.0
+   },
+   {
+    "id": "ebal",
+    "name": "投刃车",
+    "hp": 8500.0,
+    "armor": 5.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 250.0,
+    "bounty": 171.0
+   },
+   {
+    "id": "nhyh",
+    "name": "小九头怪蛇",
+    "hp": 500.0,
+    "armor": 200.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 400.0,
+    "bounty": 30.0
+   }
+  ]
+ },
+ {
+  "wave": 30,
+  "isBoss": true,
+  "variant": "one of several random BOSS variants",
+  "hints": [
+   "BOSS波"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只",
+   "RU": "中: 每0.6s/每口 共32只(或15)",
+   "RV": "少: 每1s/每口 共15只"
+  },
+  "monsterPool": []
+ },
+ {
+  "wave": 31,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "多 抗性",
+   "中 抗性",
+   "少 抗性"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只",
+   "RU": "中: 每0.6s/每口 共32只(或15)",
+   "RV": "少: 每1s/每口 共15只"
+  },
+  "monsterPool": [
+   {
+    "id": "ehip",
+    "name": "树人",
+    "hp": 3002.0,
+    "armor": 0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 350.0,
+    "bounty": 28.0
+   },
+   {
+    "id": "ninm",
+    "name": "地狱火机械人",
+    "hp": 6000.0,
+    "armor": 2.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 250.0,
+    "bounty": 51.0
+   },
+   {
+    "id": "nqb4",
+    "name": "大野猪",
+    "hp": 9000.0,
+    "armor": 30.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 300.0,
+    "bounty": 210.0
+   },
+   {
+    "id": "e00B",
+    "name": "巨型树人",
+    "hp": 3002.0,
+    "armor": 0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 200.0,
+    "bounty": 28.0
+   }
+  ]
+ },
+ {
+  "wave": 32,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "少 物理"
+  ],
+  "spawners": {
+   "RV": "少: 每1s/每口 共15只"
+  },
+  "monsterPool": [
+   {
+    "id": "n088",
+    "name": "硬甲龙龟",
+    "hp": 45000.0,
+    "armor": 180.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 200.0,
+    "bounty": 180.0
+   },
+   {
+    "id": "ntrd",
+    "name": "龙龟",
+    "hp": 100000.0,
+    "armor": 40.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 170.0,
+    "bounty": 180.0
+   },
+   {
+    "id": "emtg",
+    "name": "山岭巨人",
+    "hp": 7500.0,
+    "armor": 30.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 400.0,
+    "bounty": 180.0
+   },
+   {
+    "id": "nanm",
+    "name": "山岭大巨人",
+    "hp": 100000.0,
+    "armor": 1.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 300.0,
+    "bounty": null
+   }
+  ]
+ },
+ {
+  "wave": 33,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "多 魔法"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只"
+  },
+  "monsterPool": [
+   {
+    "id": "nfrl",
+    "name": "小熊猫",
+    "hp": 3200.0,
+    "armor": 88.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 300.0,
+    "bounty": 33.0
+   },
+   {
+    "id": "edry",
+    "name": "小熊猫",
+    "hp": 6000.0,
+    "armor": 20.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 430.0,
+    "bounty": 30.0
+   },
+   {
+    "id": "e007",
+    "name": "小熊猫",
+    "hp": 9000.0,
+    "armor": 10.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 340.0,
+    "bounty": 30.0
+   },
+   {
+    "id": "e008",
+    "name": "小熊猫",
+    "hp": 6000.0,
+    "armor": 80.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 340.0,
+    "bounty": 30.0
+   }
+  ]
+ },
+ {
+  "wave": 34,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "中 物理"
+  ],
+  "spawners": {
+   "RU": "中: 每0.6s/每口 共32只(或15)"
+  },
+  "monsterPool": [
+   {
+    "id": "e003",
+    "name": "强壮的德鲁伊",
+    "hp": 17000.0,
+    "armor": 0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 250.0,
+    "bounty": 46.0
+   },
+   {
+    "id": "edoc",
+    "name": "利爪德鲁伊",
+    "hp": 8000.0,
+    "armor": 15.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 320.0,
+    "bounty": 46.0
+   },
+   {
+    "id": "n09J",
+    "name": "强盗领主",
+    "hp": 10000.0,
+    "armor": 260.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 400.0,
+    "bounty": 20.0
+   },
+   {
+    "id": "nbld",
+    "name": "强盗领主",
+    "hp": 5000.0,
+    "armor": 160.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 400.0,
+    "bounty": 50.0
+   },
+   {
+    "id": "Nalc",
+    "name": "大地熊猫",
+    "hp": 40000.0,
+    "armor": 10.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 100.0,
+    "bounty": 500.0
+   },
+   {
+    "id": "Nfir",
+    "name": "火焰熊猫",
+    "hp": 35000.0,
+    "armor": 20.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 380.0,
+    "bounty": 500.0
+   },
+   {
+    "id": "Npbm",
+    "name": "酒仙熊猫",
+    "hp": 38000.0,
+    "armor": 30.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 250.0,
+    "bounty": 500.0
+   },
+   {
+    "id": "Ntin",
+    "name": "风之熊猫",
+    "hp": 39000.0,
+    "armor": 2.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 500.0,
+    "bounty": 500.0
+   }
+  ]
+ },
+ {
+  "wave": 35,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "少 物理"
+  ],
+  "spawners": {
+   "RV": "少: 每1s/每口 共15只"
+  },
+  "monsterPool": [
+   {
+    "id": "e004",
+    "name": "急速的飞蛇",
+    "hp": 20000.0,
+    "armor": 0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 522.0,
+    "bounty": 245.0
+   },
+   {
+    "id": "enec",
+    "name": "飞蛇",
+    "hp": 20000.0,
+    "armor": 0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 400.0,
+    "bounty": 245.0
+   },
+   {
+    "id": "echm",
+    "name": "战争古树",
+    "hp": 18000.0,
+    "armor": 260.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 200.0,
+    "bounty": 222.0
+   },
+   {
+    "id": "even",
+    "name": "复仇之魂",
+    "hp": 6000.0,
+    "armor": 150.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 150.0,
+    "bounty": 220.0
+   },
+   {
+    "id": "e009",
+    "name": "飞蛇之王",
+    "hp": 200000.0,
+    "armor": 300.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 250.0,
+    "bounty": 600.0
+   }
+  ]
+ },
+ {
+  "wave": 36,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "多 神圣"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只"
+  },
+  "monsterPool": [
+   {
+    "id": "ehpr",
+    "name": "角鹰兽骑士",
+    "hp": 1500.0,
+    "armor": 80.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 400.0,
+    "bounty": 45.0
+   },
+   {
+    "id": "e000",
+    "name": "红色角鹰兽",
+    "hp": 5000.0,
+    "armor": 120.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 400.0,
+    "bounty": 55.0
+   },
+   {
+    "id": "edot",
+    "name": "小德",
+    "hp": 3000.0,
+    "armor": 5.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 320.0,
+    "bounty": 32.0
+   },
+   {
+    "id": "e006",
+    "name": "迅捷小小德",
+    "hp": 6000.0,
+    "armor": 5.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 350.0,
+    "bounty": 100.0
+   }
+  ]
+ },
+ {
+  "wave": 37,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "多 抗性"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只"
+  },
+  "monsterPool": [
+   {
+    "id": "nw2w",
+    "name": "熊",
+    "hp": 6888.0,
+    "armor": 0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 280.0,
+    "bounty": 38.0
+   },
+   {
+    "id": "nckb",
+    "name": "熊",
+    "hp": 16666.0,
+    "armor": 0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 360.0,
+    "bounty": 66.0
+   },
+   {
+    "id": "nchw",
+    "name": "巨熊",
+    "hp": 36666.0,
+    "armor": 666.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 340.0,
+    "bounty": 666.0
+   }
+  ]
+ },
+ {
+  "wave": 38,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "少 神圣"
+  ],
+  "spawners": {
+   "RV": "少: 每1s/每口 共15只"
+  },
+  "monsterPool": [
+   {
+    "id": "n07Y",
+    "name": "极速闪避精灵龙",
+    "hp": 9000.0,
+    "armor": 0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 522.0,
+    "bounty": 270.0
+   },
+   {
+    "id": "nssn",
+    "name": "闪避精灵龙",
+    "hp": 7000.0,
+    "armor": 0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 340.0,
+    "bounty": 270.0
+   },
+   {
+    "id": "ndtw",
+    "name": "巨魔",
+    "hp": 24000.0,
+    "armor": 10.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 250.0,
+    "bounty": 280.0
+   },
+   {
+    "id": "n07I",
+    "name": "巨魔",
+    "hp": 36000.0,
+    "armor": 5.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 320.0,
+    "bounty": 280.0
+   }
+  ]
+ },
+ {
+  "wave": 39,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "多 魔法",
+   "少 魔法"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只",
+   "RV": "少: 每1s/每口 共15只"
+  },
+  "monsterPool": [
+   {
+    "id": "n083",
+    "name": "敏捷的狂暴守卫",
+    "hp": 8249.0,
+    "armor": 100.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 400.0,
+    "bounty": 45.0
+   },
+   {
+    "id": "nfgu",
+    "name": "狂暴守卫",
+    "hp": 8249.0,
+    "armor": 10.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 400.0,
+    "bounty": 38.0
+   },
+   {
+    "id": "n08N",
+    "name": "坚硬的守卫",
+    "hp": 12000.0,
+    "armor": 200.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 210.0,
+    "bounty": 152.0
+   },
+   {
+    "id": "nfov",
+    "name": "领主",
+    "hp": 30000.0,
+    "armor": 100.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 270.0,
+    "bounty": 180.0
+   }
+  ]
+ },
+ {
+  "wave": 40,
+  "isBoss": true,
+  "variant": "one of several random BOSS variants",
+  "hints": [
+   "BOSS波",
+   "多 物理",
+   "中 物理"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只",
+   "RV": "少: 每1s/每口 共15只"
+  },
+  "monsterPool": [
+   {
+    "id": "nerw",
+    "name": "矮人坦克",
+    "hp": 25000.0,
+    "armor": 120.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 200.0,
+    "bounty": 108.0
+   },
+   {
+    "id": "nfor",
+    "name": "兽人坦克",
+    "hp": 25000.0,
+    "armor": 120.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 200.0,
+    "bounty": 108.0
+   },
+   {
+    "id": "nfod",
+    "name": "牛魔坦克",
+    "hp": 25000.0,
+    "armor": 120.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 200.0,
+    "bounty": 108.0
+   },
+   {
+    "id": "nfot",
+    "name": "巫师坦克",
+    "hp": 25000.0,
+    "armor": 120.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 200.0,
+    "bounty": 108.0
+   },
+   {
+    "id": "ndtr",
+    "name": "维修工",
+    "hp": 10000.0,
+    "armor": 120.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 250.0,
+    "bounty": 40.0
+   },
+   {
+    "id": "n06Y",
+    "name": "嚣张的大游艇",
+    "hp": 350000.0,
+    "armor": 300.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 250.0,
+    "bounty": 8.0
+   },
+   {
+    "id": "ndrj",
+    "name": "疯狂的直升机",
+    "hp": 300000.0,
+    "armor": 100.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 400.0,
+    "bounty": 3000.0
+   }
+  ]
+ },
+ {
+  "wave": 41,
+  "isBoss": false,
+  "variant": "",
+  "hints": [],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只",
+   "RU": "中: 每0.6s/每口 共32只(或15)"
+  },
+  "monsterPool": [
+   {
+    "id": "n09K",
+    "name": "地狱火",
+    "hp": 4600.0,
+    "armor": 30.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 400.0,
+    "bounty": 25.0
+   },
+   {
+    "id": "ninf",
+    "name": "地狱火",
+    "hp": 6600.0,
+    "armor": 30.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 400.0,
+    "bounty": 42.0
+   },
+   {
+    "id": "n082",
+    "name": "强壮的海巨人",
+    "hp": 39000.0,
+    "armor": 82.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 200.0,
+    "bounty": 87.0
+   },
+   {
+    "id": "nsgn",
+    "name": "海巨人",
+    "hp": 23000.0,
+    "armor": 82.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 290.0,
+    "bounty": 72.0
+   },
+   {
+    "id": "nbal",
+    "name": "地狱火之王",
+    "hp": 300000.0,
+    "armor": 40.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 400.0,
+    "bounty": 888.0
+   }
+  ]
+ },
+ {
+  "wave": 42,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "中 魔法"
+  ],
+  "spawners": {
+   "RU": "中: 每0.6s/每口 共32只(或15)"
+  },
+  "monsterPool": [
+   {
+    "id": "ncg3",
+    "name": "人工地精",
+    "hp": 5000.0,
+    "armor": 1.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 400.0,
+    "bounty": 50.0
+   },
+   {
+    "id": "n07J",
+    "name": "黄色幼龙",
+    "hp": 11000.0,
+    "armor": 200.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 420.0,
+    "bounty": 75.0
+   },
+   {
+    "id": "ngzc",
+    "name": "人形鸟",
+    "hp": 18000.0,
+    "armor": 42.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 400.0,
+    "bounty": 75.0
+   },
+   {
+    "id": "n08V",
+    "name": "地精头头",
+    "hp": 120000.0,
+    "armor": 80.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 250.0,
+    "bounty": 400.0
+   },
+   {
+    "id": "n09I",
+    "name": "巨型人形鸟",
+    "hp": 180000.0,
+    "armor": 400.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 100.0,
+    "bounty": 378.0
+   }
+  ]
+ },
+ {
+  "wave": 43,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "少 抗性",
+   "多 抗性"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只",
+   "RV": "少: 每1s/每口 共15只"
+  },
+  "monsterPool": [
+   {
+    "id": "ucs1",
+    "name": "红猪",
+    "hp": 15000.0,
+    "armor": 150.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 150.0,
+    "bounty": 300.0
+   },
+   {
+    "id": "u005",
+    "name": "蝙蝠骑士",
+    "hp": 23000.0,
+    "armor": 80.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 400.0,
+    "bounty": 300.0
+   },
+   {
+    "id": "nele",
+    "name": "狂怒元素",
+    "hp": 9500.0,
+    "armor": 5.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 270.0,
+    "bounty": 53.0
+   },
+   {
+    "id": "nelb",
+    "name": "狂暴元素",
+    "hp": 195000.0,
+    "armor": 4.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 370.0,
+    "bounty": 1.0
+   }
+  ]
+ },
+ {
+  "wave": 44,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "多 物理",
+   "中 物理"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只",
+   "RU": "中: 每0.6s/每口 共32只(或15)"
+  },
+  "monsterPool": [
+   {
+    "id": "u006",
+    "name": "敏捷的水龙",
+    "hp": 6594.0,
+    "armor": 20.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 400.0,
+    "bounty": 49.0
+   },
+   {
+    "id": "uskm",
+    "name": "水龙",
+    "hp": 6594.0,
+    "armor": 20.0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 400.0,
+    "bounty": 44.0
+   },
+   {
+    "id": "owar",
+    "name": "冰龙",
+    "hp": 18000.0,
+    "armor": 0,
+    "armorType": "small",
+    "armorLabel": "物理(轻甲)",
+    "speed": 400.0,
+    "bounty": 88.0
+   }
+  ]
+ },
+ {
+  "wave": 45,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "中 魔法",
+   "多 魔法"
+  ],
+  "spawners": {
+   "RT": "多: 每0.25s/每口 共62只",
+   "RU": "中: 每0.6s/每口 共32只(或15)"
+  },
+  "monsterPool": [
+   {
+    "id": "n07Z",
+    "name": "硬甲螃蟹",
+    "hp": 28000.0,
+    "armor": 455.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 300.0,
+    "bounty": 80.0
+   },
+   {
+    "id": "nrwm",
+    "name": "螃蟹",
+    "hp": 40000.0,
+    "armor": 55.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 400.0,
+    "bounty": 80.0
+   },
+   {
+    "id": "nbdr",
+    "name": "狂暴兽人",
+    "hp": 28000.0,
+    "armor": 15.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 350.0,
+    "bounty": 42.0
+   }
+  ]
+ },
+ {
+  "wave": 46,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "中 神圣"
+  ],
+  "spawners": {
+   "RU": "中: 每0.6s/每口 共32只(或15)"
+  },
+  "monsterPool": [
+   {
+    "id": "n081",
+    "name": "深渊幽魂",
+    "hp": 24000.0,
+    "armor": 170.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 400.0,
+    "bounty": 100.0
+   },
+   {
+    "id": "nsgh",
+    "name": "死亡幽魂",
+    "hp": 29000.0,
+    "armor": 20.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 400.0,
+    "bounty": 85.0
+   },
+   {
+    "id": "nvde",
+    "name": "虚无行者",
+    "hp": 26000.0,
+    "armor": 60.0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 400.0,
+    "bounty": 46.0
+   },
+   {
+    "id": "nvdg",
+    "name": "巨大虚无行者长老",
+    "hp": 500000.0,
+    "armor": 0,
+    "armorType": "divine",
+    "armorLabel": "神圣",
+    "speed": 400.0,
+    "bounty": 1888.0
+   }
+  ]
+ },
+ {
+  "wave": 47,
+  "isBoss": false,
+  "variant": "",
+  "hints": [
+   "少 抗性"
+  ],
+  "spawners": {
+   "RV": "少: 每1s/每口 共15只"
+  },
+  "monsterPool": [
+   {
+    "id": "n08P",
+    "name": "邪恶的胖子",
+    "hp": 360000.0,
+    "armor": 60.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 320.0,
+    "bounty": 320.0
+   },
+   {
+    "id": "nadr",
+    "name": "胖子",
+    "hp": 180000.0,
+    "armor": 25.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 190.0,
+    "bounty": 320.0
+   },
+   {
+    "id": "nalb",
+    "name": "灵魂飞龙",
+    "hp": 12000.0,
+    "armor": 1000.0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 522.0,
+    "bounty": 107.0
+   },
+   {
+    "id": "nanw",
+    "name": "暗黑使者",
+    "hp": 120000.0,
+    "armor": 0,
+    "armorType": "medium",
+    "armorLabel": "抗性(中甲)",
+    "speed": 350.0,
+    "bounty": 100.0
+   },
+   {
+    "id": "nskg",
+    "name": "蓝胖",
+    "hp": 500000.0,
+    "armor": 500.0,
+    "armorType": "large",
+    "armorLabel": "魔法(重甲)",
+    "speed": 400.0,
+    "bounty": 1888.0
+   }
+  ]
+ }
+]

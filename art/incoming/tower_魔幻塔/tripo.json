@@ -1,0 +1,58 @@
+{
+ "gen": {
+  "task_id": "f66e02cd-64cf-493e-ac8c-97d177e0d3e8",
+  "type": "animate_rig",
+  "status": "success",
+  "credits_consumed": 65,
+  "output_dir": "/Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/incoming/tower_魔幻塔/_tripo_gen/tripo-out/b1-tower-魔幻塔-rig-f66e02cd",
+  "files": [
+   "model.glb",
+   "rendered_image.webp",
+   "preview.png"
+  ],
+  "model_file": "/Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/incoming/tower_魔幻塔/_tripo_gen/tripo-out/b1-tower-魔幻塔-rig-f66e02cd/model.glb",
+  "preview": "/Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/incoming/tower_魔幻塔/_tripo_gen/tripo-out/b1-tower-魔幻塔-rig-f66e02cd/preview.png",
+  "chain": [
+   {
+    "task_id": "d466abf0-91b0-4167-bbe9-c923d4535ff0",
+    "type": "animate_prerigcheck",
+    "status": "success",
+    "credits_consumed": 0,
+    "output_dir": "/Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/incoming/tower_魔幻塔/_tripo_gen/tripo-out/b1-tower-魔幻塔-rig-check-d466abf0",
+    "files": []
+   },
+   {
+    "task_id": "f66e02cd-64cf-493e-ac8c-97d177e0d3e8",
+    "type": "animate_rig",
+    "status": "success",
+    "credits_consumed": 25,
+    "output_dir": "/Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/incoming/tower_魔幻塔/_tripo_gen/tripo-out/b1-tower-魔幻塔-rig-f66e02cd",
+    "files": [
+     "model.glb",
+     "rendered_image.webp",
+     "preview.png"
+    ],
+    "model_file": "/Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/incoming/tower_魔幻塔/_tripo_gen/tripo-out/b1-tower-魔幻塔-rig-f66e02cd/model.glb",
+    "preview": "/Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/incoming/tower_魔幻塔/_tripo_gen/tripo-out/b1-tower-魔幻塔-rig-f66e02cd/preview.png"
+   }
+  ],
+  "source_task_id": "f2ddbd47-99e4-4e8a-ae66-19ea821b95e8",
+  "credits_breakdown": [
+   {
+    "task_id": "f2ddbd47-99e4-4e8a-ae66-19ea821b95e8",
+    "type": "text_to_model",
+    "credits_consumed": 40
+   },
+   {
+    "task_id": "d466abf0-91b0-4167-bbe9-c923d4535ff0",
+    "type": "animate_prerigcheck",
+    "credits_consumed": 0
+   },
+   {
+    "task_id": "f66e02cd-64cf-493e-ac8c-97d177e0d3e8",
+    "type": "animate_rig",
+    "credits_consumed": 25
+   }
+  ]
+ }
+}

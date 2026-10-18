@@ -1,0 +1,37 @@
+{
+ "key": "builder",
+ "src": "sprites/builder.png",
+ "frameW": 128,
+ "frameH": 128,
+ "cols": 8,
+ "rows": 24,
+ "anchor": [
+  0.5,
+  0.76
+ ],
+ "unitsPerPixel": 2.0,
+ "pitch": 50,
+ "actions": {
+  "idle": {
+   "row": 0,
+   "dirs": 8,
+   "frames": 6,
+   "fps": 8,
+   "loop": true
+  },
+  "walk": {
+   "row": 8,
+   "dirs": 8,
+   "frames": 8,
+   "fps": 12,
+   "loop": true
+  },
+  "build": {
+   "row": 16,
+   "dirs": 8,
+   "frames": 6,
+   "fps": 10,
+   "loop": true
+  }
+ }
+}

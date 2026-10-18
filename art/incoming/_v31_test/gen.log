@@ -1,0 +1,39 @@
+── Plan ──────────────────────────
+input: Stylized low-poly fantasy RTS game character, hand-painted texture, chunky exaggerated proportions, big hands and broad shoulders, head-to-body ratio about 1:4, bold readable silhouette, saturated colors, flat diffuse texture with no baked lighting or shadows, full body, A-pose with arms slightly away from the body, facing front, single character, no ground, no pedestal, clean geometry. A scrawny human bandit thug with a cloth face mask, ragged leather vest with large bright orange cloth armor patches on the shoulders and chest, holding a short rusty dagger, hunched sneaky posture.
+model: v3.1-20260211 — explicit --model
+steps:
+  1. text-to-model  POST /v3/generation/text-to-model — generate a 3D model from text
+     model="v3.1-20260211" face_limit=3000 smart_low_poly=true negative_prompt="realistic, baked shadows, multiple characters, text, base, pedestal"
+  2. rig-check  POST /v3/animations/rig-check — check riggability (no model output; stops the chain if not riggable)
+  3. rig  POST /v3/animations/rig — auto-rig a skeleton
+──────────────────────────────────
+model: v3.1-20260211 (explicit --model)
+task created ef1b3220-2fdc-44df-b154-ff6c40a5d478 (@v31-nban)
+text_to_model · queued
+text_to_model · running 2% · ef1b3220
+text_to_model · running 3% · ef1b3220
+text_to_model · running 4% · ef1b3220
+text_to_model · running 6% · ef1b3220
+text_to_model · running 9% · ef1b3220
+text_to_model · running 14% · ef1b3220
+text_to_model · running 20% · ef1b3220
+text_to_model · running 26% · ef1b3220
+text_to_model · running 32% · ef1b3220
+text_to_model · running 38% · ef1b3220
+text_to_model · running 44% · ef1b3220
+text_to_model · running 49% · ef1b3220
+text_to_model · success 100% · ef1b3220
+✓ text_to_model · ef1b3220-2fdc-44df-b154-ff6c40a5d478 · 30 credits
+task created 745174f2-1057-4371-89d7-0d9d582c0f9f (@v31-nban-rig-check)
+animate_prerigcheck · queued
+✓ animate_prerigcheck · 745174f2-1057-4371-89d7-0d9d582c0f9f · 0 credits
+downloading artifacts…
+✓ artifacts saved to art/incoming/_v31_test/tripo-out/v31-nban-rig-check-745174f2
+using rig-check recommendation: biped
+task created d74f1fa3-067e-4ea9-b862-4a1216203f8e (@v31-nban-rig)
+animate_rig · queued
+animate_rig · running 40% · d74f1fa3
+animate_rig · success 100% · d74f1fa3
+✓ animate_rig · d74f1fa3-067e-4ea9-b862-4a1216203f8e · 25 credits
+downloading artifacts…
+✓ artifacts saved to art/incoming/_v31_test/tripo-out/v31-nban-rig-d74f1fa3

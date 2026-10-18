@@ -1,0 +1,77 @@
+﻿key,category,model,dirs,scale,actions,名称,原图参考,护甲或攻击,备注
+builder,builder,art/models/builder.blend,,,,循环圈守卫者,FirePandarenBrewmaster,—,火焰熊猫酒仙造型，无敌，全图闪烁
+hero:剑神,hero,art/models/hero_剑神.blend,,,,剑神,HeroBladeMaster,普通,js 剑刃风暴 / js 致命剑刃 / js 风暴镜像 / js xx急速命刃
+hero:枪神,hero,art/models/hero_枪神.blend,,,,枪神,ChaosSpaceOrc,穿刺,--QS1 / --QS2 / --QS3 / --QS4
+hero:邪冰,hero,art/models/hero_邪冰.blend,,,,邪冰,Jaina,穿刺,xx 巨型冰雹术 / xx 致命冰球术 / xx 疯狂爆冰术 / xx 邪恶冰冻术 / xx-究极闪冰术
+hero:火魂,hero,art/models/hero_火魂.blend,,,,火魂,HeroFlameLord,普通,xx 焚化之炎 / xx 爆裂之焰 / xx 陨石之火 / xx 召唤炎魔 / xx-召唤火凤
+tower:扫射塔,tower,art/models/tower_扫射塔.blend,,,,扫射塔,TrollBurrow,穿刺,共 9 级；建议 1 级 / 中级 / MAX 三档外观
+tower:天神塔,tower,art/models/tower_天神塔.blend,,,,天神塔,HeroMountainKing,普通,共 4 级；建议 1 级 / 中级 / MAX 三档外观
+tower:寒冰塔,tower,art/models/tower_寒冰塔.blend,,,,寒冰塔,Jaina,穿刺,共 5 级；建议 1 级 / 中级 / MAX 三档外观
+tower:魔幻塔,tower,art/models/tower_魔幻塔.blend,,,,魔幻塔,BloodElfSpellThief,穿刺,共 5 级；建议 1 级 / 中级 / MAX 三档外观
+tower:神圣塔,tower,art/models/tower_神圣塔.blend,,,,神圣塔,StasisTotem,普通,共 6 级；建议 1 级 / 中级 / MAX 三档外观
+tower:剑圣塔,tower,art/models/tower_剑圣塔.blend,,,,剑圣塔,HeroChaosBladeMaster,普通,共 8 级；建议 1 级 / 中级 / MAX 三档外观
+tower:牛头塔,tower,art/models/tower_牛头塔.blend,,,,牛头塔,Tauren,混乱,共 4 级；建议 1 级 / 中级 / MAX 三档外观
+tower:通灵塔,tower,art/models/tower_通灵塔.blend,,,,通灵塔,Ziggurat,普通,共 5 级；建议 1 级 / 中级 / MAX 三档外观
+tower:闪电塔,tower,art/models/tower_闪电塔.blend,,,,闪电塔,TowerDefenseTower,魔法,共 4 级；建议 1 级 / 中级 / MAX 三档外观
+tower:箭塔,tower,art/models/tower_箭塔.blend,,,,箭塔,HumanTower,穿刺,共 4 级；建议 1 级 / 中级 / MAX 三档外观
+tower:毒塔,tower,art/models/tower_毒塔.blend,,,,毒塔,SkeletonArcher,穿刺,共 5 级；建议 1 级 / 中级 / MAX 三档外观
+tower:群攻塔,tower,art/models/tower_群攻塔.blend,,,,群攻塔,GolemStatue,普通,共 5 级；建议 1 级 / 中级 / MAX 三档外观
+tower:混乱塔,tower,art/models/tower_混乱塔.blend,,,,混乱塔,WaterElemental,混乱,共 5 级；建议 1 级 / 中级 / MAX 三档外观
+tower:破坏塔,tower,art/models/tower_破坏塔.blend,,,,破坏塔,ElvenGuardMagicTower,魔法,共 4 级；建议 1 级 / 中级 / MAX 三档外观
+tower:腐蚀塔,tower,art/models/tower_腐蚀塔.blend,,,,腐蚀塔,ForestTrollShadowPriest,穿刺,共 4 级；建议 1 级 / 中级 / MAX 三档外观
+tower:暴击塔,tower,art/models/tower_暴击塔.blend,,,,暴击塔,Rifleman,普通,共 4 级；建议 1 级 / 中级 / MAX 三档外观
+tower:重击塔,tower,art/models/tower_重击塔.blend,,,,重击塔,MountainGiant,混乱,共 4 级；建议 1 级 / 中级 / MAX 三档外观
+tower:冰霜塔,tower,art/models/tower_冰霜塔.blend,,,,冰霜塔,Sorceress,魔法,共 4 级；建议 1 级 / 中级 / MAX 三档外观
+tower:加速光环,tower,art/models/tower_加速光环.blend,,,,加速光环,ThornsAura,光环,共 6 级；建议 1 级 / 中级 / MAX 三档外观
+tower:攻击光环,tower,art/models/tower_攻击光环.blend,,,,攻击光环,DevotionAura,光环,共 6 级；建议 1 级 / 中级 / MAX 三档外观
+tower:减防光环,tower,art/models/tower_减防光环.blend,,,,减防光环,VampiricAura,光环,共 6 级；建议 1 级 / 中级 / MAX 三档外观
+tower:减速光环,tower,art/models/tower_减速光环.blend,,,,减速光环,TrueshotAura,光环,共 6 级；建议 1 级 / 中级 / MAX 三档外观
+tower:灵魂塔,tower,art/models/tower_灵魂塔.blend,,,,灵魂塔,SkeletonMage,混乱,共 4 级；建议 1 级 / 中级 / MAX 三档外观
+tower:图腾塔,tower,art/models/tower_图腾塔.blend,,,,图腾塔,ChimaeraRoost,魔法,共 5 级；建议 1 级 / 中级 / MAX 三档外观
+tower:精灵塔,tower,art/models/tower_精灵塔.blend,,,,精灵塔,AncientOfWonder,混乱,共 4 级；建议 1 级 / 中级 / MAX 三档外观
+tower:巨箭塔,tower,art/models/tower_巨箭塔.blend,,,,巨箭塔,WatchTower,英雄,共 3 级；建议 1 级 / 中级 / MAX 三档外观
+tower:地精塔,tower,art/models/tower_地精塔.blend,,,,地精塔,HeroTinkerRobot,混乱,共 4 级；建议 1 级 / 中级 / MAX 三档外观
+tower:弹跳塔,tower,art/models/tower_弹跳塔.blend,,,,弹跳塔,Priest,穿刺,共 17 级；建议 1 级 / 中级 / MAX 三档外观；4 个分支：穿刺/普通/混乱/魔法
+unit:n08Q,monster,art/models/unit_n08Q.blend,,,,强壮的强盗,Bandit,物理护甲,首次出现：第 1 波；生命 16，护甲 0.0
+unit:nban,monster,art/models/unit_nban.blend,,,,强盗,Bandit,物理护甲,首次出现：第 1 波；生命 7，护甲 0.0
+unit:ndth,monster,art/models/unit_ndth.blend,,,,民兵,Militia,物理护甲,首次出现：第 1 波；生命 8，护甲 0.0
+unit:hfoo,monster,art/models/unit_hfoo.blend,,,,步兵,Footman,物理护甲,首次出现：第 1 波；生命 5，护甲 0.0
+unit:n090,monster,art/models/unit_n090.blend,,,,大蜘蛛,SpiderBlue,魔法护甲,首次出现：第 2 波；生命 80，护甲 30.0
+unit:nspb,monster,art/models/unit_nspb.blend,,,,黑蜘蛛,SpiderBlack,魔法护甲,首次出现：第 2 波；生命 21，护甲 2.0
+unit:nssp,monster,art/models/unit_nssp.blend,,,,敏捷的蜘蛛,SpiderBlue,魔法护甲,首次出现：第 2 波；生命 40，护甲 5.0
+unit:n08L,monster,art/models/unit_n08L.blend,,,,坚硬的森林蜘蛛,SpiderGreen,魔法护甲,首次出现：第 2 波；生命 10，护甲 90.0
+unit:nspg,monster,art/models/unit_nspg.blend,,,,森林蜘蛛,SpiderGreen,魔法护甲,首次出现：第 2 波；生命 21，护甲 30.0
+unit:hrif,monster,art/models/unit_hrif.blend,,,,矮人火枪手,Rifleman,魔法护甲,首次出现：第 2 波；生命 8，护甲 5.0
+unit:h07M,monster,art/models/unit_h07M.blend,,,,暗黑的女巫,Sorceress,物理护甲,首次出现：第 3 波；生命 220，护甲 10.0
+unit:hsor,monster,art/models/unit_hsor.blend,,,,女巫,Sorceress,物理护甲,首次出现：第 3 波；生命 120，护甲 0.0
+unit:h06V,monster,art/models/unit_h06V.blend,,,,小鱼人,MurlocMutant_V1,物理护甲,首次出现：第 3 波；生命 300，护甲 5.0
+unit:ngrk,monster,art/models/unit_ngrk.blend,,,,泥潭傀儡,RockGolem,物理护甲,首次出现：第 3 波；生命 110，护甲 20.0
+unit:h07Y,monster,art/models/unit_h07Y.blend,,,,智慧的魔法破坏者,BloodElfSpellThief,魔法护甲,首次出现：第 4 波；生命 45，护甲 0.0
+unit:hspt,monster,art/models/unit_hspt.blend,,,,魔法破坏者,BloodElfSpellThief,魔法护甲,首次出现：第 4 波；生命 35，护甲 0.0
+unit:nenf,monster,art/models/unit_nenf.blend,,,,强制者,Unbroken,抗性护甲,首次出现：第 4 波；生命 50，护甲 8.0
+unit:h083,monster,art/models/unit_h083.blend,,,,迅捷的小蜥蜴,Skink,魔法护甲,首次出现：第 4 波；生命 16，护甲 0.0
+unit:nder,monster,art/models/unit_nder.blend,,,,小小强,scarab,神圣护甲,首次出现：第 5 波；生命 14，护甲 0.0
+unit:h07L,monster,art/models/unit_h07L.blend,,,,大牧师,Priest,神圣护甲,首次出现：第 5 波；生命 18，护甲 13.0
+unit:hmpr,monster,art/models/unit_hmpr.blend,,,,牧师,Priest,神圣护甲,首次出现：第 5 波；生命 15，护甲 3.0
+unit:ndmu,monster,art/models/unit_ndmu.blend,,,,大小强,scarab,神圣护甲,首次出现：第 5 波；生命 600，护甲 15.0
+unit:h09H,monster,art/models/unit_h09H.blend,,,,金色的骑士,Knight,物理护甲,首次出现：第 6 波；生命 50，护甲 20.0
+unit:hkni,monster,art/models/unit_hkni.blend,,,,骑士,Knight,物理护甲,首次出现：第 6 波；生命 25，护甲 10.0
+unit:hgyr,monster,art/models/unit_hgyr.blend,,,,血精灵工人,BloodElfpeasant,物理护甲,首次出现：第 6 波；生命 300，护甲 0.0
+unit:ndrf,monster,art/models/unit_ndrf.blend,,,,达拉内尔守卫,Dranai,物理护甲,首次出现：第 6 波；生命 250，护甲 0.0
+unit:ndrd,monster,art/models/unit_ndrd.blend,,,,屠杀者,DranaiWhite,魔法护甲,首次出现：第 6 波；生命 1500，护甲 100.0
+unit:ncea,monster,art/models/unit_ncea.blend,,,,半人马弓箭手,CentaurArcher,抗性护甲,首次出现：第 7 波；生命 60，护甲 100.0
+unit:nspd,monster,art/models/unit_nspd.blend,,,,小蚂蚁,Nerubian,抗性护甲,首次出现：第 7 波；生命 110，护甲 0.0
+unit:hmtm,monster,art/models/unit_hmtm.blend,,,,迫击炮小队,MortarTeam,抗性护甲,首次出现：第 7 波；生命 62，护甲 0.0
+unit:njg1,boss,art/models/unit_njg1.blend,,,,人马将领,Centaur,抗性护甲,首次出现：第 7 波；生命 3000，护甲 0.0
+unit:h07B,monster,art/models/unit_h07B.blend,,,,敏捷的蒸汽机车,WarWagon,神圣护甲,首次出现：第 8 波；生命 210，护甲 1.0
+unit:hmtt,monster,art/models/unit_hmtt.blend,,,,蒸汽机车,WarWagon,神圣护甲,首次出现：第 8 波；生命 120，护甲 18.0
+unit:n08T,monster,art/models/unit_n08T.blend,,,,大苦工,ChaosPeon,神圣护甲,首次出现：第 8 波；生命 110，护甲 0.0
+unit:ncpn,monster,art/models/unit_ncpn.blend,,,,邪恶的苦工,ChaosPeon,神圣护甲,首次出现：第 8 波；生命 25，护甲 0.0
+unit:h07X,monster,art/models/unit_h07X.blend,,,,剑士,TheCaptain,抗性护甲,首次出现：第 9 波；生命 270，护甲 1.0
+unit:hcth,monster,art/models/unit_hcth.blend,,,,船长,TheCaptain,抗性护甲,首次出现：第 9 波；生命 150，护甲 1.0
+unit:ogru,monster,art/models/unit_ogru.blend,,,,兽族步兵,Grunt,抗性护甲,首次出现：第 9 波；生命 303，护甲 5.0
+unit:nsqo,monster,art/models/unit_nsqo.blend,,,,小红牛,Sasquatch,抗性护甲,首次出现：第 10 波；生命 500，护甲 5.0
+unit:nsqt,boss,art/models/unit_nsqt.blend,,,,大红牛,Sasquatch,物理护甲,首次出现：第 10 波；生命 10000，护甲 5.0
+unit:n09B,monster,art/models/unit_n09B.blend,,,,大豪猪,Bristleback,魔法护甲,首次出现：第 10 波；生命 2500，护甲 50.0
+unit:nsqa,boss,art/models/unit_nsqa.blend,,,,大豪猪,Bristleback,魔法护甲,首次出现：第 10 波；生命 4000，护甲 30.0
+unit:nsty,monster,art/models/unit_nsty.blend,,,,小豪猪,Bristleback,物理护甲,首次出现：第 10 波；生命 300，护甲 0.0

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "tripo-mcp": {
+      "command": "uvx",
+      "args": ["--with", "mcp<2", "tripo-mcp@0.1.2"]
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+ "gen": {
+  "task_id": "4d309c77-9e06-4ae1-8435-4a24fa8a655f",
+  "type": "text_to_model",
+  "status": "success",
+  "credits_consumed": 40,
+  "output_dir": "/Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/incoming/tower_闪电塔@L3/_tripo_gen/tripo-out/b1-tower-闪电塔-l3-4d309c77",
+  "files": [
+   "model.glb",
+   "rendered_image.webp",
+   "generated_image.jpeg",
+   "preview.png"
+  ],
+  "model_file": "/Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/incoming/tower_闪电塔@L3/_tripo_gen/tripo-out/b1-tower-闪电塔-l3-4d309c77/model.glb",
+  "preview": "/Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/incoming/tower_闪电塔@L3/_tripo_gen/tripo-out/b1-tower-闪电塔-l3-4d309c77/preview.png"
+ }
+}

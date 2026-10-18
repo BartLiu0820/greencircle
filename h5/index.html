@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>绿色循环圈外传 H5</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <header id="top">
+    <div class="menu">
+      <button id="btn-help">任务(F9)</button>
+      <button id="btn-pause">暂停(P)</button>
+      <button id="btn-speed">速度 1x</button>
+      <button id="btn-start" class="go">立即开始</button>
+    </div>
+    <div class="res">
+      <span class="r"><i class="ico gold-ico"></i><b id="r-gold" class="gold">0</b></span>
+      <span class="r"><i class="ico wood-ico"></i><b id="r-wood" class="wood">0</b></span>
+      <span class="r"><i class="ico food-ico"></i><b id="r-food">0/0</b></span>
+      <span class="r mode" id="r-mode"></span>
+    </div>
+  </header>
+
+  <main id="stage">
+    <canvas id="cv"></canvas>
+    <div id="quick">
+      <button id="q-builder" title="守卫者 (F1)"><span>守</span></button>
+      <button id="q-hero" class="hidden" title="英雄塔 (F2)"><span id="q-hero-name">英</span><em id="q-hero-lv">1</em></button>
+    </div>
+    <div id="wavebox">
+      <div class="wt"><span id="w-title">准备阶段</span><span id="w-timer">00:60</span></div>
+      <div class="wc">当前怪数: <b id="w-count">0</b>（最大 <b id="w-cap">40</b>）<span class="pf">Perfect <b id="w-perfect">0</b></span></div>
+      <div id="w-hint"></div>
+    </div>
+    <div id="msgs"></div>
+    <div id="tip" class="hidden"></div>
+  </main>
+
+  <footer id="console">
+    <div id="mmwrap">
+      <canvas id="minimap"></canvas>
+      <div class="zbtn"><button id="btn-zin" title="放大">+</button><button id="btn-zout" title="缩小">−</button></div>
+    </div>
+    <div id="info"></div>
+    <div id="cmd"></div>
+  </footer>
+</div>
+<div id="modal" class="hidden"><div id="modal-box"></div></div>
+<script src="assets/manifest.js"></script>
+<script src="assets/sprites.js"></script>
+<script src="data.js"></script>
+<script src="terrain.js"></script>
+<script src="fx.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+{
+ "gen": {
+  "task_id": "21b0c7ac-5914-41d0-ab6f-262fbda5cd33",
+  "type": "animate_rig",
+  "status": "success",
+  "credits_consumed": 65,
+  "output_dir": "/Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/incoming/tower_灵魂塔@L4/_tripo_gen/tripo-out/b1-tower-灵魂塔-l4-rig-21b0c7ac",
+  "files": [
+   "model.glb",
+   "rendered_image.webp",
+   "preview.png"
+  ],
+  "model_file": "/Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/incoming/tower_灵魂塔@L4/_tripo_gen/tripo-out/b1-tower-灵魂塔-l4-rig-21b0c7ac/model.glb",
+  "preview": "/Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/incoming/tower_灵魂塔@L4/_tripo_gen/tripo-out/b1-tower-灵魂塔-l4-rig-21b0c7ac/preview.png",
+  "chain": [
+   {
+    "task_id": "89738efc-29e9-42cd-9837-aa9bb162ae14",
+    "type": "animate_prerigcheck",
+    "status": "success",
+    "credits_consumed": 0,
+    "output_dir": "/Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/incoming/tower_灵魂塔@L4/_tripo_gen/tripo-out/b1-tower-灵魂塔-l4-rig-check-89738efc",
+    "files": []
+   },
+   {
+    "task_id": "21b0c7ac-5914-41d0-ab6f-262fbda5cd33",
+    "type": "animate_rig",
+    "status": "success",
+    "credits_consumed": 25,
+    "output_dir": "/Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/incoming/tower_灵魂塔@L4/_tripo_gen/tripo-out/b1-tower-灵魂塔-l4-rig-21b0c7ac",
+    "files": [
+     "model.glb",
+     "rendered_image.webp",
+     "preview.png"
+    ],
+    "model_file": "/Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/incoming/tower_灵魂塔@L4/_tripo_gen/tripo-out/b1-tower-灵魂塔-l4-rig-21b0c7ac/model.glb",
+    "preview": "/Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/incoming/tower_灵魂塔@L4/_tripo_gen/tripo-out/b1-tower-灵魂塔-l4-rig-21b0c7ac/preview.png"
+   }
+  ],
+  "source_task_id": "a7170bb4-78c3-49c4-ab11-b9a1efe8aba8",
+  "credits_breakdown": [
+   {
+    "task_id": "a7170bb4-78c3-49c4-ab11-b9a1efe8aba8",
+    "type": "text_to_model",
+    "credits_consumed": 40
+   },
+   {
+    "task_id": "89738efc-29e9-42cd-9837-aa9bb162ae14",
+    "type": "animate_prerigcheck",
+    "credits_consumed": 0
+   },
+   {
+    "task_id": "21b0c7ac-5914-41d0-ab6f-262fbda5cd33",
+    "type": "animate_rig",
+    "credits_consumed": 25
+   }
+  ]
+ }
+}

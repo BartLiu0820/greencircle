@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "h5",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": ["-c", "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/e2155dd2-6793-46d5-b670-50d99afe86bd/scratchpad/h5srv && exec python3 -m http.server 8765"],
+      "port": 8765
+    }
+  ]
+}

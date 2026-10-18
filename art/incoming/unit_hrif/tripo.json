@@ -1,0 +1,58 @@
+{
+ "gen": {
+  "task_id": "c7206840-748c-401f-90e9-b4f84d53bdd1",
+  "type": "animate_rig",
+  "status": "success",
+  "credits_consumed": 65,
+  "output_dir": "/Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/incoming/unit_hrif/_tripo_gen/tripo-out/b1-unit-hrif-rig-c7206840",
+  "files": [
+   "model.glb",
+   "rendered_image.webp",
+   "preview.png"
+  ],
+  "model_file": "/Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/incoming/unit_hrif/_tripo_gen/tripo-out/b1-unit-hrif-rig-c7206840/model.glb",
+  "preview": "/Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/incoming/unit_hrif/_tripo_gen/tripo-out/b1-unit-hrif-rig-c7206840/preview.png",
+  "chain": [
+   {
+    "task_id": "188ccdf2-cfad-4754-90a6-aaeb966666bb",
+    "type": "animate_prerigcheck",
+    "status": "success",
+    "credits_consumed": 0,
+    "output_dir": "/Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/incoming/unit_hrif/_tripo_gen/tripo-out/b1-unit-hrif-rig-check-188ccdf2",
+    "files": []
+   },
+   {
+    "task_id": "c7206840-748c-401f-90e9-b4f84d53bdd1",
+    "type": "animate_rig",
+    "status": "success",
+    "credits_consumed": 25,
+    "output_dir": "/Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/incoming/unit_hrif/_tripo_gen/tripo-out/b1-unit-hrif-rig-c7206840",
+    "files": [
+     "model.glb",
+     "rendered_image.webp",
+     "preview.png"
+    ],
+    "model_file": "/Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/incoming/unit_hrif/_tripo_gen/tripo-out/b1-unit-hrif-rig-c7206840/model.glb",
+    "preview": "/Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/incoming/unit_hrif/_tripo_gen/tripo-out/b1-unit-hrif-rig-c7206840/preview.png"
+   }
+  ],
+  "source_task_id": "abb7edba-610a-42c4-b21f-01894fc19f48",
+  "credits_breakdown": [
+   {
+    "task_id": "abb7edba-610a-42c4-b21f-01894fc19f48",
+    "type": "text_to_model",
+    "credits_consumed": 40
+   },
+   {
+    "task_id": "188ccdf2-cfad-4754-90a6-aaeb966666bb",
+    "type": "animate_prerigcheck",
+    "credits_consumed": 0
+   },
+   {
+    "task_id": "c7206840-748c-401f-90e9-b4f84d53bdd1",
+    "type": "animate_rig",
+    "credits_consumed": 25
+   }
+  ]
+ }
+}

@@ -1,0 +1,17 @@
+{
+ "gen": {
+  "task_id": "cae59e1c-7a5f-4931-aafd-701f1684cb09",
+  "type": "text_to_model",
+  "status": "success",
+  "credits_consumed": 40,
+  "output_dir": "/Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/incoming/tower_攻击光环@L3/_tripo_gen/tripo-out/b1-tower-攻击光环-l3-cae59e1c",
+  "files": [
+   "model.glb",
+   "rendered_image.webp",
+   "generated_image.jpeg",
+   "preview.png"
+  ],
+  "model_file": "/Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/incoming/tower_攻击光环@L3/_tripo_gen/tripo-out/b1-tower-攻击光环-l3-cae59e1c/model.glb",
+  "preview": "/Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/incoming/tower_攻击光环@L3/_tripo_gen/tripo-out/b1-tower-攻击光环-l3-cae59e1c/preview.png"
+ }
+}

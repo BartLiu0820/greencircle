@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>精灵预览</title>
+<style>
+  :root { --bg: #0d130e; --panel: #172019; --line: #34452f; --text: #e6eee7; --muted: #93a596; --gold: #ffd257; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 13px/1.5 -apple-system, "PingFang SC", sans-serif; }
+  header { padding: 10px 16px; border-bottom: 1px solid var(--line); display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  header h1 { font-size: 16px; margin: 0; }
+  header label { color: var(--muted); }
+  select, input { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 3px 6px; }
+  main { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; padding: 12px 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+  .card h2 { font-size: 14px; margin: 0 0 4px; color: var(--gold); }
+  .card .meta { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+  .dirs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+  .dirs div { text-align: center; font-size: 11px; color: var(--muted); }
+  canvas { width: 100%; aspect-ratio: 1; background: #1f4a2b; border-radius: 4px; image-rendering: auto; }
+  .empty { padding: 40px 16px; color: var(--muted); }
+  code { background: #000; padding: 1px 5px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>精灵预览</h1>
+  <label>动作 <select id="act"><option value="">全部动作依次播放</option></select></label>
+  <label>背景 <select id="bg"><option value="#1f4a2b">草地</option><option value="#56636a">道路</option><option value="#000">黑</option><option value="#fff">白</option></select></label>
+  <label>筛选 <input id="q" placeholder="key 或名称"></label>
+</header>
+<main id="list"></main>
+<script src="assets/sprites.js"></script>
+<script>
+const SHEETS = window.SPRITE_SHEETS || {};
+const DIR_CN = ['南', '西南', '西', '西北', '北', '东北', '东', '东南'];
+const list = document.getElementById('list');
+const acts = new Set(); Object.values(SHEETS).forEach(m => Object.keys(m.actions).forEach(a => acts.add(a)));
+acts.forEach(a => document.getElementById('act').add(new Option(a, a)));
+if (!Object.keys(SHEETS).length) list.innerHTML = '<div class="empty">还没有登记的精灵表。出图后运行 <code>python3 tools/register_sprites.py --webp</code> 再刷新本页。</div>';
+const cards = [];
+for (const [key, m] of Object.entries(SHEETS)) {
+  const img = new Image(); img.src = 'assets/' + m.src;
+  const card = document.createElement('div'); card.className = 'card'; card.dataset.key = key;
+  const maxDirs = Math.max(...Object.values(m.actions).map(a => a.dirs));
+  card.innerHTML = `<h2>${key}</h2><div class="meta">${m.frameW}px · ${Object.entries(m.actions).map(([k, a]) => `${k} ${a.dirs}向×${a.frames}帧`).join(' / ')}</div>
+    <div class="dirs">${Array.from({ length: maxDirs }, (_, d) => `<div><canvas width="${m.frameW}" height="${m.frameH}"></canvas>${maxDirs > 1 ? DIR_CN[d] : '单方向'}</div>`).join('')}</div>`;
+  list.appendChild(card);
+  cards.push({ key, m, img, cvs: [...card.querySelectorAll('canvas')] });
+}
+const t0 = performance.now();
+function frame(now) {
+  const sel = document.getElementById('act').value, q = document.getElementById('q').value.trim();
+  const bg = document.getElementById('bg').value;
+  for (const c of cards) {
+    const card = c.cvs[0].closest('.card');
+    card.style.display = !q || c.key.includes(q) ? '' : 'none';
+    if (!c.img.complete || !c.img.naturalWidth) continue;
+    const names = sel ? [sel].filter(a => c.m.actions[a]) : Object.keys(c.m.actions);
+    if (!names.length) continue;
+    // 依次播放：每个动作放 2 秒
+    const t = (now - t0) / 1000, name = names[Math.floor(t / 2) % names.length], a = c.m.actions[name];
+    const f = a.loop ? Math.floor(t * a.fps) % a.frames : Math.min(Math.floor((t % 2) * a.fps), a.frames - 1);
+    c.cvs.forEach((cv, d) => {
+      const g = cv.getContext('2d');
+      g.fillStyle = bg; g.fillRect(0, 0, cv.width, cv.height);
+      g.strokeStyle = 'rgba(255,255,255,.25)'; g.beginPath();                              // 脚底锚点十字
+      const ax = c.m.anchor[0] * cv.width, ay = c.m.anchor[1] * cv.height;
+      g.moveTo(ax - 8, ay); g.lineTo(ax + 8, ay); g.moveTo(ax, ay - 8); g.lineTo(ax, ay + 8); g.stroke();
+      const row = a.row + (a.dirs > 1 ? d % a.dirs : 0);
+      g.drawImage(c.img, f * c.m.frameW, row * c.m.frameH, c.m.frameW, c.m.frameH, 0, 0, cv.width, cv.height);
+      g.fillStyle = '#ffd257'; g.font = '11px sans-serif'; g.fillText(name, 4, 12);
+    });
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

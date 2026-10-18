@@ -1,0 +1,29 @@
+{
+  "task_id": "0a600c5f-f355-4881-865b-95f35af2ef3e",
+  "type": "text_to_model",
+  "status": "success",
+  "input": {
+    "pbr": true,
+    "prompt": "Stylized low-poly fantasy RTS game asset, hand-painted texture, chunky exaggerated shapes, bold readable silhouette, saturated colors, flat diffuse texture with no baked lighting or shadows, clean geometry. A grand obelisk of black stone and gold topped with a large crimson crystal, two orbiting glowing red rune rings and floating sword emblems. Small game prop, no ground, no pedestal, centered, stylized.",
+    "texture": true,
+    "export_uv": true,
+    "face_limit": 6000,
+    "model_version": "P1-20260311",
+    "negative_prompt": "realistic, photorealistic, glossy reflections, baked shadows, multiple characters, text, logo, watermark, extra limbs, merged fingers, base, pedestal, background scenery",
+    "texture_alignment": "geometry"
+  },
+  "output_fields": [
+    "model_url",
+    "rendered_image_url",
+    "generated_image_url"
+  ],
+  "credits_consumed": 40,
+  "created_at": "2026-10-16T02:59:56.473521Z",
+  "completed_at": "2026-10-16T03:00:50.828333Z",
+  "files": [
+    "model.glb",
+    "rendered_image.webp",
+    "generated_image.jpeg",
+    "preview.png"
+  ]
+}
