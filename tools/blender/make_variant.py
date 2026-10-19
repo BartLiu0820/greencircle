@@ -11,6 +11,9 @@ ap = argparse.ArgumentParser()
 ap.add_argument('--base', required=True); ap.add_argument('--out', required=True)
 ap.add_argument('--scale', type=float, default=1.0)
 ap.add_argument('--tint', default='1,1,1', help='RGB 乘数，如 0.8,1,0.8 偏绿')
+ap.add_argument('--mode', default='multiply', choices=['multiply', 'color'],
+                help='multiply：乘颜色（暗色贴图变化很小）；color：换色相和饱和度、保留明暗（变体区分更明显）')
+ap.add_argument('--strength', type=float, default=0.6, help='color 模式的混合强度 0~1')
 args = ap.parse_args(argv)
 tint = [float(x) for x in args.tint.split(',')] + [1.0]
 
@@ -37,8 +40,9 @@ if tint[:3] != [1.0, 1.0, 1.0]:
         inp = bsdf.inputs['Base Color']
         if inp.is_linked:
             src = inp.links[0].from_socket
-            mix = nt.nodes.new('ShaderNodeMix'); mix.data_type = 'RGBA'; mix.blend_type = 'MULTIPLY'
-            mix.inputs['Factor'].default_value = 1.0
+            mix = nt.nodes.new('ShaderNodeMix'); mix.data_type = 'RGBA'
+            mix.blend_type = 'COLOR' if args.mode == 'color' else 'MULTIPLY'
+            mix.inputs['Factor'].default_value = args.strength if args.mode == 'color' else 1.0
             nt.links.new(src, mix.inputs[6]); mix.inputs[7].default_value = tint
             nt.links.new(mix.outputs[2], inp)
         else:

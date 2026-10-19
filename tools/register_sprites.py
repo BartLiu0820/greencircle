@@ -17,7 +17,7 @@ for meta_path in sorted(glob.glob(os.path.join(SP, '*.json'))):
         out = png[:-4] + '.webp'
         Image.open(png).save(out, 'WEBP', quality=90, method=6)
         meta['src'] = meta['src'][:-4] + '.webp'
-    elif not webp and os.path.exists(png[:-4] + '.webp') and not os.path.exists(png):
+    elif not webp and os.path.exists(png[:-4] + '.webp') and (not os.path.exists(png) or os.path.getmtime(png[:-4] + '.webp') >= os.path.getmtime(png)):   # 已有不旧于 PNG 的 WebP 就继续用
         meta['src'] = meta['src'][:-4] + '.webp'
     f = os.path.join(ROOT, 'h5', 'assets', meta['src'])
     if not os.path.exists(f):

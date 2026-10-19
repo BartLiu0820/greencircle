@@ -1,0 +1,37 @@
+{
+ "key": "unit:nrdr",
+ "src": "sprites/unit_nrdr.png",
+ "frameW": 192,
+ "frameH": 192,
+ "cols": 8,
+ "rows": 24,
+ "anchor": [
+  0.5,
+  0.62
+ ],
+ "unitsPerPixel": 3.3333333333333335,
+ "pitch": 50,
+ "actions": {
+  "walk": {
+   "row": 0,
+   "dirs": 8,
+   "frames": 8,
+   "fps": 12,
+   "loop": true
+  },
+  "death": {
+   "row": 8,
+   "dirs": 8,
+   "frames": 6,
+   "fps": 12,
+   "loop": false
+  },
+  "spell": {
+   "row": 16,
+   "dirs": 8,
+   "frames": 6,
+   "fps": 12,
+   "loop": false
+  }
+ }
+}

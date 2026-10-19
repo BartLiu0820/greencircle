@@ -184,6 +184,11 @@ function create() {
     for (let i = 0; i < 8 * k; i++) F.smoke(x + rnd(-50, 50) * k, y + rnd(-50, 50) * k, rnd(10, 50), '#555', rnd(0.7, 1.2), rnd(30, 50) * k);
     F.sparks(x, y, 30, '#ffd060', 10 * k, 380 * k);
   };
+  // 从天上砸下来的东西（冰雹、陨石）：斜着落下，带拖尾，落地时调用 onEnd(F, x, y)
+  F.fall = (x, y, o = {}) => fxs.push({ k: 'fall', x, y, z0: o.z || 700, dx: o.dx ?? -260, dy: o.dy ?? 120, color: o.color || '#bff4ff', core: o.core || '#ffffff',
+    size: o.size || 24, life: o.dur || 0.35, max: o.dur || 0.35, onEnd: o.onEnd, rock: o.rock });
+  // 贴地扩散的冲击波（实心渐变圆盘 + 亮边），比 ring 更有分量
+  F.nova = (x, y, r, color, life = 0.45) => fxs.push({ k: 'nova', x, y, r, color, life, max: life });
   F.beam = (x1, y1, z1, x2, y2, z2, color, w = 1, life = 0.1) => fxs.push({ k: 'beam', x1, y1, z1, x2, y2, z2, color, w, life, max: life });
 
   // ------------------------------ 发射
@@ -246,7 +251,7 @@ function create() {
       if (q.grow) q.size *= 1 + (q.grow - 1) * dt;
     }
     let j = 0; for (const q of parts) if (q.life > 0) parts[j++] = q; parts.length = j;
-    for (const f of fxs) { f.life -= dt; if (f.k === 'bolt' && (f.jt = (f.jt || 0) - dt) <= 0) { f.jt = 0.04; f.pts = null; } }
+    for (const f of fxs) { f.life -= dt; if (f.k === 'fall' && f.life <= 0 && f.onEnd) { const cb = f.onEnd; f.onEnd = null; cb(F, f.x, f.y); } if (f.k === 'bolt' && (f.jt = (f.jt || 0) - dt) <= 0) { f.jt = 0.04; f.pts = null; } }
     j = 0; for (const f of fxs) if (f.life > 0) fxs[j++] = f; fxs.length = j;
   };
   F.clear = () => { P.length = 0; parts.length = 0; fxs.length = 0; };
@@ -265,6 +270,11 @@ function create() {
         g.beginPath(); g.ellipse(X(f.x), Y(f.y), 60 * S, 34 * S, 0, 0, TAU); g.fill();
         for (let i = 0; i < 6; i++) { const an = rr() * TAU, d = (50 + rr() * 40) * S; g.beginPath(); g.ellipse(X(f.x) + Math.cos(an) * d, Y(f.y) + Math.sin(an) * d * 0.55, (8 + rr() * 10) * S, (5 + rr() * 6) * S, 0, 0, TAU); g.fill(); }
         g.globalAlpha = 1;
+      } else if (f.k === 'nova') {
+        const k = 1 - a, r = f.r * (0.25 + 0.75 * Math.sqrt(k)) * S, x = X(f.x), y = Y(f.y);
+        const gr = g.createRadialGradient(x, y, r * 0.2, x, y, r);
+        gr.addColorStop(0, f.color + '00'); gr.addColorStop(0.75, f.color + '44'); gr.addColorStop(0.95, f.color + 'cc'); gr.addColorStop(1, f.color + '00');
+        g.globalAlpha = Math.min(1, a * 1.6); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill(); g.globalAlpha = 1;
       } else if (f.k === 'ring') {
         const r = f.r * (1 - a * 0.65) * S;
         g.globalAlpha = a; g.strokeStyle = f.color; g.lineWidth = Math.max(1.5, f.w * S * 4 * a + 1);
@@ -337,6 +347,18 @@ function create() {
         const gr = g.createLinearGradient(0, y - h, 0, y); gr.addColorStop(0, f.color + '00'); gr.addColorStop(0.7, f.color + 'aa'); gr.addColorStop(1, '#ffffff');
         g.globalAlpha = a; g.fillStyle = gr; g.fillRect(x - w / 2, y - h, w, h);
         g.drawImage(glow(f.color), x - w * 2, y - w * 1.2, w * 4, w * 2.4);
+      } else if (f.k === 'fall') {
+        const k = Math.max(0, a), z = f.z0 * k, x = X(f.x + f.dx * k), y = Y(f.y + f.dy * k, z);
+        const tx = X(f.x + f.dx * Math.min(1, k + 0.35)), ty = Y(f.y + f.dy * Math.min(1, k + 0.35), f.z0 * Math.min(1, k + 0.35));
+        const r = f.size * S * SIZE;
+        g.globalAlpha = 0.9; g.strokeStyle = f.color; g.lineCap = 'round';
+        for (const [w, al] of [[2.2, 0.25], [1.1, 0.6]]) { g.globalAlpha = al; g.lineWidth = r * w; g.beginPath(); g.moveTo(tx, ty); g.lineTo(x, y); g.stroke(); }
+        g.globalAlpha = 1; g.drawImage(glow(f.color), x - r * 2.2, y - r * 2.2, r * 4.4, r * 4.4);
+        if (f.rock) { g.globalCompositeOperation = 'source-over'; g.fillStyle = f.rock; g.beginPath(); g.arc(x, y, r * 0.7, 0, TAU); g.fill(); g.globalCompositeOperation = 'lighter'; }
+        g.drawImage(glow(f.core), x - r * 0.8, y - r * 0.8, r * 1.6, r * 1.6);
+        // 地面上的落点阴影
+        g.globalCompositeOperation = 'source-over'; g.globalAlpha = 0.35 * (1 - k); g.fillStyle = '#000';
+        g.beginPath(); g.ellipse(X(f.x), Y(f.y), r * (1.2 - 0.6 * k), r * (0.6 - 0.3 * k), 0, 0, TAU); g.fill(); g.globalCompositeOperation = 'lighter';
       } else if (f.k === 'slash') {
         const x = X(f.x), y = Y(f.y, f.z), r = 60 * S;
         g.globalAlpha = a; g.strokeStyle = f.color; g.lineWidth = Math.max(1.5, 7 * S * a); g.lineCap = 'round';

@@ -1,0 +1,23 @@
+{
+ "key": "tower:巨箭塔",
+ "src": "sprites/tower_巨箭塔.png",
+ "frameW": 192,
+ "frameH": 192,
+ "cols": 6,
+ "rows": 1,
+ "anchor": [
+  0.5,
+  0.62
+ ],
+ "unitsPerPixel": 2.0,
+ "pitch": 50,
+ "actions": {
+  "idle": {
+   "row": 0,
+   "dirs": 1,
+   "frames": 6,
+   "fps": 8,
+   "loop": true
+  }
+ }
+}

@@ -1,0 +1,219 @@
+ghoul	unit:ugho	ok	h355487/x/Ghoul (Classic) COLOR VARIATIONS/Ghoul (Classic) COLOR VARIATIONS/Ghoul.MDX | 缺贴图 0 | 动作 idle,walk,attack,death
+militia	unit:ndth	ok	h353514/x/Scarlet MilitiaV1.0/Scarlet MilitiaV1.0.mdx | 缺贴图 1 | 动作 idle,walk,attack,death
+hero:枪神	hero:枪神	ok	h352966/x/SC2marine/Marine3_Test.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+murlocmutant_v1	unit:h06V	ok	h348406/x/Baby Murloc COLOR VARIATIONS/Baby Murloc COLOR VARIATIONS/BabyMurloc.mdx | 缺贴图 0 | 动作 idle,walk,death
+rockgolem	unit:ngrk	ok	h335452/x/Earth Elemental (Classic) COLOR VARIATIONS/Earth Elemental (Classic) COLOR VARIATIONS/EarthElemental.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+bloodelfspellthief	unit:h07Y	ok	h349243/x/BE and HE Spell Breakers (Re-Classic)/HE Spell Breaker/HESpellBreakerV2.mdx | 缺贴图 1 | 动作 idle,walk,attack,death,spell
+skink	unit:h083	ok	h355856/x/Skink Troops/Spear Skink/skink_spear_final.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+unbroken	unit:nanw	ok	h372743/x/Unbroken/Unbroken.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+priest	unit:h07L	ok	h334955/x/Draenei sacerdote/Draenei4.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+scarab	unit:nder	ok	h375452/x/Aqir Scarab (WOW)/Aqir Scarab (Red)/AqirScarabRed.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+knight	unit:h09H	ok	h337432/x/Scarlet Knight/ScarletKnight.mdx | 缺贴图 1 | 动作 idle,walk,attack,death,spell
+bloodelfpeasant	unit:hgyr	ok	h348617/x/Wretched Blood Elf COLOR VARIATIONS/Wretched Blood Elf COLOR VARIATIONS/WretchedElf.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+dranaiwhite	unit:ndrd	ok	h339897/x/Draenei Renegade Warrior/Draenei Renegade Warrior/DFIH_Warrior.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+dranai	unit:ndrf	ok	h334953/x/Draenei Warrior/Draenei2.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+mortarteam	unit:hmtm	ok	h375331/x/Theldren Ring of Law Boss - Dwarf/Theldren.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+centaurarcher	unit:ncea	ok	h50437/x/CentaurKhan/Centaur Khan.mdx | 缺贴图 0 | 动作 idle,walk,attack,death | --tint 0.2,0.4,0.95
+centaur	unit:njg1	ok	h50437/x/CentaurKhan/Centaur Khan.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+nerubian	unit:nspd	ok	h339192/x/Nerubian spiderling/NerubianSpiderling_2.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+warwagon	unit:h07B	ok	h341081/x/Alliance Siege Machine/humansiegetower.mdx | 缺贴图 2 | 动作 idle,walk,death
+chaospeon	unit:n08T	ok	h375324/x/Fel Orc Peon/FelOrcPeon.mdx/FelOrcPeon.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+thecaptain	unit:h07X	ok	h351081/x/Deathsworn Captain Optimized/Deathsworn.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+grunt	unit:ogru	ok	h375272/x/Fel Orc Grunt/FelOrcGrunt.mdx/FelOrcGrunt.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+bristleback	unit:n09B	ok	h335243/x/Boar (Classic) COLOR VARIATIONS/Boar (Classic) COLOR VARIATIONS/Boar.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+headhunter	unit:o005	ok	h375413/x/War Master Voone Lower Blackrock Spire Boss - Forest Troll/WarMasterVoone.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+chaoswolfrider	unit:o009	ok	h375323/x/Fel Orc Raider/FelOrcRaider.mdx/FelOrcRaider.mdx | 缺贴图 1 | 动作 idle,walk,attack,death,spell
+corruptedent	unit:n094	ok	h335293/x/Starcraft 2 War3HD Treants (3 colors)/Corrupted Treant/CorruptedTreantHD.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+witchdoctor	unit:o00C	ok	h375392/x/Shadow Hunter Voshgajin Lower Blackrock Spire Boss - Forest Troll/ShadowHunterVoshGajin.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+revenantofthewaves	unit:n07C	ok	h370951/x/Dark spirit/darkspirit.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+dragonspawnblue	unit:nbdm	ok	h357826/x/Drakonid (Classic) COLOR VARIATIONS/Drakonid (Classic) COLOR VARIATIONS/DragonFootSoldier.mdx | 缺贴图 0 | 动作 idle,walk,death,spell
+orcwarlockred	unit:ndrh	ok	h348462/x/Red Guard Warlock (WoW)/RedGuardWarlock.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+shaman	unit:oshm	ok	h366861/x/Warsong Orc/Warsong.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+eredarwarlock	unit:n07X	ok	h331885/x/Eredar Male Brute Blue/eredarbrutemale_blue.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+wolfrider	unit:nsgt	ok	h374607/x/Bloodsworn Raider/Bloodsworn Raider.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+nagasummoner	unit:n091	ok	h331882/x/Naga Sea Witch/seawitch.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+tauren	unit:o004	ok	h370922/x/Tauren basher/taurenbasher.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+zombie	unit:nzom	ok	h355486/x/Super Zombie (WotLK) COLOR VARIATIONS/Super Zombie (WotLK) COLOR VARIATIONS/superzombie.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+kotobeast	unit:o007	ok	h375167/x/Kodo (Black1)/Kodo_pvpkotobeastskinblack.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+shade	unit:ushd	ok	h355495/x/Shade (Classic)/Shade.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+owlscout	unit:e005	ok	h375533/x/Skyscreamer (WOW)/Skyscreamer (Red)/Thunder Pterrordax Red.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+medivh	unit:nbdo	ok	h334648/x/Archmage Arugal/assets/Archmage Arugal Optimized/Arugal Vanilla Version/ARUGAL60.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+whitewolf	unit:o006	ok	h350325/x/Wolf (Classic) COLOR VARIATIONS/Wolf (Classic) COLOR VARIATIONS/Wolf.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+direwolf	unit:o00E	ok	h372560/x/Elwynn Forest Timber Wolf/Elwynn Forest Timber Wolf.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+satyrhellcaller	unit:n08S	ok	h355491/x/Satyr (Classic) COLOR VARIATIONS/Satyr (Classic) COLOR VARIATIONS/Satyr.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+spiritwalker	unit:o008	ok	h375459/x/Mor Grayhoof Lower Blackrock Spire Boss - Tauren/MorGrayhoof.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+archnathid	unit:n09H	ok	h334771/x/Silithid Tank (Classic) COLOR VARIATIONS/Silithid Tank (Yellow)/SilithidTank.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+cryptfiend	unit:ucry	ok	h355469/x/Crypt Fiend COLOR VARIATIONS/Crypt Fiend COLOR VARIATIONS/CryptFiend.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+skeletonmage	unit:n06Z	ok	h355482/x/Skeletal Mage (Classic)/SkeletonMage.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+skeletonorc	unit:nsko	ok	h334601/x/SC2 War3HD Skeleton Warrior/SC2 Skeleton Warrior/War3HD_Skeleton.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+skeletonarcher	unit:earc	ok	h334601/x/SC2 War3HD Skeleton Warrior/SC2 Skeleton Warrior/War3HD_Skeleton.mdx | 缺贴图 0 | 动作 idle,walk,attack,death | --tint 0.3,0.85,0.2
+demoness	unit:n08H	ok	h335291/x/Starcraft 2 War3HD Demoness (3 colors)/Demoness Red/DemonessRedHD.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+demonessblue	unit:ndqs	ok	h335291/x/Starcraft 2 War3HD Demoness (3 colors)/Demoness Blue/DemonessBlueHD.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+banshee	unit:uban	ok	h334295/x/Banshee (Classic)/Banshee.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+necromancer	unit:njgb	ok	h355485/x/Necromancer COLOR VARIATIONS/Necromancer COLOR VARIATIONS/Necromancer.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+murlocflesheater	unit:nmfs	ok	h348404/x/Murloc (Classic) COLOR VARIATIONS/Murloc (Classic) COLOR VARIATIONS/Murloc.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+murlocwarrior	unit:nmrr	ok	h332312/x/Alliance Murloc WoW Rip/Alliance Murloc/Alliance Murlock Final No Team Color.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+dalaranreject	unit:u003	ok	h335244/x/Bog Beast (Classic) COLOR VARIATIONS/Bog Beast (Classic) COLOR VARIATIONS/BogBeast.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+mammothblack	unit:n092	ok	h375497/x/Wooly Rhino (WOW)/Wooly Rhino (Blue)/Woolly Rhino Blue.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+skeleton	unit:u007	ok	h374674/x/Scourge Skeleton Ironklad/scourgeskeletonironklad.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+abomination	unit:nchg	ok	h334810/x/Abomination (Classic) COLOR VARIATIONS/FleshGolem.mdx/FleshGolem.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+felhound	unit:nfel	ok	h355478/x/Felhound (Classic)/FelHound.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+golemstatue	unit:n093	ok	h335202/x/Arcane Golem COLOR VARIATIONS/Arcane Golem COLOR VARIATIONS/ArcaneGolem.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+kobold	unit:nkol	ok	h355108/x/Trogg (Classic) COLOR VARIATIONS/Trogg (Classic) COLOR VARIATIONS/Trogg.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+meatwagon	unit:umtw	ok	h332539/x/Animated Bone Catapult WoW Rip/9nc_necro_warlord_catapult01 Animated.mdx | 缺贴图 0 | 动作 idle,walk,attack
+lobstrokkgreen	unit:nlkl	ok	h375432/x/Lobstrok (WOW Classic Version)/Lobstrok (Red)/LobstrokRed.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+lobstrokkred	unit:nlpr	ok	h375433/x/Lobstrok Outland (WOW)/Lobstrok Outland (Red)/OutlandLobstrokRed.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+irongolem	unit:n080	ok	h335341/x/Iron Dwarf Golem COLOR VARIATIONS/Iron Dwarf Golem COLOR VARIATIONS/GolemIron.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+shandris	unit:u00K	ok	h335662/x/Starcraft 2 War3HD Dark Ranger  alts/Dark Ranger/SC2HeroDarkRanger.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+huntress	unit:e001	ok	h366688/x/Huntress/huntress.mdx/huntress.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+hydralisk	unit:n08U	ok	h334962/x/Hydralisk/hydralisk.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+ballista	unit:e002	ok	h366689/x/Night Elf Glaive Thrower/nightelfglaivethrower.mdx | 缺贴图 0 | 动作 idle,walk,death
+hydra	unit:nhyh	ok	h361598/x/Hydra Pack/Hydra Green/HydraGreen.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+ent	unit:e00B	ok	h335293/x/Starcraft 2 War3HD Treants (3 colors)/Treant/TreantHD.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+infernalcannoncannon	unit:ninm	ok	h334710/x/SC2 Infernal Cannon (both)/SC2 infernalcannonCannon/infernalcannonCannon.MDX | 缺贴图 0 | 动作 walk,death
+quillbeast	unit:nqb4	ok	h348325/x/Helboar (Burning Crusade) COLOR VARIATIONS/Helboar/FelBoar.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+mountaingiant	unit:emtg	ok	h366696/x/Mountain Giant (Classic) COLOR VARIATIONS/Mountain Giant (Classic) COLOR VARIATIONS/MountainGiant.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+dragonseaturtle	unit:n088	ok	h375120/x/Sea Turtle (WOW)/Sea Turtle/SeaTurtle.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+pandarenbrewmaster	unit:Npbm	ok	h374379/x/Chen Stormstout/chenstormstout.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+earthpandarenbrewmaster	unit:Nalc	ok	h365815/x/Li Li Stormstout/li-li-stormstout.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+firepandarenbrewmaster	unit:Nfir	ok	h374379/x/Chen Stormstout/chenstormstout.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell | --tint 0.95,0.3,0.1
+stormpandarenbrewmaster	unit:Ntin	ok	h374379/x/Chen Stormstout/chenstormstout.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell | --tint 0.1,0.75,0.95
+druidoftheclaw	unit:e003	ok	h366690/x/Druid of the Claw/druidoftheclaw.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+windserpent	unit:e004	ok	h375054/x/Wind Serpent (WOW)/Wind Serpent/WindSerpent.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+ancientofwar	unit:echm	ok	h334293/x/Ancient of War (Classic)/AncientofWar.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+vengeance	unit:even	ok	h335302/x/Starcraft 2 War3HD Hero Warden ( Vengeances)/Spirit of Vengeance/SC2VengeanceHD.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+riddenhippogryph	unit:e000	ok	h366693/x/Hippogryph (Classic) COLOR VARIATIONS/Hippogryph (Classic) COLOR VARIATIONS/Hippogryph.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+druidofthetalon	unit:e006	ok	h366691/x/Druid of the Talon/druidofthetalon.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+polarfurbolg	unit:nchw	ok	h375424/x/Furbolg (Black)/FurbolgBlack.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+polarfurbolgtracker	unit:nckb	ok	h375425/x/Dire Furbolg (Black)/DireFurbolgBlack.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+icetroll	unit:n07I	ok	h374859/x/Grizzle Ring of Law Boss - Dire Troll/Grizzle.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+faeriedragon	unit:n07Y	ok	h375172/x/Nether Drake (Black)/WildNetherDrakeBlack.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+darktrolltrapper	unit:ndtw	ok	h353414/x/BloodtrollfemleHunter/bloodtrollfemaleCollD2.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+felgaurd	unit:n083	ok	h355477/x/Felguard (Classic) COLOR VARIATIONS/Felguard (Classic) COLOR VARIATIONS/FelGuard.mdx | 缺贴图 0 | 动作 idle,walk,death,spell
+felgaurdblue	unit:n08N	ok	h355479/x/Fel Lord COLOR VARIATIONS/Fel Lord COLOR VARIATIONS/fellord.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+humanbattleship	unit:n06Y	ok	h330156/x/Ships (WoW)/Human Ship/Alliance Ship.mdx | 缺贴图 0 | 动作 idle
+gyrocopter	unit:ndrj	ok	h335204/x/Alliance Gryphon Rider/AllianceRider.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+herotinker	unit:ndtr	ok	h374740/x/Plugger Spazzring Blackrock Depths Boss - Leper Gnome/PluggerSpazzring.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+dwarfcar	unit:nerw	ok	h336026/x/Harvest Golem/Harvest Golem/harvest_golem.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+diablocar	unit:nfod	ok	h360293/x/Void Thrasher Walker/Void_Thrasher_Walker.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+orccar	unit:nfor	ok	h341080/x/Horde Siege Machine/orcsiegetower.mdx | 缺贴图 2 | 动作 idle,walk,death
+undeadcar	unit:nfot	ok	h335245/x/Bone Golem/BoneGolem.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+seagiant	unit:n082	ok	h334291/x/Sea Giant (Classic)/SeaGiantClassic.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+infernal	unit:n09K	ok	h337462/x/Infernal (Classic)/InfernalClassic.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+bronzedragonwelp	unit:n07J	ok	h375019/x/Drake (Black)/DrakeBlack.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+herotinkerrobot	unit:n08V	ok	h364503/x/Gallywixs Full Mech/gallywixmech_body.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+owlbear	unit:n09I	ok	h375309/x/Wildkin (WOW Classic Version)/Wildkin/ForceofnatureOwlbearskin.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+waterelemental	unit:nelb	ok	h335454/x/Water Elemental (Classic) COLOR VARIATIONS/Water Elemental (Classic) COLOR VARIATIONS/WaterElemental.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+battroll	unit:u005	ok	h355473/x/Troll Bat Rider/BatRider.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+frostwyrm	unit:owar	ok	h355484/x/Frost Wyrm (Classic)/FrostWurm.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+snapdragon	unit:u006	ok	h375437/x/Snap Lizard (Black)/SnapLizardBlack.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+spidercrabcreep	unit:n07Z	ok	h357824/x/Crab (Classic) COLOR VARIATIONS/Crab (Classic) COLOR VARIATIONS/Crab.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+chaosorcrange	unit:nbdr	ok	h375325/x/Fel Orc Blademaster/FelOrcBlademaster.mdx/FelOrcBlademaster.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+revenant	unit:n081	ok	h374327/x/Nhallish Feaster of Souls - Undead Void Revenant/Nhallish.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+voidwalker	unit:nvde	ok	h375048/x/Void Terror (WOW)/VoidTerror.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+ogrelord	unit:n08P	ok	h375371/x/Spirestone Butcher Lower Blackrock Spire Boss - Ogre/SpirestoneButcher.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+spiritwyvern	unit:nalb	ok	h357827/x/Wyvern (Classic) COLOR VARIATIONS/Wyvern (Classic) COLOR VARIATIONS/Wyvern.mdx | 缺贴图 0 | 动作 idle,walk,attack,death
+ogremagi	unit:nskg	ok	h375389/x/Spirestone Lord Magus Lower Blackrock Spire Boss - Ogre Mage/SpirestoneLordMagus.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+tichondrius	unit:Udea	ok	h334822/x/Dreadlord (Classic) COLOR VARIATIONS/Dreadlord (Classic) COLOR VARIATIONS/DreadLord.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+bronzedragon	unit:nbzd	ok	h375145/x/Nozdormu (WOW Classic Version)/Nozdormu.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+undeadairbarge	unit:ncim	ok	h355474/x/Forsaken Bat (Taxi Version)/BatTaxi.mdx | 缺贴图 0 | 动作 idle,walk
+greendragon	unit:ngrd	ok	h375535/x/Emerald Dragon/emeralddragon.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+azuredragon	unit:nrdk	ok	h348415/x/Malygos/Malygos0000001.mdx | 缺贴图 0 | 动作 
+reddragon	unit:nrdr	ok	h363220/x/10.0 Alexstrasza/Alexstrasza Beauty Useful.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+hero:邪冰	hero:邪冰	ok	h363866/x/Jaina Proudmoore (HotS with new animations)/Jaina Proudmoore/JainaSD+.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+hero:火魂	hero:火魂	ok	h366585/x/Ragnaros Classic/Ragnaros Classic.mdx | 缺贴图 0 | 动作 idle,attack,death,spell
+扫射塔	tower:扫射塔	ok	h350604/x/Turret form Team Fortress Classic/Turret.mdx | 缺贴图 0 | 动作 idle,attack,death | --pedestal
+天神塔	tower:天神塔	ok	h354972/x/SC2 Mountain King/SC2 Mountain King/HeroMountainKing.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell | --pedestal
+寒冰塔	tower:寒冰塔	ok	h337461/x/Frost Lord Ahunes Core/FrostLordCore.mdx | 缺贴图 0 | 动作 idle,death | --pedestal
+神圣塔	tower:神圣塔	ok	h47704/x/AltarofLights/AltarofLights.mdx | 缺贴图 0 | 动作 idle,death
+剑圣塔	tower:剑圣塔	ok	h327741/x/SC2 Blademaster/SC2 Blademaster/blademaster.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell | --pedestal
+牛头塔	tower:牛头塔	ok	h353340/x/High Warlord Tauren Warrior/PVPTaurenMale.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell | --pedestal
+通灵塔	tower:通灵塔	ok	h349094/x/Icecrown Citadel (Main building)/IcecrownCitadel.mdx | 缺贴图 0 | 动作 idle
+箭塔	tower:箭塔	ok	h373109/x/Tower  Warcraft 3 Classic HD/HumanTower.mdx | 缺贴图 0 | 动作 death
+毒塔	tower:毒塔	ok	h360593/x/Toxic Nest (Starcraft 2)/Toxic Nest/ToxicNest.mdx | 缺贴图 0 | 动作 idle,death
+群攻塔	tower:群攻塔	ok	h374461/x/Bloodstone golem/bloodstonegolem.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell | --pedestal
+混乱塔	tower:混乱塔	ok	h335213/x/Air Elemental (Classic) COLOR VARIATIONS/Air Elemental (Classic) COLOR VARIATIONS/AirElemental.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell | --pedestal
+破坏塔	tower:破坏塔	ok	h354028/x/Shifting Sand Watchtower/elventowersilithus01.mdx | 缺贴图 0 | 动作 idle,death
+腐蚀塔	tower:腐蚀塔	ok	h350922/x/SC 2 Troll Shadow Hunter/SC 2 Troll Shadow Hunter/HeroShadowHunter.mdx | 缺贴图 1 | 动作 idle,walk,attack,death,spell | --pedestal
+暴击塔	tower:暴击塔	ok	h374800/x/Fineous Darkvire Blackrock Depths Boss - Dark Iron Dwarf/FineousDarkvire.mdx | 缺贴图 1 | 动作 idle,walk,attack,death,spell | --pedestal
+重击塔	tower:重击塔	ok	h348620/x/Northrend Mountain Giant/NorthrendStoneGiant.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell | --pedestal
+加速光环	tower:加速光环	ok	h366686/x/Night Elf Moonwell/nightelfmoonwellornate.mdx | 缺贴图 0 | 动作 idle
+减防光环	tower:减防光环	ok	h338841/x/Legion Teleporter/LegionTeleporter.mdx | 缺贴图 0 | 动作 idle
+减速光环	tower:减速光环	ok	h373387/x/Silvermoon City Fountain/No grass/be_fountain2.mdx | 缺贴图 0 | 动作 idle,death
+图腾塔	tower:图腾塔	ok	h355465/x/Chimaera COLOR VARIATIONS/Chimaera COLOR VARIATIONS/Chimera.mdx | 缺贴图 0 | 动作 idle,walk,attack,death | --pedestal
+精灵塔	tower:精灵塔	ok	h335206/x/Ancient of Lore/AncientofLore.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell
+巨箭塔	tower:巨箭塔	ok	h342182/x/Tower Redoran/Redoran_Tower.mdx | 缺贴图 0 | 动作 idle
+地精塔	tower:地精塔	ok	h334054/x/Mechano-Lord Capacitus/MechanoLord.mdx | 缺贴图 0 | 动作 idle,walk,attack,death | --pedestal
+弹跳塔	tower:弹跳塔	ok	h357828/x/Naaru COLOR VARIATIONS/Naaru (White)/NaaruWhite.mdx | 缺贴图 0 | 动作 idle | --pedestal
+nfrl	unit:nfrl	ok	染色 0.15,0.45,0.95 ×0.55（基于 Nalc）
+e008	unit:e008	ok	染色 0.15,0.45,0.95 ×0.69（基于 Nfir）
+e007	unit:e007	ok	染色 0.15,0.45,0.95 ×0.55（基于 Npbm）
+edry	unit:edry	ok	染色 0.15,0.45,0.95 ×0.55（基于 Ntin）
+ehpr	unit:ehpr	ok	h366693/x/Hippogryph (Classic) COLOR VARIATIONS/Hippogryph (Classic) COLOR VARIATIONS/Hippogryph.mdx | 缺贴图 0 | 动作 idle,walk,attack,death | --skin /Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/hive_raw/h366693/x/Hippogryph (Classic) COLOR VARIATIONS/hippogryphblueskin01.blp
+esen	unit:esen	ok	染色 0.15,0.45,0.95 ×1.00（基于 e001）
+ebal	unit:ebal	ok	染色 0.15,0.45,0.95 ×0.77（基于 e002）
+edoc	unit:edoc	ok	染色 0.15,0.45,0.95 ×0.77（基于 e003）
+e009	unit:e009	ok	h375054/x/Wind Serpent (WOW)/Wind Serpent/WindSerpent.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell | --skin /Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/hive_raw/h375054/x/Wind Serpent (WOW)/Wind Serpent (Black)/windserpentskinblack.blp
+enec	unit:enec	ok	h375054/x/Wind Serpent (WOW)/Wind Serpent/WindSerpent.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell | --skin /Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/hive_raw/h375054/x/Wind Serpent (WOW)/Wind Serpent (Green)/windserpentskingreen.blp
+edot	unit:edot	ok	染色 0.15,0.45,0.95 ×2.00（基于 e006）
+ehip	unit:ehip	ok	染色 0.15,0.45,0.95 ×0.67（基于 e00B）
+nanm	unit:nanm	ok	染色 0.15,0.45,0.95 ×3.00（基于 emtg）
+hmtt	unit:hmtt	ok	染色 0.15,0.45,0.95 ×1.67（基于 h07B）
+hmpr	unit:hmpr	ok	染色 0.15,0.45,0.95 ×0.83（基于 h07L）
+hsor	unit:hsor	ok	染色 0.15,0.45,0.95 ×0.77（基于 h07M）
+hcth	unit:hcth	ok	染色 0.15,0.45,0.95 ×1.00（基于 h07X）
+hspt	unit:hspt	ok	染色 0.95,0.72,0.1 ×0.80（基于 h07Y）
+hkni	unit:hkni	ok	染色 0.15,0.45,0.95 ×1.00（基于 h09H）
+n071	unit:n071	ok	染色 0.15,0.45,0.95 ×4.17（基于 n06Z）
+ners	unit:ners	ok	染色 0.15,0.45,0.95 ×0.62（基于 n07X）
+nssn	unit:nssn	ok	染色 0.2,0.85,0.25 ×0.67（基于 n07Y）
+nrwm	unit:nrwm	ok	h357824/x/Crab (Classic) COLOR VARIATIONS/Crab (Classic) COLOR VARIATIONS/Crab.mdx | 缺贴图 0 | 动作 idle,walk,attack,death | --skin /Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/hive_raw/h357824/x/Crab (Classic) COLOR VARIATIONS/CrabSkinDarkDiamond.blp
+ngbl	unit:ngbl	ok	染色 0.15,0.45,0.95 ×1.00（基于 n080）
+nsgh	unit:nsgh	ok	染色 0.55,0.15,0.9 ×0.53（基于 n081）
+nsgn	unit:nsgn	ok	染色 0.15,0.45,0.95 ×1.00（基于 n082）
+nfgu	unit:nfgu	ok	h355477/x/Felguard (Classic) COLOR VARIATIONS/Felguard (Classic) COLOR VARIATIONS/FelGuard.mdx | 缺贴图 0 | 动作 idle,walk,death,spell | --skin /Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/hive_raw/h355477/x/Felguard (Classic) COLOR VARIATIONS/FelGuardSkinBlue.blp
+ntrd	unit:ntrd	ok	h375120/x/Sea Turtle (WOW)/Sea Turtle/SeaTurtle.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell | --skin /Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/hive_raw/h375120/x/Sea Turtle (WOW)/Sea Turtle (Blue)/seaturtleskinblue.blp
+nfov	unit:nfov	ok	染色 0.95,0.72,0.1 ×1.30（基于 n08N）
+nadr	unit:nadr	ok	h375371/x/Spirestone Butcher Lower Blackrock Spire Boss - Ogre/SpirestoneButcher.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell | --skin /Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/hive_raw/h375371/x/Spirestone Butcher Lower Blackrock Spire Boss - Ogre/ogrewarlordskinarmorgray.blp
+nfra	unit:nfra	ok	h355491/x/Satyr (Classic) COLOR VARIATIONS/Satyr (Classic) COLOR VARIATIONS/Satyr.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell | --skin /Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/hive_raw/h355491/x/Satyr (Classic) COLOR VARIATIONS/SatyrSkinAlbino.blp
+ncpn	unit:ncpn	ok	染色 0.55,0.15,0.9 ×0.59（基于 n08T）
+nfrs	unit:nfrs	ok	染色 0.15,0.45,0.95 ×0.60（基于 n08U）
+ncg3	unit:ncg3	ok	染色 0.15,0.45,0.95 ×0.67（基于 n08V）
+nssp	unit:nssp	ok	染色 0.2,0.85,0.25 ×0.77（基于 n090）
+nplb	unit:nplb	ok	染色 0.15,0.45,0.95 ×0.73（基于 n091）
+nhrq	unit:nhrq	ok	染色 0.15,0.45,0.95 ×0.74（基于 n092）
+narg	unit:narg	ok	染色 0.15,0.45,0.95 ×0.96（基于 n093）
+nwrg	unit:nwrg	ok	染色 0.95,0.45,0.1 ×1.00（基于 n093）
+nenc	unit:nenc	ok	染色 0.15,0.45,0.95 ×1.00（基于 n094）
+nenp	unit:nenp	ok	染色 0.55,0.15,0.9 ×1.39（基于 n094）
+nsqa	unit:nsqa	ok	染色 0.15,0.45,0.95 ×1.00（基于 n09B）
+nsty	unit:nsty	ok	染色 0.95,0.45,0.1 ×0.47（基于 n09B）
+ucs1	unit:ucs1	ok	染色 0.2,0.85,0.25 ×0.53（基于 n09B）
+nane	unit:nane	ok	染色 0.15,0.45,0.95 ×1.00（基于 n09H）
+ngzc	unit:ngzc	ok	h375309/x/Wildkin (WOW Classic Version)/Wildkin/ForceofnatureOwlbearskin.mdx | 缺贴图 0 | 动作 idle,walk,attack,death,spell | --skin /Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/hive_raw/h375309/x/Wildkin (WOW Classic Version)/Wildkin (Black)/owlbearblackskin.blp
+n09J	unit:n09J	ok	染色 0.95,0.72,0.1 ×1.62（基于 n08Q）
+nbld	unit:nbld	ok	染色 0.15,0.45,0.95 ×1.62（基于 n08Q）
+nbal	unit:nbal	ok	染色 0.95,0.72,0.1 ×5.00（基于 n09K）
+ninf	unit:ninf	ok	染色 0.15,0.45,0.95 ×2.00（基于 n09K）
+nenf	unit:nenf	ok	染色 0.15,0.45,0.95 ×0.71（基于 nanw）
+uabo	unit:uabo	ok	h334810/x/Abomination (Classic) COLOR VARIATIONS/FleshGolem.mdx/FleshGolem.mdx | 缺贴图 0 | 动作 idle,walk,attack,death | --skin /Users/liuyiang/Documents/03个人项目探索/绿色循环圈 复刻/art/hive_raw/h334810/x/Abomination (Classic) COLOR VARIATIONS/FleshGolemSkinBlack1.blp
+nw2w	unit:nw2w	ok	染色 0.15,0.45,0.95 ×0.47（基于 nchw）
+ndmu	unit:ndmu	ok	染色 0.15,0.45,0.95 ×2.50（基于 nder）
+nele	unit:nele	ok	染色 0.15,0.45,0.95 ×0.40（基于 nelb）
+unec	unit:unec	ok	染色 0.15,0.45,0.95 ×0.71（基于 njgb）
+o00B	unit:o00B	ok	染色 0.2,0.85,0.25 ×0.54（基于 nsgt）
+orai	unit:orai	ok	染色 0.15,0.45,0.95 ×0.77（基于 nsgt）
+nsog	unit:nsog	ok	染色 0.15,0.45,0.95 ×0.24（基于 nsko）
+nvdg	unit:nvdg	ok	染色 0.95,0.72,0.1 ×1.88（基于 nvde）
+otau	unit:otau	ok	染色 0.15,0.45,0.95 ×1.00（基于 o004）
+ohun	unit:ohun	ok	染色 0.15,0.45,0.95 ×0.77（基于 o005）
+otbr	unit:otbr	ok	染色 0.15,0.45,0.95 ×0.77（基于 o006）
+okod	unit:okod	ok	染色 0.15,0.45,0.95 ×1.25（基于 o007）
+ospw	unit:ospw	ok	染色 0.15,0.45,0.95 ×0.71（基于 o008）
+oosc	unit:oosc	ok	染色 0.15,0.45,0.95 ×1.00（基于 o009）
+odoc	unit:odoc	ok	染色 0.15,0.45,0.95 ×0.62（基于 o00C）
+u004	unit:u004	ok	染色 0.15,0.45,0.95 ×0.46（基于 h07M）
+uobs	unit:uobs	ok	染色 0.95,0.45,0.1 ×0.65（基于 h07M）
+uskm	unit:uskm	ok	染色 0.15,0.45,0.95 ×1.43（基于 u006）
+ugar	unit:ugar	ok	染色 0.15,0.45,0.95 ×0.80（基于 u007）
+ufro	unit:ufro	ok	染色 0.15,0.45,0.95 ×1.00（基于 u00K）

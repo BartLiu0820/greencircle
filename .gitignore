@@ -3,3 +3,11 @@
 node_modules/
 __pycache__/
 *.pyc
+
+# Hive 模型：下载的原始包和转换中间文件都很大（共约 1.6 GB），可按 art/hive_raw/下载计划*.md 和 tools/hive_batch.py 重新生成
+art/hive_raw/*/
+art/hive_raw/*.log
+art/hive_raw/urls*.tsv
+art/models/hive/
+# 出图时的 PNG 中间文件（游戏只用 WebP）
+h5/assets/sprites/*.png
