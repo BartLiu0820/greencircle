@@ -1354,16 +1354,23 @@ function footRing(t, alpha) {
 // 鼠标悬停的单位：细一点、半透明的圈
 const hovered = () => mouse && !G.placing && !G.pending ? hitTest(wx(mouse.x), wy(mouse.y)) : null;
 function drawSprite(im, x, y, size) { const w = size, h = size * im.naturalHeight / im.naturalWidth; ctx.drawImage(im, x - w / 2, y - h * 0.75, w, h); }
+// 塔模型体型不一（毒塔、图腾塔出图比别的塔大一大圈）：按 idle 帧可见包围盒统一到差不多的大小，只缩大的、略放小的
+const TOWER_MAX_W = 240, TOWER_MAX_H = 300, TOWER_MIN_W = 124;
+function towerFit(m) {
+  if (!m.vis) return 1;
+  const [w, h] = m.vis;
+  return Math.min(TOWER_MAX_W / w, TOWER_MAX_H / h, Math.max(1, TOWER_MIN_W / w));
+}
 function drawTower(t) {
   const x = sx(t.x), y = sy(t.y), s = Math.max((t.cat === 'summon' ? 90 : 150) * S, (t.cat === 'summon' ? 9 : 14) * DPR);
   const atk = t.cat === 'aura' ? 'aura' : (t.isHero ? heroStats(t).atk : curLevel(t).atk);
   if (t.cat === 'summon') { if (t === G.selected) selRing(x, y, s * 0.6, '#3cff3c'); else if (t === HOV) selRing(x, y, s * 0.6, '#3cff3c', 0.45); }
   else if (t === G.selected) footRing(t, 1); else if (t === HOV) footRing(t, 0.45);
-  if (t.cat === 'aura') { drawAuraCore(t, performance.now() / 1000); drawLevelBadge(t, x, y, s); return; }
+  if (t.cat === 'aura') { drawAuraCore(t, performance.now() / 1000); if (t === G.selected) drawLevelBadge(t, x, y, s); return; }
   const tier = t.cat === 'summon' || t.isHero ? 0 : towerTier(t);
   let sh = sheetOf(t); const im = !sh && entityImg(t);
   if (sh && tier) sh = tintedSheet(sh, TIER[tier].color, TIER[tier].tint);
-  if (sh) { shadow(t.x, t.y, s * 0.55); drawSheet(sh, t, t.x, t.y, pickAnim(t, sh.m), 1 + tier * 0.035); }
+  if (sh) { shadow(t.x, t.y, s * 0.55); drawSheet(sh, t, t.x, t.y, pickAnim(t, sh.m), towerFit(sh.m) * (1 + tier * 0.035)); }
   else if (im) drawSprite(im, x, y, s * 1.6);
   else {
     ctx.fillStyle = t.cat === 'aura' ? '#2f7a3b' : t.isHero ? '#6b4a12' : t.cat === 'summon' ? '#7a2a10' : '#2a3a4e';
@@ -1377,7 +1384,7 @@ function drawTower(t) {
   }
   if (t.cat === 'summon') return;
   if (tier >= 3) drawTierTop(t, tier, performance.now() / 1000);
-  drawLevelBadge(t, x, y, s);
+  if (t === G.selected) drawLevelBadge(t, x, y, s);         // 等级牌只在选中时显示
 }
 function drawLevelBadge(t, x, y, s) {
   // 等级小牌子：深色底 + 金字（满级是红底）

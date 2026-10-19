@@ -213,7 +213,11 @@ window.SPRITE_SHEETS = {
     "fps": 14,
     "loop": false
    }
-  }
+  },
+  "vis": [
+   152,
+   234
+  ]
  },
  "tower:冰霜塔:3": {
   "key": "tower:冰霜塔:3",
@@ -243,7 +247,11 @@ window.SPRITE_SHEETS = {
     "fps": 14,
     "loop": false
    }
-  }
+  },
+  "vis": [
+   152,
+   198
+  ]
  },
  "tower:冰霜塔:4": {
   "key": "tower:冰霜塔:4",
@@ -273,7 +281,11 @@ window.SPRITE_SHEETS = {
     "fps": 14,
     "loop": false
    }
-  }
+  },
+  "vis": [
+   160,
+   176
+  ]
  },
  "tower:减速光环": {
   "key": "tower:减速光环",
@@ -296,7 +308,11 @@ window.SPRITE_SHEETS = {
     "fps": 8,
     "loop": true
    }
-  }
+  },
+  "vis": [
+   148,
+   170
+  ]
  },
  "tower:减防光环": {
   "key": "tower:减防光环",
@@ -319,7 +335,11 @@ window.SPRITE_SHEETS = {
     "fps": 8,
     "loop": true
    }
-  }
+  },
+  "vis": [
+   194,
+   216
+  ]
  },
  "tower:剑圣塔": {
   "key": "tower:剑圣塔",
@@ -349,7 +369,11 @@ window.SPRITE_SHEETS = {
     "fps": 14,
     "loop": false
    }
-  }
+  },
+  "vis": [
+   148,
+   228
+  ]
  },
  "tower:加速光环": {
   "key": "tower:加速光环",
@@ -372,7 +396,11 @@ window.SPRITE_SHEETS = {
     "fps": 8,
     "loop": true
    }
-  }
+  },
+  "vis": [
+   182,
+   218
+  ]
  },
  "tower:图腾塔": {
   "key": "tower:图腾塔",
@@ -402,7 +430,11 @@ window.SPRITE_SHEETS = {
     "fps": 14,
     "loop": false
    }
-  }
+  },
+  "vis": [
+   676,
+   342
+  ]
  },
  "tower:地精塔": {
   "key": "tower:地精塔",
@@ -432,7 +464,11 @@ window.SPRITE_SHEETS = {
     "fps": 14,
     "loop": false
    }
-  }
+  },
+  "vis": [
+   226,
+   230
+  ]
  },
  "tower:天神塔": {
   "key": "tower:天神塔",
@@ -462,7 +498,11 @@ window.SPRITE_SHEETS = {
     "fps": 14,
     "loop": false
    }
-  }
+  },
+  "vis": [
+   138,
+   180
+  ]
  },
  "tower:寒冰塔": {
   "key": "tower:寒冰塔",
@@ -485,7 +525,11 @@ window.SPRITE_SHEETS = {
     "fps": 8,
     "loop": true
    }
-  }
+  },
+  "vis": [
+   136,
+   224
+  ]
  },
  "tower:巨箭塔": {
   "key": "tower:巨箭塔",
@@ -508,7 +552,11 @@ window.SPRITE_SHEETS = {
     "fps": 8,
     "loop": true
    }
-  }
+  },
+  "vis": [
+   134,
+   320
+  ]
  },
  "tower:弹跳塔": {
   "key": "tower:弹跳塔",
@@ -531,7 +579,11 @@ window.SPRITE_SHEETS = {
     "fps": 8,
     "loop": true
    }
-  }
+  },
+  "vis": [
+   136,
+   224
+  ]
  },
  "tower:扫射塔": {
   "key": "tower:扫射塔",
@@ -561,7 +613,11 @@ window.SPRITE_SHEETS = {
     "fps": 14,
     "loop": false
    }
-  }
+  },
+  "vis": [
+   136,
+   172
+  ]
  },
  "tower:攻击光环": {
   "key": "tower:攻击光环",
@@ -591,7 +647,11 @@ window.SPRITE_SHEETS = {
     "fps": 14,
     "loop": false
    }
-  }
+  },
+  "vis": [
+   136,
+   196
+  ]
  },
  "tower:攻击光环:3": {
   "key": "tower:攻击光环:3",
@@ -621,7 +681,11 @@ window.SPRITE_SHEETS = {
     "fps": 14,
     "loop": false
    }
-  }
+  },
+  "vis": [
+   136,
+   194
+  ]
  },
  "tower:攻击光环:6": {
   "key": "tower:攻击光环:6",
@@ -651,7 +715,11 @@ window.SPRITE_SHEETS = {
     "fps": 14,
     "loop": false
    }
-  }
+  },
+  "vis": [
+   136,
+   190
+  ]
  },
  "tower:暴击塔": {
   "key": "tower:暴击塔",
@@ -681,7 +749,11 @@ window.SPRITE_SHEETS = {
     "fps": 14,
     "loop": false
    }
-  }
+  },
+  "vis": [
+   136,
+   170
+  ]
  },
  "tower:毒塔": {
   "key": "tower:毒塔",
@@ -704,7 +776,11 @@ window.SPRITE_SHEETS = {
     "fps": 8,
     "loop": true
    }
-  }
+  },
+  "vis": [
+   566,
+   404
+  ]
  },
  "tower:混乱塔": {
   "key": "tower:混乱塔",
@@ -734,7 +810,11 @@ window.SPRITE_SHEETS = {
     "fps": 14,
     "loop": false
    }
-  }
+  },
+  "vis": [
+   234,
+   268
+  ]
  },
  "tower:灵魂塔": {
   "key": "tower:灵魂塔",
@@ -764,7 +844,11 @@ window.SPRITE_SHEETS = {
     "fps": 14,
     "loop": false
    }
-  }
+  },
+  "vis": [
+   182,
+   232
+  ]
  },
  "tower:灵魂塔:3": {
   "key": "tower:灵魂塔:3",
@@ -794,7 +878,11 @@ window.SPRITE_SHEETS = {
     "fps": 14,
     "loop": false
    }
-  }
+  },
+  "vis": [
+   140,
+   216
+  ]
  },
  "tower:灵魂塔:4": {
   "key": "tower:灵魂塔:4",
@@ -824,7 +912,11 @@ window.SPRITE_SHEETS = {
     "fps": 14,
     "loop": false
    }
-  }
+  },
+  "vis": [
+   164,
+   214
+  ]
  },
  "tower:牛头塔": {
   "key": "tower:牛头塔",
@@ -854,7 +946,11 @@ window.SPRITE_SHEETS = {
     "fps": 14,
     "loop": false
    }
-  }
+  },
+  "vis": [
+   136,
+   214
+  ]
  },
  "tower:破坏塔": {
   "key": "tower:破坏塔",
@@ -877,7 +973,11 @@ window.SPRITE_SHEETS = {
     "fps": 8,
     "loop": true
    }
-  }
+  },
+  "vis": [
+   148,
+   294
+  ]
  },
  "tower:神圣塔": {
   "key": "tower:神圣塔",
@@ -900,7 +1000,11 @@ window.SPRITE_SHEETS = {
     "fps": 8,
     "loop": true
    }
-  }
+  },
+  "vis": [
+   102,
+   172
+  ]
  },
  "tower:箭塔": {
   "key": "tower:箭塔",
@@ -923,7 +1027,11 @@ window.SPRITE_SHEETS = {
     "fps": 8,
     "loop": true
    }
-  }
+  },
+  "vis": [
+   198,
+   260
+  ]
  },
  "tower:精灵塔": {
   "key": "tower:精灵塔",
@@ -953,7 +1061,11 @@ window.SPRITE_SHEETS = {
     "fps": 14,
     "loop": false
    }
-  }
+  },
+  "vis": [
+   248,
+   302
+  ]
  },
  "tower:群攻塔": {
   "key": "tower:群攻塔",
@@ -983,7 +1095,11 @@ window.SPRITE_SHEETS = {
     "fps": 14,
     "loop": false
    }
-  }
+  },
+  "vis": [
+   188,
+   184
+  ]
  },
  "tower:腐蚀塔": {
   "key": "tower:腐蚀塔",
@@ -1013,7 +1129,11 @@ window.SPRITE_SHEETS = {
     "fps": 14,
     "loop": false
    }
-  }
+  },
+  "vis": [
+   162,
+   210
+  ]
  },
  "tower:通灵塔": {
   "key": "tower:通灵塔",
@@ -1036,7 +1156,11 @@ window.SPRITE_SHEETS = {
     "fps": 8,
     "loop": true
    }
-  }
+  },
+  "vis": [
+   138,
+   268
+  ]
  },
  "tower:重击塔": {
   "key": "tower:重击塔",
@@ -1066,7 +1190,11 @@ window.SPRITE_SHEETS = {
     "fps": 14,
     "loop": false
    }
-  }
+  },
+  "vis": [
+   226,
+   276
+  ]
  },
  "tower:闪电塔": {
   "key": "tower:闪电塔",
@@ -1096,7 +1224,11 @@ window.SPRITE_SHEETS = {
     "fps": 14,
     "loop": false
    }
-  }
+  },
+  "vis": [
+   136,
+   192
+  ]
  },
  "tower:闪电塔:3": {
   "key": "tower:闪电塔:3",
@@ -1126,7 +1258,11 @@ window.SPRITE_SHEETS = {
     "fps": 14,
     "loop": false
    }
-  }
+  },
+  "vis": [
+   136,
+   204
+  ]
  },
  "tower:闪电塔:4": {
   "key": "tower:闪电塔:4",
@@ -1156,7 +1292,11 @@ window.SPRITE_SHEETS = {
     "fps": 14,
     "loop": false
    }
-  }
+  },
+  "vis": [
+   136,
+   202
+  ]
  },
  "tower:魔幻塔": {
   "key": "tower:魔幻塔",
@@ -1186,7 +1326,11 @@ window.SPRITE_SHEETS = {
     "fps": 14,
     "loop": false
    }
-  }
+  },
+  "vis": [
+   208,
+   242
+  ]
  },
  "tower:魔幻塔:3": {
   "key": "tower:魔幻塔:3",
@@ -1216,7 +1360,11 @@ window.SPRITE_SHEETS = {
     "fps": 14,
     "loop": false
    }
-  }
+  },
+  "vis": [
+   168,
+   208
+  ]
  },
  "tower:魔幻塔:5": {
   "key": "tower:魔幻塔:5",
@@ -1246,7 +1394,11 @@ window.SPRITE_SHEETS = {
     "fps": 14,
     "loop": false
    }
-  }
+  },
+  "vis": [
+   148,
+   202
+  ]
  },
  "unit:Nalc": {
   "key": "unit:Nalc",

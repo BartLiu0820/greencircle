@@ -23,6 +23,16 @@ for meta_path in sorted(glob.glob(os.path.join(SP, '*.json'))):
     if not os.path.exists(f):
         print('跳过（缺图片）:', meta['key']); continue
     total += os.path.getsize(f)
+    if meta['key'].startswith('tower:'):                    # 塔：量一下 idle 那一行的可见包围盒（世界单位），游戏里按它统一体型
+        from PIL import Image
+        a = meta['actions'].get('idle') or next(iter(meta['actions'].values()))
+        fw, fh = meta['frameW'], meta['frameH']
+        row = Image.open(f).convert('RGBA').crop((0, a['row'] * fh, fw * meta['cols'], (a['row'] + 1) * fh))
+        bw = bh = 0
+        for i in range(min(meta['cols'], a['frames'] * a.get('dirs', 1))):
+            bb = row.crop((i * fw, 0, (i + 1) * fw, fh)).getchannel('A').point(lambda v: 255 if v > 40 else 0).getbbox()
+            if bb: bw, bh = max(bw, bb[2] - bb[0]), max(bh, bb[3] - bb[1])
+        meta['vis'] = [round(bw * meta['unitsPerPixel']), round(bh * meta['unitsPerPixel'])]
     sheets[meta['key']] = meta
 
 with open(os.path.join(ROOT, 'h5', 'assets', 'sprites.js'), 'w', encoding='utf-8') as fp:
