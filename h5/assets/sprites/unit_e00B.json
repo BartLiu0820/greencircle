@@ -1,6 +1,6 @@
 {
  "key": "unit:e00B",
- "src": "sprites/unit_e00B.png",
+ "src": "sprites/w3_monster_Units_NightElf_Ent_Ent.png",
  "frameW": 304,
  "frameH": 304,
  "cols": 8,
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.5,
+ "aliasOf": "model:monster:Units/NightElf/Ent/Ent",
+ "war3": true
 }

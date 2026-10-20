@@ -1,8 +1,8 @@
 {
  "key": "unit:edot",
- "src": "sprites/unit_edot.png",
- "frameW": 384,
- "frameH": 384,
+ "src": "sprites/w3_monster_Units_NightElf_DruidOfTheTalon_DruidoftheTalon.png",
+ "frameW": 128,
+ "frameH": 128,
  "cols": 8,
  "rows": 16,
  "anchor": [
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.0,
+ "aliasOf": "model:monster:Units/NightElf/DruidOfTheTalon/DruidoftheTalon",
+ "war3": true
 }

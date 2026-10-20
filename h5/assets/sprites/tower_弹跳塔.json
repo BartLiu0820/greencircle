@@ -1,6 +1,6 @@
 {
  "key": "tower:弹跳塔",
- "src": "sprites/tower_弹跳塔.png",
+ "src": "sprites/w3_tower_Units_Human_Priest_Priest.png",
  "frameW": 160,
  "frameH": 160,
  "cols": 6,
@@ -19,5 +19,8 @@
    "fps": 8,
    "loop": true
   }
- }
+ },
+ "modelScale": 0.8,
+ "aliasOf": "model:tower:Units/Human/Priest/Priest",
+ "war3": true
 }

@@ -1,13 +1,13 @@
 {
  "key": "unit:o005",
- "src": "sprites/unit_o005.png",
- "frameW": 128,
- "frameH": 128,
+ "src": "sprites/w3_monster_Units_Orc_HeadHunter_Headhunter.png",
+ "frameW": 192,
+ "frameH": 192,
  "cols": 8,
  "rows": 16,
  "anchor": [
   0.5,
-  0.62
+  0.7
  ],
  "unitsPerPixel": 2.0,
  "pitch": 50,
@@ -26,5 +26,13 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.3,
+ "aliasOf": "model:monster:Units/Orc/HeadHunter/Headhunter",
+ "war3": true,
+ "tint": [
+  1.0,
+  0.392,
+  1.0
+ ]
 }

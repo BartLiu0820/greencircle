@@ -1,6 +1,6 @@
 {
  "key": "tower:灵魂塔:4",
- "src": "sprites/tower_灵魂塔_4.png",
+ "src": "sprites/w3_tower_Units_Undead_SkeletonMage_SkeletonMage.png",
  "frameW": 160,
  "frameH": 160,
  "cols": 6,
@@ -26,5 +26,13 @@
    "fps": 14,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.0,
+ "aliasOf": "model:tower:Units/Undead/SkeletonMage/SkeletonMage",
+ "war3": true,
+ "tint": [
+  0.98,
+  0.0,
+  0.392
+ ]
 }

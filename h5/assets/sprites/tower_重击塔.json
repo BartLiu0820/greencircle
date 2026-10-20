@@ -1,15 +1,15 @@
 {
  "key": "tower:重击塔",
- "src": "sprites/tower_重击塔.png",
+ "src": "sprites/w3_tower_Units_NightElf_MountainGiant_MountainGiant.png",
  "frameW": 160,
  "frameH": 160,
  "cols": 6,
  "rows": 2,
  "anchor": [
   0.5,
-  0.82
+  0.7
  ],
- "unitsPerPixel": 2.0,
+ "unitsPerPixel": 1.1111111111111112,
  "pitch": 50,
  "actions": {
   "idle": {
@@ -26,5 +26,13 @@
    "fps": 14,
    "loop": false
   }
- }
+ },
+ "modelScale": 0.9,
+ "aliasOf": "model:tower:Units/NightElf/MountainGiant/MountainGiant",
+ "war3": true,
+ "tint": [
+  0.784,
+  0.784,
+  1.0
+ ]
 }

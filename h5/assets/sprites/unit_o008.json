@@ -1,8 +1,8 @@
 {
  "key": "unit:o008",
- "src": "sprites/unit_o008.png",
- "frameW": 384,
- "frameH": 384,
+ "src": "sprites/w3_monster_Units_Orc_SpiritWalker_SpiritWalker.png",
+ "frameW": 192,
+ "frameH": 192,
  "cols": 8,
  "rows": 16,
  "anchor": [
@@ -26,5 +26,13 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.4,
+ "aliasOf": "model:monster:Units/Orc/SpiritWalker/SpiritWalker",
+ "war3": true,
+ "tint": [
+  1.0,
+  1.0,
+  0.0
+ ]
 }

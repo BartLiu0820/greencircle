@@ -1,8 +1,8 @@
 {
  "key": "unit:u003",
- "src": "sprites/unit_u003.png",
- "frameW": 240,
- "frameH": 240,
+ "src": "sprites/w3_monster_Units_Other_DalaranReject_DalaranReject.png",
+ "frameW": 160,
+ "frameH": 160,
  "cols": 8,
  "rows": 16,
  "anchor": [
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.5,
+ "aliasOf": "model:monster:Units/Other/DalaranReject/DalaranReject",
+ "war3": true
 }

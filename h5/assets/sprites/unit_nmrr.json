@@ -1,8 +1,8 @@
 {
  "key": "unit:nmrr",
- "src": "sprites/unit_nmrr.png",
- "frameW": 304,
- "frameH": 304,
+ "src": "sprites/w3_monster_Units_Creeps_MurlocWarrior_MurlocWarrior.png",
+ "frameW": 192,
+ "frameH": 192,
  "cols": 8,
  "rows": 16,
  "anchor": [
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.3,
+ "aliasOf": "model:monster:Units/Creeps/MurlocWarrior/MurlocWarrior",
+ "war3": true
 }

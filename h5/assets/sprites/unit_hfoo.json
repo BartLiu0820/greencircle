@@ -1,8 +1,8 @@
 {
  "key": "unit:hfoo",
- "src": "sprites/unit_hfoo.png",
- "frameW": 160,
- "frameH": 160,
+ "src": "sprites/w3_monster_Units_Human_Footman_Footman.png",
+ "frameW": 128,
+ "frameH": 128,
  "cols": 8,
  "rows": 16,
  "anchor": [
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.0,
+ "aliasOf": "model:monster:Units/Human/Footman/Footman",
+ "war3": true
 }

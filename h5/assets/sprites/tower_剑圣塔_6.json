@@ -1,0 +1,38 @@
+{
+ "key": "tower:剑圣塔:6",
+ "src": "sprites/w3_tower_Units_Demon_HeroChaosBladeMaster_HeroChaosBladeMaster.png",
+ "frameW": 160,
+ "frameH": 160,
+ "cols": 6,
+ "rows": 2,
+ "anchor": [
+  0.5,
+  0.7
+ ],
+ "unitsPerPixel": 2.8888888888888893,
+ "pitch": 50,
+ "actions": {
+  "idle": {
+   "row": 0,
+   "dirs": 1,
+   "frames": 6,
+   "fps": 8,
+   "loop": true
+  },
+  "attack": {
+   "row": 1,
+   "dirs": 1,
+   "frames": 6,
+   "fps": 14,
+   "loop": false
+  }
+ },
+ "modelScale": 1.5,
+ "aliasOf": "model:tower:Units/Demon/HeroChaosBladeMaster/HeroChaosBladeMaster",
+ "war3": true,
+ "tint": [
+  0.0,
+  1.0,
+  0.0
+ ]
+}

@@ -1,8 +1,8 @@
 {
  "key": "unit:h07Y",
- "src": "sprites/unit_h07Y.png",
- "frameW": 128,
- "frameH": 128,
+ "src": "sprites/w3_monster_Units_Human_BloodElfSpellThief_BloodElfSpellThief.png",
+ "frameW": 160,
+ "frameH": 160,
  "cols": 8,
  "rows": 16,
  "anchor": [
@@ -26,5 +26,13 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.0,
+ "aliasOf": "model:monster:Units/Human/BloodElfSpellThief/BloodElfSpellThief",
+ "war3": true,
+ "tint": [
+  1.0,
+  0.784,
+  0.0
+ ]
 }

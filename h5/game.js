@@ -390,6 +390,9 @@ const BY_ATK = { normal: 'thrownAxe', pierce: 'arrow', magic: 'elemOrb', chaos: 
 // 发射点高度（世界单位，约 80 = 1 米）：塔座 0.6 米 + 角色手部；器械塔从顶上的球 / 线圈发出
 const MUZZLE = { lightning: 175, elemOrb: 170, holyBeam: 190, cannon: 120, boulder: 150, rocket: 130, ballista: 120, arrow: 150 };
 const missileOf = t => MISSILE[t.isHero ? 'hero:' + t.heroName : t.fam] || BY_ATK[t.isHero ? heroStats(t).atk : curLevel(t).atk] || 'arcaneDagger';
+// 原版投射物（assets/w3missiles.js）：有就用原图的模型、速度、弧度，命中效果沿用上面的风格
+const W3M = window.W3_MISSILE_OF || {};
+const w3opt = t => { const o = W3M[t.isHero ? 'hero:' + t.heroName : 'tower:' + t.fam]; return o ? { w3: o.missile, speed: o.speed, arc: o.arc } : {}; };
 const muzzle = (t, style) => ({ x: t.x, y: t.y, z: (MUZZLE[style] || 150) + (t.isHero ? 30 : 0) });
 function shot(t, m) { t.face = Math.atan2(m.y - t.y, m.x - t.x); }
 
@@ -449,10 +452,10 @@ function attack(t, target, st) {
   };
   if (t.fam === '弹跳塔') {                     // 月刃依次弹到下一个目标
     const hop = (i, src) => { if (i >= targets.length) return;
-      FXS.launch(style, src, targets[i], (hit, x, y) => { land(targets[i], i === 0)(hit, x, y); hop(i + 1, { x, y, z: 50 }); }); };
+      FXS.launch(style, src, targets[i], (hit, x, y) => { land(targets[i], i === 0)(hit, x, y); hop(i + 1, { x, y, z: 50 }); }, w3opt(t)); };
     return hop(0, from);
   }
-  for (const m of targets) FXS.launch(style, from, m, land(m, m === target));
+  for (const m of targets) FXS.launch(style, from, m, land(m, m === target), w3opt(t));
 }
 function onHitEffects(t, lv, m, st) {
   const bash = abil(lv, 'AHbh');
@@ -627,7 +630,7 @@ function heroAttack(h, tg, st) {
     if (!hit) return;
     hurt(hit, dmg, st.atk, h);
     for (const i of h.learned) { const s = HERO_KITS[h.heroName][i]; if (s.onAttack) s.onAttack(h, hit); }
-  }, { scale: 1.3 });
+  }, { scale: 1.3, ...w3opt(h) });
 }
 function aoe(h, c, r, dmg, atk, ignoreArmor, color) {
   for (const m of inRange(c.x, c.y, r)) hurt(m, dmg, atk, h, { ignoreArmor });
@@ -919,6 +922,7 @@ function img(key) {
   if (!IMG[key]) { const i = new Image(); i.src = 'assets/' + src; IMG[key] = i; }
   return IMG[key].complete && IMG[key].naturalWidth ? IMG[key] : null;
 }
+for (const k in AM.sprites || {}) img(k);            // 图标和头像先加载好，第一次打开面板就有图
 const spriteKey = e => e.isBuilder ? 'builder' : e.isHero ? 'hero:' + e.heroName : e.uid ? 'unit:' + e.uid : e.fam ? 'tower:' + e.fam + ':' + (e.lv + 1) : null;
 function entityImg(e) {
   const k = spriteKey(e); if (!k) return null;
@@ -927,12 +931,28 @@ function entityImg(e) {
 
 // ================================================================ 精灵表（tools/blender/render_sprites.py 出图 → tools/register_sprites.py 登记）
 const SHEETS = window.SPRITE_SHEETS || {};
-const SHEET_IMG = {};
+const SHEET_IMG = {}, TINT_CACHE = {};
+// 原版模型：同一模型的单位共用一张图，单位数据里的 red/green/blue 乘到图上（和 WC3 的顶点颜色一样）。
+// 只用合成模式、不读像素，用 file:// 打开也能用；每种"图 + 颜色"只做一次
+function tinted(im, c) {
+  const id = im.src + '|' + c.join(',');
+  let cv = TINT_CACHE[id];
+  if (!cv) {
+    cv = document.createElement('canvas'); cv.width = im.naturalWidth; cv.height = im.naturalHeight;
+    const g = cv.getContext('2d');
+    g.drawImage(im, 0, 0);
+    g.globalCompositeOperation = 'multiply'; g.fillStyle = `rgb(${c.map(v => Math.round(v * 255)).join(',')})`; g.fillRect(0, 0, cv.width, cv.height);
+    g.globalCompositeOperation = 'destination-in'; g.drawImage(im, 0, 0);
+    TINT_CACHE[id] = cv;
+  }
+  return cv;
+}
 function sheetByKey(key) {
   const m = SHEETS[key]; if (!m) return null;
-  let im = SHEET_IMG[key];
-  if (!im) { im = new Image(); im.src = 'assets/' + m.src; SHEET_IMG[key] = im; }
-  return im.complete && im.naturalWidth ? { m, im } : null;
+  let im = SHEET_IMG[m.src];
+  if (!im) { im = new Image(); im.src = 'assets/' + m.src; SHEET_IMG[m.src] = im; }
+  if (!(im.complete && im.naturalWidth)) return null;
+  return { m, im: m.tint ? tinted(im, m.tint) : im };
 }
 // 塔的档位外观：tower:魔幻塔:3 表示"从第 3 级起用"；找不超过当前等级的最高一档，没有就用基础外观
 function towerSheet(fam, lv) {
@@ -1092,7 +1112,7 @@ function draw() {
       }
       ctx.strokeStyle = f.color; ctx.lineWidth = 1.5 * DPR; ctx.beginPath(); ctx.ellipse(px, py, d * 0.8, d * 0.44, 0, 0, 7); ctx.stroke();
     }
-    if (f.kind === 'corpse') { const sh = sheetOf(f.ent); if (sh) { const a = sh.m.actions.death, done = G.t - f.t0 >= a.frames / a.fps; drawSheet(sh, f.ent, f.x, f.y, ['death', f.t0, done], f.ent.elite ? 1.3 : 1, done ? clamp(f.life, 0, 1) : 1); } }
+    if (f.kind === 'corpse') { const sh = sheetOf(f.ent); if (sh && sh.m.actions.death) { const a = sh.m.actions.death, done = G.t - f.t0 >= a.frames / a.fps; drawSheet(sh, f.ent, f.x, f.y, ['death', f.t0, done], f.ent.elite ? 1.3 : 1, done ? clamp(f.life, 0, 1) : 1); } }
     if (f.kind === 'death') { ctx.fillStyle = f.color; ctx.beginPath(); ctx.arc(sx(f.x), sy(f.y), f.r * S * (1.6 - f.life), 0, 7); ctx.fill(); }
     if (f.kind === 'text') label(f.text, f.x, f.y + 120 + (0.7 - f.life) * 300, f.color, 12);
     ctx.globalAlpha = 1;
@@ -1235,7 +1255,7 @@ function tintedSheet(sh, color, amount) {           // 精灵表叠一层颜色�
   const key = sh.m.key + '|' + color;
   let c = TINTED.get(key);
   if (!c) {
-    c = document.createElement('canvas'); c.width = sh.im.naturalWidth; c.height = sh.im.naturalHeight;
+    c = document.createElement('canvas'); c.width = sh.im.naturalWidth || sh.im.width; c.height = sh.im.naturalHeight || sh.im.height;
     const g = c.getContext('2d'); g.drawImage(sh.im, 0, 0);
     g.globalCompositeOperation = 'source-atop'; g.globalAlpha = amount; g.fillStyle = color; g.fillRect(0, 0, c.width, c.height);
     TINTED.set(key, c);
@@ -1357,7 +1377,7 @@ function drawSprite(im, x, y, size) { const w = size, h = size * im.naturalHeigh
 // 塔模型体型不一（毒塔、图腾塔出图比别的塔大一大圈）：按 idle 帧可见包围盒统一到差不多的大小，只缩大的、略放小的
 const TOWER_MAX_W = 240, TOWER_MAX_H = 300, TOWER_MIN_W = 124;
 function towerFit(m) {
-  if (!m.vis) return 1;
+  if (m.war3 || !m.vis) return 1;                   // 原版模型：大小按原图的 modelScale，不统一
   const [w, h] = m.vis;
   return Math.min(TOWER_MAX_W / w, TOWER_MAX_H / h, Math.max(1, TOWER_MIN_W / w));
 }
@@ -1369,8 +1389,9 @@ function drawTower(t) {
   if (t.cat === 'aura') { drawAuraCore(t, performance.now() / 1000); if (t === G.selected) drawLevelBadge(t, x, y, s); return; }
   const tier = t.cat === 'summon' || t.isHero ? 0 : towerTier(t);
   let sh = sheetOf(t); const im = !sh && entityImg(t);
-  if (sh && tier) sh = tintedSheet(sh, TIER[tier].color, TIER[tier].tint);
-  if (sh) { shadow(t.x, t.y, s * 0.55); drawSheet(sh, t, t.x, t.y, pickAnim(t, sh.m), towerFit(sh.m) * (1 + tier * 0.035)); }
+  const w3 = sh && sh.m.war3;                       // 原版模型：每级的颜色和大小用原图数据，不再额外染色放大
+  if (sh && tier && !w3) sh = tintedSheet(sh, TIER[tier].color, TIER[tier].tint);
+  if (sh) { shadow(t.x, t.y, s * 0.55); drawSheet(sh, t, t.x, t.y, pickAnim(t, sh.m), towerFit(sh.m) * (w3 ? 1 : 1 + tier * 0.035)); }
   else if (im) drawSprite(im, x, y, s * 1.6);
   else {
     ctx.fillStyle = t.cat === 'aura' ? '#2f7a3b' : t.isHero ? '#6b4a12' : t.cat === 'summon' ? '#7a2a10' : '#2a3a4e';
@@ -1601,7 +1622,7 @@ function buildCmds() {
   if (e.fam && e.cat !== 'summon') {
     const f = famOf(e);
     if (f.branches && e.lv === 0) Object.keys(f.branches).forEach((k, i) => { const n = f.branches[k][0]; out.push(cmd(['Q', 'W', 'E', 'R'][i], k, k + '分支', `<b>${n.name}</b> ${atkTag(n.atk)}<br><span class="gold">${n.gold} 金</span> · 攻击 ${n.dmg} · 弹射 ${n.targets} 个`, () => upgradeTower(e, k), { atk: n.atk, disabled: G.gold < n.gold, ico: 'branch-' + n.atk, cost: n.gold })); });
-    else if (e.levels[e.lv + 1]) { const n = e.levels[e.lv + 1]; out.push(cmd('U', '↑', '升级', `升级到 <b>${n.name}</b><br><span class="gold">${n.gold} 金</span>${e.cat === 'aura' ? '' : ` · 攻击 ${fmt(n.dmg)} · 间隔 ${n.cd}s · 射程 ${n.range}`}<br>${n.tip || ''}`, () => upgradeTower(e), { disabled: G.gold < n.gold, ico: 'upgrade', cost: n.gold })); }
+    else if (e.levels[e.lv + 1]) { const n = e.levels[e.lv + 1]; out.push(cmd('U', '↑', '升级', `升级到 <b>${n.name}</b><br><span class="gold">${n.gold} 金</span>${e.cat === 'aura' ? '' : ` · 攻击 ${fmt(n.dmg)} · 间隔 ${n.cd}s · 射程 ${n.range}`}<br>${n.tip || ''}`, () => upgradeTower(e), { disabled: G.gold < n.gold, ico: 'upgrade', iconKey: `portrait:tower:${e.fam}:${e.lv + 2}`, cost: n.gold })); }
     if (e.fam === '天神塔') out.push(cmd('T', '换', '切换伤害类型', `当前：${(e.godTypes || ['normal', 'magic']).map(a => ATK_CN[a]).join(' + ')}`, () => {
       const combos = [['normal', 'magic'], ['pierce', 'chaos'], ['normal', 'chaos'], ['pierce', 'magic'], ['normal', 'pierce'], ['magic', 'chaos']];
       const i = combos.findIndex(c => c.join() === (e.godTypes || ['normal', 'magic']).join()); e.godTypes = combos[(i + 1) % combos.length]; uiDirty();
@@ -1621,7 +1642,7 @@ function renderCmds() {
     const c = CMDS[i], b = document.createElement('button');
     b.className = 'cb' + (c ? '' : ' none') + (c && c.active ? ' active' : '') + (c && c.auto ? ' auto' : '') + (c && c.passive ? ' passive' : '') + (c && c.learned ? ' learned' : '');
     if (c) {
-      const icon = c.iconKey && img(c.iconKey);
+      const icon = (c.iconKey && img(c.iconKey)) || (c.ico && img('ico:' + c.ico));   // 原版图标（assets/war3_icons.js）优先
       const thumb = !icon && c.iconKey && sheetThumb(sheetByKey(c.iconKey.replace(/^icon:/, c.iconKey.startsWith('icon:hero:') ? '' : 'tower:')), innerWidth <= 820 ? 40 : 48);
       // 图标优先（风格统一，像 WC3）；没有图标的才用模型缩略图或文字
       const face = icon ? `<img src="${icon.src}">` : c.ico ? `<img class="svg" src="assets/icons/${c.ico}.svg" alt="">`

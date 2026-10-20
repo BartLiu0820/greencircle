@@ -11,3 +11,9 @@ art/hive_raw/urls*.tsv
 art/models/hive/
 # 出图时的 PNG 中间文件（游戏只用 WebP）
 h5/assets/sprites/*.png
+# 魔兽争霸 3 原版资源（暴雪版权，只在本地用）：压缩包、解压目录、转换中间文件。按 art/war3_raw/README.md 重新生成
+war3-assets.zip
+art/war3_raw/*
+!art/war3_raw/README.md
+!art/war3_raw/batch_report.tsv
+art/models/war3/

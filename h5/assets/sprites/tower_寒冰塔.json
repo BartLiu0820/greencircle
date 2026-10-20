@@ -1,15 +1,15 @@
 {
  "key": "tower:寒冰塔",
- "src": "sprites/tower_寒冰塔.png",
+ "src": "sprites/w3_tower_Units_Human_Jaina_Jaina.png",
  "frameW": 160,
  "frameH": 160,
  "cols": 6,
- "rows": 1,
+ "rows": 2,
  "anchor": [
   0.5,
   0.7
  ],
- "unitsPerPixel": 2.0,
+ "unitsPerPixel": 1.2307692307692308,
  "pitch": 50,
  "actions": {
   "idle": {
@@ -18,6 +18,16 @@
    "frames": 6,
    "fps": 8,
    "loop": true
+  },
+  "attack": {
+   "row": 1,
+   "dirs": 1,
+   "frames": 6,
+   "fps": 14,
+   "loop": false
   }
- }
+ },
+ "modelScale": 1.3,
+ "aliasOf": "model:tower:Units/Human/Jaina/Jaina",
+ "war3": true
 }

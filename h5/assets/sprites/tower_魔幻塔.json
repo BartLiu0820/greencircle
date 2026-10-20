@@ -1,15 +1,15 @@
 {
  "key": "tower:魔幻塔",
- "src": "sprites/tower_魔幻塔.png",
- "frameW": 160,
- "frameH": 160,
+ "src": "sprites/w3_tower_Units_Human_BloodElfSpellThief_BloodElfSpellThief.png",
+ "frameW": 192,
+ "frameH": 192,
  "cols": 6,
  "rows": 2,
  "anchor": [
   0.5,
-  0.7
+  0.82
  ],
- "unitsPerPixel": 2.0,
+ "unitsPerPixel": 1.3333333333333335,
  "pitch": 50,
  "actions": {
   "idle": {
@@ -26,5 +26,8 @@
    "fps": 14,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.2,
+ "aliasOf": "model:tower:Units/Human/BloodElfSpellThief/BloodElfSpellThief",
+ "war3": true
 }

@@ -1,8 +1,8 @@
 {
  "key": "unit:nchg",
- "src": "sprites/unit_nchg.png",
- "frameW": 304,
- "frameH": 304,
+ "src": "sprites/w3_monster_Units_Undead_Abomination_Abomination.png",
+ "frameW": 384,
+ "frameH": 384,
  "cols": 8,
  "rows": 16,
  "anchor": [
@@ -26,5 +26,13 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.35,
+ "aliasOf": "model:monster:Units/Undead/Abomination/Abomination",
+ "war3": true,
+ "tint": [
+  1.0,
+  1.0,
+  0.0
+ ]
 }

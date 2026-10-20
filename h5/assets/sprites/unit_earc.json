@@ -1,6 +1,6 @@
 {
  "key": "unit:earc",
- "src": "sprites/unit_earc.png",
+ "src": "sprites/w3_monster_Units_Creeps_SkeletonArcher_SkeletonArcher.png",
  "frameW": 128,
  "frameH": 128,
  "cols": 8,
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.0,
+ "aliasOf": "model:monster:Units/Creeps/SkeletonArcher/SkeletonArcher",
+ "war3": true
 }

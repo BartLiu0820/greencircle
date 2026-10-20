@@ -1,15 +1,15 @@
 {
  "key": "unit:h07B",
- "src": "sprites/unit_h07B.png",
+ "src": "sprites/w3_monster_Units_Human_WarWagon_WarWagon.png",
  "frameW": 128,
  "frameH": 128,
  "cols": 8,
  "rows": 16,
  "anchor": [
   0.5,
-  0.7
+  0.62
  ],
- "unitsPerPixel": 2.0,
+ "unitsPerPixel": 1.2,
  "pitch": 50,
  "actions": {
   "walk": {
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.0,
+ "aliasOf": "model:monster:Units/Human/WarWagon/WarWagon",
+ "war3": true
 }

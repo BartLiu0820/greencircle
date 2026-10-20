@@ -1,8 +1,8 @@
 {
  "key": "unit:o009",
- "src": "sprites/unit_o009.png",
- "frameW": 304,
- "frameH": 304,
+ "src": "sprites/w3_monster_Units_Demon_ChaosWolfrider_ChaosWolfrider.png",
+ "frameW": 128,
+ "frameH": 128,
  "cols": 8,
  "rows": 16,
  "anchor": [
@@ -26,5 +26,13 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 0.8,
+ "aliasOf": "model:monster:Units/Demon/ChaosWolfrider/ChaosWolfrider",
+ "war3": true,
+ "tint": [
+  1.0,
+  0.0,
+  0.0
+ ]
 }

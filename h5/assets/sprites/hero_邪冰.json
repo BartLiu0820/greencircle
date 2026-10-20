@@ -1,6 +1,6 @@
 {
  "key": "hero:邪冰",
- "src": "sprites/hero_邪冰.png",
+ "src": "sprites/w3_hero_Units_Human_Jaina_Jaina.png",
  "frameW": 192,
  "frameH": 192,
  "cols": 8,
@@ -33,5 +33,13 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.5,
+ "aliasOf": "model:hero:Units/Human/Jaina/Jaina",
+ "war3": true,
+ "tint": [
+  1.0,
+  0.0,
+  0.0
+ ]
 }

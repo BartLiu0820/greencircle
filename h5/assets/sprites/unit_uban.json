@@ -1,6 +1,6 @@
 {
  "key": "unit:uban",
- "src": "sprites/unit_uban.png",
+ "src": "sprites/w3_monster_Units_Undead_Banshee_Banshee.png",
  "frameW": 128,
  "frameH": 128,
  "cols": 8,
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.0,
+ "aliasOf": "model:monster:Units/Undead/Banshee/Banshee",
+ "war3": true
 }

@@ -1,15 +1,15 @@
 {
  "key": "unit:nele",
- "src": "sprites/unit_nele.png",
- "frameW": 128,
- "frameH": 128,
+ "src": "sprites/w3_monster_Units_Human_WaterElemental_WaterElemental.png",
+ "frameW": 160,
+ "frameH": 160,
  "cols": 8,
  "rows": 16,
  "anchor": [
   0.5,
-  0.7
+  0.82
  ],
- "unitsPerPixel": 2.0,
+ "unitsPerPixel": 1.3333333333333335,
  "pitch": 50,
  "actions": {
   "walk": {
@@ -26,5 +26,13 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 2.0,
+ "aliasOf": "model:monster:Units/Human/WaterElemental/WaterElemental",
+ "war3": true,
+ "tint": [
+  0.0,
+  1.0,
+  0.0
+ ]
 }

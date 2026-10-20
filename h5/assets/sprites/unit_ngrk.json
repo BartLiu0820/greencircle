@@ -1,13 +1,13 @@
 {
  "key": "unit:ngrk",
- "src": "sprites/unit_ngrk.png",
- "frameW": 240,
- "frameH": 240,
+ "src": "sprites/w3_monster_Units_Creeps_RockGolem_RockGolem.png",
+ "frameW": 160,
+ "frameH": 160,
  "cols": 8,
  "rows": 16,
  "anchor": [
   0.5,
-  0.7
+  0.54
  ],
  "unitsPerPixel": 2.0,
  "pitch": 50,
@@ -26,5 +26,13 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 0.6,
+ "aliasOf": "model:monster:Units/Creeps/RockGolem/RockGolem",
+ "war3": true,
+ "tint": [
+  0.588,
+  0.431,
+  0.275
+ ]
 }

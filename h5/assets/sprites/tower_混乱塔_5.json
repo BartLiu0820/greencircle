@@ -1,0 +1,38 @@
+{
+ "key": "tower:混乱塔:5",
+ "src": "sprites/w3_tower_Units_Human_WaterElemental_WaterElemental.png",
+ "frameW": 160,
+ "frameH": 160,
+ "cols": 6,
+ "rows": 2,
+ "anchor": [
+  0.5,
+  0.76
+ ],
+ "unitsPerPixel": 2.0,
+ "pitch": 50,
+ "actions": {
+  "idle": {
+   "row": 0,
+   "dirs": 1,
+   "frames": 6,
+   "fps": 8,
+   "loop": true
+  },
+  "attack": {
+   "row": 1,
+   "dirs": 1,
+   "frames": 6,
+   "fps": 14,
+   "loop": false
+  }
+ },
+ "modelScale": 1.2,
+ "aliasOf": "model:tower:Units/Human/WaterElemental/WaterElemental",
+ "war3": true,
+ "tint": [
+  1.0,
+  0.0,
+  0.0
+ ]
+}

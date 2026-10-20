@@ -1,15 +1,15 @@
 {
  "key": "unit:n081",
- "src": "sprites/unit_n081.png",
- "frameW": 160,
- "frameH": 160,
+ "src": "sprites/w3_monster_Units_Creeps_Revenant_Revenant.png",
+ "frameW": 192,
+ "frameH": 192,
  "cols": 8,
  "rows": 16,
  "anchor": [
   0.5,
-  0.7
+  0.62
  ],
- "unitsPerPixel": 2.0,
+ "unitsPerPixel": 3.3333333333333335,
  "pitch": 50,
  "actions": {
   "walk": {
@@ -26,5 +26,13 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.5,
+ "aliasOf": "model:monster:Units/Creeps/Revenant/Revenant",
+ "war3": true,
+ "tint": [
+  0.0,
+  0.0,
+  1.0
+ ]
 }

@@ -1,8 +1,8 @@
 {
  "key": "unit:nfov",
- "src": "sprites/unit_nfov.png",
- "frameW": 384,
- "frameH": 384,
+ "src": "sprites/w3_monster_Units_Demon_FelgaurdBlue_FelgaurdBlue.png",
+ "frameW": 304,
+ "frameH": 304,
  "cols": 8,
  "rows": 16,
  "anchor": [
@@ -26,5 +26,13 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.3,
+ "aliasOf": "model:monster:Units/Demon/FelgaurdBlue/FelgaurdBlue",
+ "war3": true,
+ "tint": [
+  1.0,
+  0.0,
+  0.0
+ ]
 }

@@ -1,15 +1,15 @@
 {
  "key": "unit:nw2w",
- "src": "sprites/unit_nw2w.png",
- "frameW": 128,
- "frameH": 128,
+ "src": "sprites/w3_monster_Units_Creeps_PolarFurbolg_PolarFurbolg.png",
+ "frameW": 240,
+ "frameH": 240,
  "cols": 8,
  "rows": 16,
  "anchor": [
   0.5,
-  0.62
+  0.7
  ],
- "unitsPerPixel": 2.0,
+ "unitsPerPixel": 0.9333333333333332,
  "pitch": 50,
  "actions": {
   "walk": {
@@ -26,5 +26,13 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.5,
+ "aliasOf": "model:monster:Units/Creeps/PolarFurbolg/PolarFurbolg",
+ "war3": true,
+ "tint": [
+  1.0,
+  0.0,
+  1.0
+ ]
 }

@@ -1,6 +1,6 @@
 {
  "key": "unit:ndrf",
- "src": "sprites/unit_ndrf.png",
+ "src": "sprites/w3_monster_Units_Other_Dranai_Dranai.png",
  "frameW": 384,
  "frameH": 384,
  "cols": 8,
@@ -26,5 +26,13 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 0.8,
+ "aliasOf": "model:monster:Units/Other/Dranai/Dranai",
+ "war3": true,
+ "tint": [
+  1.0,
+  0.647,
+  0.647
+ ]
 }

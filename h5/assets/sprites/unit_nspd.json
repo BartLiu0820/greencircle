@@ -1,6 +1,6 @@
 {
  "key": "unit:nspd",
- "src": "sprites/unit_nspd.png",
+ "src": "sprites/w3_monster_Units_Creeps_Nerubian_Nerubian.png",
  "frameW": 128,
  "frameH": 128,
  "cols": 8,
@@ -26,5 +26,13 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 0.5,
+ "aliasOf": "model:monster:Units/Creeps/Nerubian/Nerubian",
+ "war3": true,
+ "tint": [
+  0.471,
+  0.784,
+  1.0
+ ]
 }

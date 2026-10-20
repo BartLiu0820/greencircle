@@ -1,0 +1,24 @@
+{
+ "key": "model:tower:Buildings/Undead/Ziggurat/Ziggurat",
+ "src": "sprites/w3_tower_Buildings_Undead_Ziggurat_Ziggurat.png",
+ "frameW": 160,
+ "frameH": 160,
+ "cols": 6,
+ "rows": 1,
+ "anchor": [
+  0.5,
+  0.62
+ ],
+ "unitsPerPixel": 2.0,
+ "pitch": 50,
+ "actions": {
+  "idle": {
+   "row": 0,
+   "dirs": 1,
+   "frames": 6,
+   "fps": 8,
+   "loop": true
+  }
+ },
+ "modelScale": 0.8
+}

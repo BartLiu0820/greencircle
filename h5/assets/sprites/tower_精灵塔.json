@@ -1,8 +1,8 @@
 {
  "key": "tower:精灵塔",
- "src": "sprites/tower_精灵塔.png",
- "frameW": 304,
- "frameH": 304,
+ "src": "sprites/w3_tower_Buildings_NightElf_AncientOfWonder_AncientOfWonder.png",
+ "frameW": 160,
+ "frameH": 160,
  "cols": 6,
  "rows": 2,
  "anchor": [
@@ -26,5 +26,8 @@
    "fps": 14,
    "loop": false
   }
- }
+ },
+ "modelScale": 0.7,
+ "aliasOf": "model:tower:Buildings/NightElf/AncientOfWonder/AncientOfWonder",
+ "war3": true
 }

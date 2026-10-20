@@ -1,0 +1,31 @@
+{
+ "key": "model:monster:Units/Creeps/Lobstrokkred/Lobstrokkred",
+ "src": "sprites/w3_monster_Units_Creeps_Lobstrokkred_Lobstrokkred.png",
+ "frameW": 128,
+ "frameH": 128,
+ "cols": 8,
+ "rows": 16,
+ "anchor": [
+  0.5,
+  0.62
+ ],
+ "unitsPerPixel": 2.0,
+ "pitch": 50,
+ "actions": {
+  "walk": {
+   "row": 0,
+   "dirs": 8,
+   "frames": 8,
+   "fps": 12,
+   "loop": true
+  },
+  "death": {
+   "row": 8,
+   "dirs": 8,
+   "frames": 6,
+   "fps": 12,
+   "loop": false
+  }
+ },
+ "modelScale": 0.55
+}

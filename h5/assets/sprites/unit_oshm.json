@@ -1,8 +1,8 @@
 {
  "key": "unit:oshm",
- "src": "sprites/unit_oshm.png",
- "frameW": 240,
- "frameH": 240,
+ "src": "sprites/w3_monster_Units_Orc_Shaman_Shaman.png",
+ "frameW": 128,
+ "frameH": 128,
  "cols": 8,
  "rows": 16,
  "anchor": [
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.0,
+ "aliasOf": "model:monster:Units/Orc/Shaman/Shaman",
+ "war3": true
 }

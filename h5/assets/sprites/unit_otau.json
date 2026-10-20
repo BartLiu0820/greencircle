@@ -1,8 +1,8 @@
 {
  "key": "unit:otau",
- "src": "sprites/unit_otau.png",
- "frameW": 304,
- "frameH": 304,
+ "src": "sprites/w3_monster_Units_Orc_Tauren_Tauren.png",
+ "frameW": 160,
+ "frameH": 160,
  "cols": 8,
  "rows": 16,
  "anchor": [
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.0,
+ "aliasOf": "model:monster:Units/Orc/Tauren/Tauren",
+ "war3": true
 }

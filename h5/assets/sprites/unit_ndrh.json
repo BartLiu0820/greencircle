@@ -1,8 +1,8 @@
 {
  "key": "unit:ndrh",
- "src": "sprites/unit_ndrh.png",
- "frameW": 160,
- "frameH": 160,
+ "src": "sprites/w3_monster_Units_Creeps_OrcWarlockRed_OrcWarlockRed.png",
+ "frameW": 304,
+ "frameH": 304,
  "cols": 8,
  "rows": 16,
  "anchor": [
@@ -26,5 +26,13 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.8,
+ "aliasOf": "model:monster:Units/Creeps/OrcWarlockRed/OrcWarlockRed",
+ "war3": true,
+ "tint": [
+  0.549,
+  1.0,
+  1.0
+ ]
 }

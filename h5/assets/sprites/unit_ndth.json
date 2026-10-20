@@ -1,6 +1,6 @@
 {
  "key": "unit:ndth",
- "src": "sprites/unit_ndth.png",
+ "src": "sprites/w3_monster_Units_Human_Militia_Militia.png",
  "frameW": 128,
  "frameH": 128,
  "cols": 8,
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.0,
+ "aliasOf": "model:monster:Units/Human/Militia/Militia",
+ "war3": true
 }

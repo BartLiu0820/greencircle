@@ -211,14 +211,14 @@ def edge_clipped(arr):
     return edges
 
 
-def render_entry(key, category, model, dirs=None, scale=1.0, actions=None):
+def render_entry(key, category, model, dirs=None, scale=1.0, actions=None, ppm=None):
     spec = CATEGORY[category]
     size = spec['size']
     dirs = int(dirs or spec['dirs'])
     actions = actions or spec['actions']
     load_model(model)
     apply_scale(float(scale or 1))
-    ppm = spec.get('ppm', PPM)
+    ppm = float(ppm or spec.get('ppm', PPM))
     rig = setup_rig(size, ppm)
     targets = anim_targets()
 
@@ -313,6 +313,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--model'); ap.add_argument('--key'); ap.add_argument('--category', default='monster', choices=list(CATEGORY))
     ap.add_argument('--dirs'); ap.add_argument('--scale', default='1'); ap.add_argument('--actions', help='如 walk:8,death:6')
+    ap.add_argument('--ppm', help='像素/米（覆盖类别默认值；大模型用小一点，图不至于太大）')
     ap.add_argument('--batch', help='清单 CSV（列：key,category,model,dirs,scale,actions）')
     ap.add_argument('--skip-done', action='store_true', help='批量时跳过已经出过图的')
     args = ap.parse_args(argv)
@@ -344,7 +345,7 @@ def main():
     else:
         if not args.model or not args.key:
             raise SystemExit('需要 --model 和 --key，或者用 --batch')
-        render_entry(args.key, args.category, args.model, args.dirs, args.scale, parse_actions(args.actions))
+        render_entry(args.key, args.category, args.model, args.dirs, args.scale, parse_actions(args.actions), args.ppm)
 
 
 if __name__ == '__main__':

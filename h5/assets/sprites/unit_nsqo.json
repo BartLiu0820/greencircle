@@ -1,15 +1,15 @@
 {
  "key": "unit:nsqo",
- "src": "sprites/unit_nsqo.png",
- "frameW": 160,
- "frameH": 160,
+ "src": "sprites/w3_monster_Units_Creeps_Sasquatch_Sasquatch.png",
+ "frameW": 240,
+ "frameH": 240,
  "cols": 8,
  "rows": 16,
  "anchor": [
   0.5,
   0.7
  ],
- "unitsPerPixel": 2.0,
+ "unitsPerPixel": 1.0666666666666667,
  "pitch": 50,
  "actions": {
   "walk": {
@@ -26,5 +26,13 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.5,
+ "aliasOf": "model:monster:Units/Creeps/Sasquatch/Sasquatch",
+ "war3": true,
+ "tint": [
+  1.0,
+  0.0,
+  0.0
+ ]
 }

@@ -1,8 +1,8 @@
 {
  "key": "unit:echm",
- "src": "sprites/unit_echm.png",
- "frameW": 304,
- "frameH": 304,
+ "src": "sprites/w3_monster_Buildings_NightElf_AncientofWar_AncientofWar.png",
+ "frameW": 240,
+ "frameH": 240,
  "cols": 8,
  "rows": 16,
  "anchor": [
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 0.9,
+ "aliasOf": "model:monster:Buildings/NightElf/AncientofWar/AncientofWar",
+ "war3": true
 }

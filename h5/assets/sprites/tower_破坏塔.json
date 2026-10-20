@@ -1,6 +1,6 @@
 {
  "key": "tower:破坏塔",
- "src": "sprites/tower_破坏塔.png",
+ "src": "sprites/w3_tower_Buildings_Other_ElvenGuardMagicTower_ElvenGuardMagicTower.png",
  "frameW": 160,
  "frameH": 160,
  "cols": 6,
@@ -19,5 +19,13 @@
    "fps": 8,
    "loop": true
   }
- }
+ },
+ "modelScale": 0.6,
+ "aliasOf": "model:tower:Buildings/Other/ElvenGuardMagicTower/ElvenGuardMagicTower",
+ "war3": true,
+ "tint": [
+  1.0,
+  0.392,
+  0.392
+ ]
 }

@@ -1,15 +1,15 @@
 {
  "key": "unit:orai",
- "src": "sprites/unit_orai.png",
- "frameW": 160,
- "frameH": 160,
+ "src": "sprites/w3_monster_Units_Orc_Wolfrider_Wolfrider.png",
+ "frameW": 192,
+ "frameH": 192,
  "cols": 8,
  "rows": 16,
  "anchor": [
   0.5,
-  0.54
+  0.7
  ],
- "unitsPerPixel": 2.0,
+ "unitsPerPixel": 1.5384615384615383,
  "pitch": 50,
  "actions": {
   "walk": {
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.3,
+ "aliasOf": "model:monster:Units/Orc/Wolfrider/Wolfrider",
+ "war3": true
 }

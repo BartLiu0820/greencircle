@@ -1,0 +1,24 @@
+{
+ "key": "model:monster:Units/Creeps/HumanBattleship/HumanBattleship",
+ "src": "sprites/w3_monster_Units_Creeps_HumanBattleship_HumanBattleship.png",
+ "frameW": 384,
+ "frameH": 384,
+ "cols": 6,
+ "rows": 8,
+ "anchor": [
+  0.5,
+  0.7
+ ],
+ "unitsPerPixel": 3.3333333333333335,
+ "pitch": 50,
+ "actions": {
+  "death": {
+   "row": 0,
+   "dirs": 8,
+   "frames": 6,
+   "fps": 12,
+   "loop": false
+  }
+ },
+ "modelScale": 1.2
+}

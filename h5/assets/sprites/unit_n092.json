@@ -1,6 +1,6 @@
 {
  "key": "unit:n092",
- "src": "sprites/unit_n092.png",
+ "src": "sprites/w3_monster_Units_Creeps_MammothBlack_MammothBlack.png",
  "frameW": 304,
  "frameH": 304,
  "cols": 8,
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.35,
+ "aliasOf": "model:monster:Units/Creeps/MammothBlack/MammothBlack",
+ "war3": true
 }

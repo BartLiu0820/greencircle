@@ -1,13 +1,13 @@
 {
  "key": "hero:剑神",
- "src": "sprites/hero_剑神.png",
+ "src": "sprites/w3_hero_Units_Orc_HeroBladeMaster_HeroBladeMaster.png",
  "frameW": 240,
  "frameH": 240,
  "cols": 8,
  "rows": 24,
  "anchor": [
   0.5,
-  0.76
+  0.7
  ],
  "unitsPerPixel": 2.0,
  "pitch": 50,
@@ -33,5 +33,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.1,
+ "aliasOf": "model:hero:Units/Orc/HeroBladeMaster/HeroBladeMaster",
+ "war3": true
 }

@@ -1,0 +1,33 @@
+{
+ "key": "tower:毒塔:3",
+ "src": "sprites/w3_tower_Units_Creeps_SkeletonArcher_SkeletonArcher.png",
+ "frameW": 160,
+ "frameH": 160,
+ "cols": 6,
+ "rows": 2,
+ "anchor": [
+  0.5,
+  0.7
+ ],
+ "unitsPerPixel": 1.0666666666666667,
+ "pitch": 50,
+ "actions": {
+  "idle": {
+   "row": 0,
+   "dirs": 1,
+   "frames": 6,
+   "fps": 8,
+   "loop": true
+  },
+  "attack": {
+   "row": 1,
+   "dirs": 1,
+   "frames": 6,
+   "fps": 14,
+   "loop": false
+  }
+ },
+ "modelScale": 1.5,
+ "aliasOf": "model:tower:Units/Creeps/SkeletonArcher/SkeletonArcher",
+ "war3": true
+}

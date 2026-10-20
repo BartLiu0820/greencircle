@@ -1,10 +1,10 @@
 {
  "key": "unit:umtw",
- "src": "sprites/unit_umtw.png",
- "frameW": 240,
- "frameH": 240,
+ "src": "sprites/w3_monster_Units_Undead_Meatwagon_Meatwagon.png",
+ "frameW": 160,
+ "frameH": 160,
  "cols": 8,
- "rows": 8,
+ "rows": 16,
  "anchor": [
   0.5,
   0.7
@@ -18,6 +18,16 @@
    "frames": 8,
    "fps": 12,
    "loop": true
+  },
+  "death": {
+   "row": 8,
+   "dirs": 8,
+   "frames": 6,
+   "fps": 12,
+   "loop": false
   }
- }
+ },
+ "modelScale": 1.0,
+ "aliasOf": "model:monster:Units/Undead/Meatwagon/Meatwagon",
+ "war3": true
 }

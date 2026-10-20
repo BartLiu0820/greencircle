@@ -1,15 +1,15 @@
 {
  "key": "unit:nanm",
- "src": "sprites/unit_nanm.png",
- "frameW": 384,
- "frameH": 384,
+ "src": "sprites/w3_monster_Units_NightElf_MountainGiant_MountainGiant.png",
+ "frameW": 192,
+ "frameH": 192,
  "cols": 8,
  "rows": 16,
  "anchor": [
   0.5,
   0.7
  ],
- "unitsPerPixel": 2.0,
+ "unitsPerPixel": 3.333333333333333,
  "pitch": 50,
  "actions": {
   "walk": {
@@ -26,5 +26,13 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.8,
+ "aliasOf": "model:monster:Units/NightElf/MountainGiant/MountainGiant",
+ "war3": true,
+ "tint": [
+  0.0,
+  0.784,
+  0.0
+ ]
 }

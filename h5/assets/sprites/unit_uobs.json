@@ -1,6 +1,6 @@
 {
  "key": "unit:uobs",
- "src": "sprites/unit_uobs.png",
+ "src": "sprites/w3_monster_Units_Creeps_Assassin_Assassin.png",
  "frameW": 128,
  "frameH": 128,
  "cols": 8,
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 0.85,
+ "aliasOf": "model:monster:Units/Creeps/Assassin/Assassin",
+ "war3": true
 }

@@ -1,8 +1,8 @@
 {
  "key": "unit:h09H",
- "src": "sprites/unit_h09H.png",
- "frameW": 240,
- "frameH": 240,
+ "src": "sprites/w3_monster_Units_Human_Knight_Knight.png",
+ "frameW": 128,
+ "frameH": 128,
  "cols": 8,
  "rows": 16,
  "anchor": [
@@ -26,5 +26,13 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.0,
+ "aliasOf": "model:monster:Units/Human/Knight/Knight",
+ "war3": true,
+ "tint": [
+  1.0,
+  0.843,
+  0.0
+ ]
 }

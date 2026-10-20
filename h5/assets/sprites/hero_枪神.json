@@ -1,6 +1,6 @@
 {
  "key": "hero:枪神",
- "src": "sprites/hero_枪神.png",
+ "src": "sprites/w3_hero_Units_Critters_ChaosSpaceOrc_ChaosSpaceOrc.png",
  "frameW": 192,
  "frameH": 192,
  "cols": 8,
@@ -33,5 +33,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.1,
+ "aliasOf": "model:hero:Units/Critters/ChaosSpaceOrc/ChaosSpaceOrc",
+ "war3": true
 }

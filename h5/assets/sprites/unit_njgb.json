@@ -1,8 +1,8 @@
 {
  "key": "unit:njgb",
- "src": "sprites/unit_njgb.png",
- "frameW": 128,
- "frameH": 128,
+ "src": "sprites/w3_monster_Units_Undead_Necromancer_Necromancer.png",
+ "frameW": 240,
+ "frameH": 240,
  "cols": 8,
  "rows": 16,
  "anchor": [
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.4,
+ "aliasOf": "model:monster:Units/Undead/Necromancer/Necromancer",
+ "war3": true
 }

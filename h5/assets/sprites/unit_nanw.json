@@ -1,8 +1,8 @@
 {
  "key": "unit:nanw",
- "src": "sprites/unit_nanw.png",
- "frameW": 304,
- "frameH": 304,
+ "src": "sprites/w3_monster_Units_Creeps_Unbroken_Unbroken.png",
+ "frameW": 160,
+ "frameH": 160,
  "cols": 8,
  "rows": 16,
  "anchor": [
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 0.7,
+ "aliasOf": "model:monster:Units/Creeps/Unbroken/Unbroken",
+ "war3": true
 }

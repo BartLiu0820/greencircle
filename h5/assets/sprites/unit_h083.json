@@ -1,8 +1,8 @@
 {
  "key": "unit:h083",
- "src": "sprites/unit_h083.png",
- "frameW": 160,
- "frameH": 160,
+ "src": "sprites/w3_monster_Units_Critters_Skink_Skink.png",
+ "frameW": 128,
+ "frameH": 128,
  "cols": 8,
  "rows": 16,
  "anchor": [
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.5,
+ "aliasOf": "model:monster:Units/Critters/Skink/Skink",
+ "war3": true
 }

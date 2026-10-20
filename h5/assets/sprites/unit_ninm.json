@@ -1,13 +1,13 @@
 {
  "key": "unit:ninm",
- "src": "sprites/unit_ninm.png",
- "frameW": 304,
- "frameH": 304,
+ "src": "sprites/w3_monster_Units_Creeps_InfernalCannonCannon_InfernalCannonCannon.png",
+ "frameW": 160,
+ "frameH": 160,
  "cols": 8,
  "rows": 16,
  "anchor": [
   0.5,
-  0.7
+  0.62
  ],
  "unitsPerPixel": 2.0,
  "pitch": 50,
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.0,
+ "aliasOf": "model:monster:Units/Creeps/InfernalCannonCannon/InfernalCannonCannon",
+ "war3": true
 }

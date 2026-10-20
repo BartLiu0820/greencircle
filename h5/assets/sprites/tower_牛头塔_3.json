@@ -1,0 +1,38 @@
+{
+ "key": "tower:牛头塔:3",
+ "src": "sprites/w3_tower_Units_Orc_Tauren_Tauren.png",
+ "frameW": 192,
+ "frameH": 192,
+ "cols": 6,
+ "rows": 2,
+ "anchor": [
+  0.5,
+  0.7
+ ],
+ "unitsPerPixel": 1.4545454545454546,
+ "pitch": 50,
+ "actions": {
+  "idle": {
+   "row": 0,
+   "dirs": 1,
+   "frames": 6,
+   "fps": 8,
+   "loop": true
+  },
+  "attack": {
+   "row": 1,
+   "dirs": 1,
+   "frames": 6,
+   "fps": 14,
+   "loop": false
+  }
+ },
+ "modelScale": 1.1,
+ "aliasOf": "model:tower:Units/Orc/Tauren/Tauren",
+ "war3": true,
+ "tint": [
+  1.0,
+  0.0,
+  1.0
+ ]
+}

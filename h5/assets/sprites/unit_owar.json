@@ -1,13 +1,13 @@
 {
  "key": "unit:owar",
- "src": "sprites/unit_owar.png",
- "frameW": 384,
- "frameH": 384,
+ "src": "sprites/w3_monster_Units_Undead_FrostWyrm_FrostWyrm.png",
+ "frameW": 160,
+ "frameH": 160,
  "cols": 8,
  "rows": 16,
  "anchor": [
   0.5,
-  0.7
+  0.54
  ],
  "unitsPerPixel": 2.0,
  "pitch": 50,
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 0.7,
+ "aliasOf": "model:monster:Units/Undead/FrostWyrm/FrostWyrm",
+ "war3": true
 }

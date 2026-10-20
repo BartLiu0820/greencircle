@@ -1,15 +1,15 @@
 {
  "key": "unit:e007",
- "src": "sprites/unit_e007.png",
- "frameW": 160,
- "frameH": 160,
+ "src": "sprites/w3_monster_Units_Creeps_PandarenBrewmaster_PandarenBrewmaster.png",
+ "frameW": 192,
+ "frameH": 192,
  "cols": 8,
  "rows": 16,
  "anchor": [
   0.5,
   0.7
  ],
- "unitsPerPixel": 2.0,
+ "unitsPerPixel": 1.1,
  "pitch": 50,
  "actions": {
   "walk": {
@@ -26,5 +26,13 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.0,
+ "aliasOf": "model:monster:Units/Creeps/PandarenBrewmaster/PandarenBrewmaster",
+ "war3": true,
+ "tint": [
+  0.588,
+  0.0,
+  1.0
+ ]
 }

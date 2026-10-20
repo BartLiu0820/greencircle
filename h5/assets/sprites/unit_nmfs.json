@@ -1,13 +1,13 @@
 {
  "key": "unit:nmfs",
- "src": "sprites/unit_nmfs.png",
- "frameW": 160,
- "frameH": 160,
+ "src": "sprites/w3_monster_Units_Creeps_MurlocFleshEater_MurlocFleshEater.png",
+ "frameW": 192,
+ "frameH": 192,
  "cols": 8,
  "rows": 16,
  "anchor": [
   0.5,
-  0.54
+  0.7
  ],
  "unitsPerPixel": 2.0,
  "pitch": 50,
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.55,
+ "aliasOf": "model:monster:Units/Creeps/MurlocFleshEater/MurlocFleshEater",
+ "war3": true
 }

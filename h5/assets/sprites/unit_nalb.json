@@ -1,13 +1,13 @@
 {
  "key": "unit:nalb",
- "src": "sprites/unit_nalb.png",
- "frameW": 384,
- "frameH": 384,
+ "src": "sprites/w3_monster_Units_Orc_SpiritWyvern_SpiritWyvern.png",
+ "frameW": 192,
+ "frameH": 192,
  "cols": 8,
  "rows": 16,
  "anchor": [
   0.5,
-  0.7
+  0.46
  ],
  "unitsPerPixel": 2.0,
  "pitch": 50,
@@ -26,5 +26,13 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.0,
+ "aliasOf": "model:monster:Units/Orc/SpiritWyvern/SpiritWyvern",
+ "war3": true,
+ "tint": [
+  0.0,
+  1.0,
+  0.0
+ ]
 }

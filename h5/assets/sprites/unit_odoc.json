@@ -1,6 +1,6 @@
 {
  "key": "unit:odoc",
- "src": "sprites/unit_odoc.png",
+ "src": "sprites/w3_monster_Units_Orc_WitchDoctor_WitchDoctor.png",
  "frameW": 128,
  "frameH": 128,
  "cols": 8,
@@ -9,7 +9,7 @@
   0.5,
   0.7
  ],
- "unitsPerPixel": 2.0,
+ "unitsPerPixel": 2.0833333333333335,
  "pitch": 50,
  "actions": {
   "walk": {
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.6,
+ "aliasOf": "model:monster:Units/Orc/WitchDoctor/WitchDoctor",
+ "war3": true
 }

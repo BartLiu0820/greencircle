@@ -1,15 +1,15 @@
 {
  "key": "unit:nenc",
- "src": "sprites/unit_nenc.png",
- "frameW": 304,
- "frameH": 304,
+ "src": "sprites/w3_monster_Units_Creeps_CorruptedEnt_CorruptedEnt.png",
+ "frameW": 192,
+ "frameH": 192,
  "cols": 8,
  "rows": 16,
  "anchor": [
   0.5,
-  0.7
+  0.62
  ],
- "unitsPerPixel": 2.0,
+ "unitsPerPixel": 1.44,
  "pitch": 50,
  "actions": {
   "walk": {
@@ -26,5 +26,13 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.25,
+ "aliasOf": "model:monster:Units/Creeps/CorruptedEnt/CorruptedEnt",
+ "war3": true,
+ "tint": [
+  1.0,
+  0.549,
+  1.0
+ ]
 }

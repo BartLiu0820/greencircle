@@ -1,6 +1,6 @@
 {
  "key": "unit:nkol",
- "src": "sprites/unit_nkol.png",
+ "src": "sprites/w3_monster_Units_Creeps_Kobold_Kobold.png",
  "frameW": 160,
  "frameH": 160,
  "cols": 8,
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.6,
+ "aliasOf": "model:monster:Units/Creeps/Kobold/Kobold",
+ "war3": true
 }

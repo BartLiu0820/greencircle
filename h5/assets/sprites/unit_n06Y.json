@@ -1,9 +1,9 @@
 {
  "key": "unit:n06Y",
- "src": "sprites/unit_n06Y.png",
- "frameW": 192,
- "frameH": 192,
- "cols": 1,
+ "src": "sprites/w3_monster_Units_Creeps_HumanBattleship_HumanBattleship.png",
+ "frameW": 384,
+ "frameH": 384,
+ "cols": 6,
  "rows": 8,
  "anchor": [
   0.5,
@@ -12,12 +12,15 @@
  "unitsPerPixel": 3.3333333333333335,
  "pitch": 50,
  "actions": {
-  "idle": {
+  "death": {
    "row": 0,
    "dirs": 8,
-   "frames": 1,
-   "fps": 8,
-   "loop": true
+   "frames": 6,
+   "fps": 12,
+   "loop": false
   }
- }
+ },
+ "modelScale": 1.2,
+ "aliasOf": "model:monster:Units/Creeps/HumanBattleship/HumanBattleship",
+ "war3": true
 }

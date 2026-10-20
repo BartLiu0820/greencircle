@@ -1,8 +1,8 @@
 {
  "key": "unit:nbld",
- "src": "sprites/unit_nbld.png",
- "frameW": 304,
- "frameH": 304,
+ "src": "sprites/w3_monster_Units_Creeps_BanditLord_BanditLord.png",
+ "frameW": 160,
+ "frameH": 160,
  "cols": 8,
  "rows": 16,
  "anchor": [
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.3,
+ "aliasOf": "model:monster:Units/Creeps/BanditLord/BanditLord",
+ "war3": true
 }

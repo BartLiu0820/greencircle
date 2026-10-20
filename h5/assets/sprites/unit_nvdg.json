@@ -1,13 +1,13 @@
 {
  "key": "unit:nvdg",
- "src": "sprites/unit_nvdg.png",
- "frameW": 384,
- "frameH": 384,
+ "src": "sprites/w3_monster_Units_Creeps_VoidWalker_VoidWalker.png",
+ "frameW": 160,
+ "frameH": 160,
  "cols": 8,
  "rows": 16,
  "anchor": [
   0.5,
-  0.7
+  0.76
  ],
  "unitsPerPixel": 2.0,
  "pitch": 50,
@@ -26,5 +26,13 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.5,
+ "aliasOf": "model:monster:Units/Creeps/VoidWalker/VoidWalker",
+ "war3": true,
+ "tint": [
+  1.0,
+  0.0,
+  0.0
+ ]
 }

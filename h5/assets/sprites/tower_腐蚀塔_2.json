@@ -1,0 +1,38 @@
+{
+ "key": "tower:腐蚀塔:2",
+ "src": "sprites/w3_tower_Units_Creeps_ForestTrollShadowPriest_ForestTrollShadowPriest.png",
+ "frameW": 160,
+ "frameH": 160,
+ "cols": 6,
+ "rows": 2,
+ "anchor": [
+  0.5,
+  0.7
+ ],
+ "unitsPerPixel": 1.777777777777778,
+ "pitch": 50,
+ "actions": {
+  "idle": {
+   "row": 0,
+   "dirs": 1,
+   "frames": 6,
+   "fps": 8,
+   "loop": true
+  },
+  "attack": {
+   "row": 1,
+   "dirs": 1,
+   "frames": 6,
+   "fps": 14,
+   "loop": false
+  }
+ },
+ "modelScale": 0.9,
+ "aliasOf": "model:tower:Units/Creeps/ForestTrollShadowPriest/ForestTrollShadowPriest",
+ "war3": true,
+ "tint": [
+  0.392,
+  1.0,
+  1.0
+ ]
+}

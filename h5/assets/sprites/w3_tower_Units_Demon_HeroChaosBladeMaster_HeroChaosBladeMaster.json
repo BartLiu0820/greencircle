@@ -1,0 +1,31 @@
+{
+ "key": "model:tower:Units/Demon/HeroChaosBladeMaster/HeroChaosBladeMaster",
+ "src": "sprites/w3_tower_Units_Demon_HeroChaosBladeMaster_HeroChaosBladeMaster.png",
+ "frameW": 160,
+ "frameH": 160,
+ "cols": 6,
+ "rows": 2,
+ "anchor": [
+  0.5,
+  0.7
+ ],
+ "unitsPerPixel": 3.3333333333333335,
+ "pitch": 50,
+ "actions": {
+  "idle": {
+   "row": 0,
+   "dirs": 1,
+   "frames": 6,
+   "fps": 8,
+   "loop": true
+  },
+  "attack": {
+   "row": 1,
+   "dirs": 1,
+   "frames": 6,
+   "fps": 14,
+   "loop": false
+  }
+ },
+ "modelScale": 1.5
+}

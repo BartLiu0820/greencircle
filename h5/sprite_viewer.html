@@ -68,7 +68,13 @@ function frame(now) {
       const ax = c.m.anchor[0] * cv.width, ay = c.m.anchor[1] * cv.height;
       g.moveTo(ax - 8, ay); g.lineTo(ax + 8, ay); g.moveTo(ax, ay - 8); g.lineTo(ax, ay + 8); g.stroke();
       const row = a.row + (a.dirs > 1 ? d % a.dirs : 0);
-      g.drawImage(c.img, f * c.m.frameW, row * c.m.frameH, c.m.frameW, c.m.frameH, 0, 0, cv.width, cv.height);
+      if (c.m.tint && !c.tinted) {                           // 原版模型：单位数据的颜色乘到图上（和游戏里一样）
+        const t2 = document.createElement('canvas'); t2.width = c.img.naturalWidth; t2.height = c.img.naturalHeight;
+        const g2 = t2.getContext('2d'); g2.drawImage(c.img, 0, 0);
+        g2.globalCompositeOperation = 'multiply'; g2.fillStyle = `rgb(${c.m.tint.map(v => Math.round(v * 255)).join(',')})`; g2.fillRect(0, 0, t2.width, t2.height);
+        g2.globalCompositeOperation = 'destination-in'; g2.drawImage(c.img, 0, 0); c.tinted = t2;
+      }
+      g.drawImage(c.tinted || c.img, f * c.m.frameW, row * c.m.frameH, c.m.frameW, c.m.frameH, 0, 0, cv.width, cv.height);
       g.fillStyle = '#ffd257'; g.font = '11px sans-serif'; g.fillText(name, 4, 12);
     });
   }

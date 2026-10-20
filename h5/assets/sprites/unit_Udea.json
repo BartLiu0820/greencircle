@@ -1,15 +1,15 @@
 {
  "key": "unit:Udea",
- "src": "sprites/unit_Udea.png",
- "frameW": 192,
- "frameH": 192,
+ "src": "sprites/w3_monster_Units_Undead_Tichondrius_Tichondrius.png",
+ "frameW": 160,
+ "frameH": 160,
  "cols": 8,
- "rows": 24,
+ "rows": 16,
  "anchor": [
   0.5,
   0.7
  ],
- "unitsPerPixel": 3.3333333333333335,
+ "unitsPerPixel": 5.714285714285714,
  "pitch": 50,
  "actions": {
   "walk": {
@@ -25,13 +25,9 @@
    "frames": 6,
    "fps": 12,
    "loop": false
-  },
-  "spell": {
-   "row": 16,
-   "dirs": 8,
-   "frames": 6,
-   "fps": 12,
-   "loop": false
   }
- }
+ },
+ "modelScale": 3.0,
+ "aliasOf": "model:monster:Units/Undead/Tichondrius/Tichondrius",
+ "war3": true
 }

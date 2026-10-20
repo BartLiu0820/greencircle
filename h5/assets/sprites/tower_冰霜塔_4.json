@@ -1,10 +1,10 @@
 {
  "key": "tower:冰霜塔:4",
- "src": "sprites/tower_冰霜塔_4.png",
+ "src": "sprites/w3_tower_Units_Human_Sorceress_Sorceress.png",
  "frameW": 160,
  "frameH": 160,
  "cols": 6,
- "rows": 2,
+ "rows": 1,
  "anchor": [
   0.5,
   0.7
@@ -18,13 +18,9 @@
    "frames": 6,
    "fps": 8,
    "loop": true
-  },
-  "attack": {
-   "row": 1,
-   "dirs": 1,
-   "frames": 6,
-   "fps": 14,
-   "loop": false
   }
- }
+ },
+ "modelScale": 1.1,
+ "aliasOf": "model:tower:Units/Human/Sorceress/Sorceress",
+ "war3": true
 }

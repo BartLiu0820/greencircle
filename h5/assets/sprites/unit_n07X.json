@@ -1,6 +1,6 @@
 {
  "key": "unit:n07X",
- "src": "sprites/unit_n07X.png",
+ "src": "sprites/w3_monster_Units_Demon_EredarWarlock_EredarWarlock.png",
  "frameW": 160,
  "frameH": 160,
  "cols": 8,
@@ -26,5 +26,13 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.3,
+ "aliasOf": "model:monster:Units/Demon/EredarWarlock/EredarWarlock",
+ "war3": true,
+ "tint": [
+  1.0,
+  0.588,
+  1.0
+ ]
 }

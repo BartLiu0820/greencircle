@@ -1,13 +1,13 @@
 {
  "key": "unit:h07L",
- "src": "sprites/unit_h07L.png",
- "frameW": 192,
- "frameH": 192,
+ "src": "sprites/w3_monster_Units_Human_Priest_Priest.png",
+ "frameW": 128,
+ "frameH": 128,
  "cols": 8,
  "rows": 16,
  "anchor": [
   0.5,
-  0.62
+  0.7
  ],
  "unitsPerPixel": 2.0,
  "pitch": 50,
@@ -26,5 +26,13 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.2,
+ "aliasOf": "model:monster:Units/Human/Priest/Priest",
+ "war3": true,
+ "tint": [
+  0.157,
+  1.0,
+  1.0
+ ]
 }

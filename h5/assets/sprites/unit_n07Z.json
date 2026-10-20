@@ -1,13 +1,13 @@
 {
  "key": "unit:n07Z",
- "src": "sprites/unit_n07Z.png",
- "frameW": 240,
- "frameH": 240,
+ "src": "sprites/w3_monster_Units_Creeps_SpiderCrabCreep_SpiderCrabCreep.png",
+ "frameW": 128,
+ "frameH": 128,
  "cols": 8,
  "rows": 16,
  "anchor": [
   0.5,
-  0.7
+  0.62
  ],
  "unitsPerPixel": 2.0,
  "pitch": 50,
@@ -26,5 +26,13 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.0,
+ "aliasOf": "model:monster:Units/Creeps/SpiderCrabCreep/SpiderCrabCreep",
+ "war3": true,
+ "tint": [
+  1.0,
+  0.0,
+  1.0
+ ]
 }

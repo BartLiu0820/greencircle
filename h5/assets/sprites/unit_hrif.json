@@ -1,6 +1,6 @@
 {
  "key": "unit:hrif",
- "src": "sprites/unit_hrif.png",
+ "src": "sprites/w3_monster_Units_Human_Rifleman_Rifleman.png",
  "frameW": 128,
  "frameH": 128,
  "cols": 8,
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.0,
+ "aliasOf": "model:monster:Units/Human/Rifleman/Rifleman",
+ "war3": true
 }

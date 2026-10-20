@@ -1,15 +1,15 @@
 {
  "key": "unit:o007",
- "src": "sprites/unit_o007.png",
- "frameW": 384,
- "frameH": 384,
+ "src": "sprites/w3_monster_Units_Orc_KotoBeast_KotoBeast.png",
+ "frameW": 160,
+ "frameH": 160,
  "cols": 8,
  "rows": 16,
  "anchor": [
   0.5,
-  0.7
+  0.62
  ],
- "unitsPerPixel": 2.0,
+ "unitsPerPixel": 1.6,
  "pitch": 50,
  "actions": {
   "walk": {
@@ -26,5 +26,13 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.0,
+ "aliasOf": "model:monster:Units/Orc/KotoBeast/KotoBeast",
+ "war3": true,
+ "tint": [
+  0.0,
+  1.0,
+  1.0
+ ]
 }

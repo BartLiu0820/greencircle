@@ -192,8 +192,27 @@ def key_times(nodes, start, end):
 TEX_EXT = ('.blp', '.dds', '.tga', '.png', '.tif', '.tiff')
 
 
+W3_INDEX = None
+
+
+def w3_lookup(tex_path):
+    """原版资源（--w3root，tft 在前覆盖 roc）：按贴图的完整路径找，不区分大小写"""
+    global W3_INDEX
+    if not OPT.get('w3roots'): return None
+    if W3_INDEX is None:
+        W3_INDEX = {}
+        for root in reversed(OPT['w3roots']):            # 后面的先放，前面的覆盖
+            for dp, _, fs in os.walk(root):
+                for f in fs:
+                    W3_INDEX[os.path.relpath(os.path.join(dp, f), root).replace(os.sep, '/').lower()] = os.path.join(dp, f)
+    k = tex_path.replace('\\', '/').lower()
+    return W3_INDEX.get(k) or W3_INDEX.get(os.path.splitext(k)[0] + '.blp')
+
+
 def find_texture(mdx_path, tex_path):
     """按文件名在模型所在的下载包里找贴图；同名不同扩展名（如模型写 .tga、包里给 .blp）也认"""
+    hit = w3_lookup(tex_path)
+    if hit: return hit
     base = tex_path.replace('\\', '/').split('/')[-1].lower()
     stem = os.path.splitext(base)[0]
     d = os.path.dirname(os.path.abspath(mdx_path))
@@ -210,7 +229,7 @@ def find_texture(mdx_path, tex_path):
     return loose
 
 
-OPT = dict(skin=None, skin_from=None, tint=None)
+OPT = dict(skin=None, skin_from=None, tint=None, w3roots=None)
 
 
 def tint(nt, color_out):
@@ -422,6 +441,8 @@ if __name__ == '__main__':
     ap.add_argument('--skin', help='换配色：用这张贴图替换模型的主贴图（同一套 UV 的其他配色）')
     ap.add_argument('--tint', help='染色 r,g,b（0~1，乘到贴图颜色上）')
     ap.add_argument('--pedestal', action='store_true', help='塔：放到标准塔座上')
+    ap.add_argument('--w3root', action='append', help='原版资源目录（可多个，前面的优先），贴图按模型里写的完整路径在这里找')
     a = ap.parse_args(argv)
-    OPT.update(skin=a.skin and os.path.abspath(a.skin), tint=a.tint and tuple(float(x) for x in a.tint.split(',')), pedestal=a.pedestal)
+    OPT.update(skin=a.skin and os.path.abspath(a.skin), tint=a.tint and tuple(float(x) for x in a.tint.split(',')), pedestal=a.pedestal,
+               w3roots=a.w3root and [os.path.abspath(r) for r in a.w3root])
     build(a.mdx, a.out, a.scale, tuple(float(x) for x in a.team.split(',')), a.height)

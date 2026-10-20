@@ -1,8 +1,8 @@
 {
  "key": "unit:u00K",
- "src": "sprites/unit_u00K.png",
- "frameW": 192,
- "frameH": 192,
+ "src": "sprites/w3_monster_Units_NightElf_Shandris_Shandris.png",
+ "frameW": 128,
+ "frameH": 128,
  "cols": 8,
  "rows": 16,
  "anchor": [
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.0,
+ "aliasOf": "model:monster:Units/NightElf/Shandris/Shandris",
+ "war3": true
 }

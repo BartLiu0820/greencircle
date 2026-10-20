@@ -1,23 +1,33 @@
 {
  "key": "unit:nrdk",
- "src": "sprites/unit_nrdk.png",
- "frameW": 304,
- "frameH": 304,
- "cols": 1,
- "rows": 8,
+ "src": "sprites/w3_monster_Units_Creeps_AzureDragon_AzureDragon.png",
+ "frameW": 384,
+ "frameH": 384,
+ "cols": 8,
+ "rows": 16,
  "anchor": [
   0.5,
   0.7
  ],
- "unitsPerPixel": 3.3333333333333335,
+ "unitsPerPixel": 2.0,
  "pitch": 50,
  "actions": {
-  "idle": {
+  "walk": {
    "row": 0,
    "dirs": 8,
-   "frames": 1,
-   "fps": 8,
+   "frames": 8,
+   "fps": 12,
    "loop": true
+  },
+  "death": {
+   "row": 8,
+   "dirs": 8,
+   "frames": 6,
+   "fps": 12,
+   "loop": false
   }
- }
+ },
+ "modelScale": 1.75,
+ "aliasOf": "model:monster:Units/Creeps/AzureDragon/AzureDragon",
+ "war3": true
 }

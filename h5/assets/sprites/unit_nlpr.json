@@ -1,8 +1,8 @@
 {
  "key": "unit:nlpr",
- "src": "sprites/unit_nlpr.png",
- "frameW": 160,
- "frameH": 160,
+ "src": "sprites/w3_monster_Units_Creeps_Lobstrokkred_Lobstrokkred.png",
+ "frameW": 128,
+ "frameH": 128,
  "cols": 8,
  "rows": 16,
  "anchor": [
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 0.55,
+ "aliasOf": "model:monster:Units/Creeps/Lobstrokkred/Lobstrokkred",
+ "war3": true
 }

@@ -1,8 +1,8 @@
 {
  "key": "unit:n09H",
- "src": "sprites/unit_n09H.png",
- "frameW": 304,
- "frameH": 304,
+ "src": "sprites/w3_monster_Units_Creeps_Archnathid_Archnathid.png",
+ "frameW": 160,
+ "frameH": 160,
  "cols": 8,
  "rows": 16,
  "anchor": [
@@ -26,5 +26,13 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.0,
+ "aliasOf": "model:monster:Units/Creeps/Archnathid/Archnathid",
+ "war3": true,
+ "tint": [
+  1.0,
+  1.0,
+  0.0
+ ]
 }

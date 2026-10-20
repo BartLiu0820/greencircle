@@ -151,8 +151,71 @@ const STYLES = {
   holyBeam: { instant: true, beam: '#ffe9a0' },
 };
 
+// ---------------------------------------------------------------- 原版投射物（tools/war3_missiles.py → assets/w3missiles.js）
+// 本体：离线画好的两张图（普通层 + 叠加发光层），按飞行方向旋转；粒子：按原版发射器参数实时发射；拖尾：跟随的带子
+const W3 = window.W3_MISSILES || {};
+const W3SIZE = 1.25;                    // 原版尺寸在这个镜头距离下偏小，整体放大一点
+const W3IMG = {};
+function w3img(src) {
+  if (!src) return null;
+  let im = W3IMG[src];
+  if (!im) { im = new Image(); im.src = 'assets/' + src; W3IMG[src] = im; }
+  return im.complete && im.naturalWidth ? im : null;
+}
+const W3TINT = {};
+function w3tint(im, c) {                // 贴图乘颜色（只用合成模式，file:// 下也能用），颜色按 1/16 量化缓存
+  const q = c.map(v => Math.round(Math.min(1, Math.max(0, v)) * 16)), key = im.src + '|' + q;
+  let cv = W3TINT[key];
+  if (!cv) {
+    cv = document.createElement('canvas'); cv.width = im.naturalWidth; cv.height = im.naturalHeight;
+    const g = cv.getContext('2d'); g.drawImage(im, 0, 0);
+    if (q.some(v => v !== 16)) {
+      g.globalCompositeOperation = 'multiply'; g.fillStyle = `rgb(${q.map(v => Math.min(255, v * 16)).join(',')})`; g.fillRect(0, 0, cv.width, cv.height);
+      g.globalCompositeOperation = 'destination-in'; g.drawImage(im, 0, 0);
+    }
+    W3TINT[key] = cv;
+  }
+  return cv;
+}
+const lerp = (a, b, k) => a + (b - a) * k;
+// 三段插值：0 → 1 在 [0, time]，1 → 2 在 [time, 1]
+function seg(arr, f, tm) { return f < tm ? [arr[0], arr[1], f / (tm || 1)] : [arr[1], arr[2], (f - tm) / ((1 - tm) || 1)]; }
+// 一个粒子：位置（世界）、速度、年龄；modelSpace 的粒子跟着弹体走（存相对位置）
+function w3emit(list, p, e, dt) {
+  const ca = Math.cos(p.ang), sa = Math.sin(p.ang);
+  const lat = (e.latitude || 0) * Math.PI / 180, th = rnd(0, lat), ph = rnd(0, TAU);
+  // 以发射方向为轴，在 latitude 角度内随机偏一下
+  const [dx, dy, dz] = e.dir, ax = Math.abs(dz) < 0.9 ? [0, 0, 1] : [1, 0, 0];
+  let ux = dy * ax[2] - dz * ax[1], uy = dz * ax[0] - dx * ax[2], uz = dx * ax[1] - dy * ax[0]; const ul = Math.hypot(ux, uy, uz) || 1; ux /= ul; uy /= ul; uz /= ul;
+  const vx2 = dy * uz - dz * uy, vy2 = dz * ux - dx * uz, vz2 = dx * uy - dy * ux;
+  const c1 = Math.cos(th), s1 = Math.sin(th) * Math.cos(ph), s2 = Math.sin(th) * Math.sin(ph);
+  const ldx = dx * c1 + ux * s1 + vx2 * s2, ldy = dy * c1 + uy * s1 + vy2 * s2, ldz = dz * c1 + uz * s1 + vz2 * s2;
+  const sp = e.speed * (1 + rnd(-1, 1) * (e.variation || 0));
+  const lx = e.pos[0] + rnd(-0.5, 0.5) * (e.width || 0), ly = e.pos[1] + rnd(-0.5, 0.5) * (e.length || 0), lz = e.pos[2];
+  const k = W3SIZE * p.scale;
+  const q = { e, t: 0, lvx: ldx * sp * k, lvy: ldy * sp * k, lvz: ldz * sp * k, vz: 0 };
+  if (e.modelSpace) { q.owner = p; q.lx = lx * k; q.ly = ly * k; q.lz = lz * k; }
+  else {
+    q.x = p.rx + (lx * ca - ly * sa) * k; q.y = p.ry + (lx * sa + ly * ca) * k; q.z = p.z + lz * k;
+    q.vx = q.lvx * ca - q.lvy * sa; q.vy = q.lvx * sa + q.lvy * ca; q.vz = q.lvz;
+  }
+  q.t = rnd(0, dt);
+  if (list.length < MAX_PART) list.push(q);
+}
+function w3pos(q) {
+  if (!q.owner) return [q.x, q.y, q.z];
+  const p = q.owner, ca = Math.cos(p.ang), sa = Math.sin(p.ang);
+  return [p.rx + q.lx * ca - q.ly * sa, p.ry + q.lx * sa + q.ly * ca, p.z + q.lz];
+}
+function w3cell(e, f, tail) {           // 贴图格子：头 / 尾各有"出生段 + 衰减段"两个区间
+  const n = e.rows * e.cols, [a, b] = f < e.time ? (tail ? e.tail : e.head) : (tail ? e.tailDecay : e.headDecay);
+  const k = f < e.time ? f / (e.time || 1) : (f - e.time) / ((1 - e.time) || 1);
+  return Math.min(n - 1, Math.max(0, Math.floor(a + (b - a + 1) * Math.min(0.999, k))));
+}
+
 function create() {
   const P = [], parts = [], fxs = [];          // 弹体、粒子、一次性特效（闪电、光柱、冲击波……）
+  const W3P = [], W3R = [];                    // 原版投射物的粒子、弹体消失后还在淡出的拖尾
   const F = {};
 
   // ------------------------------ 粒子
@@ -193,14 +256,17 @@ function create() {
 
   // ------------------------------ 发射
   F.launch = (style, from, target, onHit, opt = {}) => {
-    const st = STYLES[style] || STYLES.arcaneDagger;
+    let st = STYLES[style] || STYLES.arcaneDagger;
+    if (opt.w3 && W3[opt.w3]) st = { w3: W3[opt.w3], speed: opt.speed || st.speed, impact: st.impact };   // 原版投射物：速度、弧度用原图数据，命中效果沿用
     const tz = opt.tz ?? 50;
     if (st.instant) { F.instant(style, from, target, tz); if (onHit) onHit(target); return; }
     if (P.length >= MAX_PROJ) { if (onHit) onHit(target); return; }        // 太多弹体时直接结算，不丢伤害
     const dx = target.x - from.x, dy = target.y - from.y, d0 = Math.max(1, Math.hypot(dx, dy));
     const side = st.curve ? rnd(-1, 1) * st.curve : 0;
     P.push({ st, x: from.x, y: from.y, z: from.z, x0: from.x, y0: from.y, z0: from.z, target, tx: target.x, ty: target.y, tz,
-      d0, prog: 0, onHit, t: 0, side, ph: rnd(0, TAU), ang: Math.atan2(dy, dx), scale: opt.scale || 1, hist: [] });
+      d0, prog: 0, onHit, t: 0, side, ph: rnd(0, TAU), ang: Math.atan2(dy, dx), scale: opt.scale || 1, hist: [],
+      arcH: st.w3 ? (opt.arc || 0) * d0 * 0.5 : st.arc || 0, acc: st.w3 ? st.w3.emitters.map(() => Math.random()) : null,
+      rib: st.w3 ? st.w3.ribbons.map(() => []) : null });
   };
   F.instant = (style, from, target, tz = 50) => {
     const st = STYLES[style];
@@ -230,14 +296,22 @@ function create() {
       const px = p.x, py = p.y;
       p.x = nx; p.y = ny;
       p.rx = p.x + (ux / ul) * (perp + wob); p.ry = p.y + (uy / ul) * (perp + wob);
-      p.z = p.z0 + (p.tz - p.z0) * pr + (p.st.arc || 0) * 4 * pr * (1 - pr);
-      const vz = (p.tz - p.z0) + (p.st.arc || 0) * 4 * (1 - 2 * pr);
+      p.z = p.z0 + (p.tz - p.z0) * pr + p.arcH * 4 * pr * (1 - pr);
+      const vz = (p.tz - p.z0) + p.arcH * 4 * (1 - 2 * pr);
       p.ang = Math.atan2(p.y - py, p.x - px) || p.ang;
       p.pitch = Math.atan2(vz * ZK, p.d0);
       if (p.st.afterimage || p.st.tracer) { p.hist.push([p.rx, p.ry, p.z]); if (p.hist.length > 5) p.hist.shift(); }
       if (p.st.trail) p.st.trail(F, { x: p.rx, y: p.ry, z: p.z });
+      if (p.st.w3) {
+        p.st.w3.emitters.forEach((e, i) => { p.acc[i] += e.rate * dt; while (p.acc[i] >= 1) { p.acc[i]--; w3emit(W3P, p, e, dt); } });
+        const ca = Math.cos(p.ang), sa = Math.sin(p.ang), k = W3SIZE * p.scale;
+        p.st.w3.ribbons.forEach((r, i) => { const h = p.rib[i]; h.push({ x: p.rx + (r.pos[0] * ca - r.pos[1] * sa) * k, y: p.ry + (r.pos[0] * sa + r.pos[1] * ca) * k, z: p.z + r.pos[2] * k, t: p.t });
+          while (h.length > 2 && p.t - h[0].t > r.lifespan) h.shift(); });
+      }
       if (rem <= step) {
         p.done = true;
+        if (p.rib) p.st.w3.ribbons.forEach((r, i) => W3R.push({ r, h: p.rib[i], t: p.t, scale: p.scale }));
+        for (const q of W3P) if (q.owner === p) { [q.x, q.y, q.z] = w3pos(q); q.owner = null; q.vx = q.vy = q.vz = 0; }
         if (p.st.impact) p.st.impact(F, p.tx, p.ty, p.tz);
         if (p.onHit) p.onHit(p.target && !p.target.dead ? p.target : null, p.tx, p.ty);
       }
@@ -251,11 +325,19 @@ function create() {
       if (q.grow) q.size *= 1 + (q.grow - 1) * dt;
     }
     let j = 0; for (const q of parts) if (q.life > 0) parts[j++] = q; parts.length = j;
+    for (const q of W3P) {
+      q.t += dt; const gz = (q.e.gravity || 0) * W3SIZE;
+      if (q.owner) { q.lx += q.lvx * dt; q.ly += q.lvy * dt; q.lz += q.lvz * dt; q.lvz -= gz * dt; }
+      else { q.x += q.vx * dt; q.y += q.vy * dt; q.z += q.vz * dt; q.vz -= gz * dt; }
+    }
+    j = 0; for (const q of W3P) if (q.t < q.e.lifespan) W3P[j++] = q; W3P.length = j;
+    for (const r of W3R) r.t += dt;
+    j = 0; for (const r of W3R) if (r.h.length && r.t - r.h[r.h.length - 1].t < r.r.lifespan) W3R[j++] = r; W3R.length = j;
     for (const f of fxs) { f.life -= dt; if (f.k === 'fall' && f.life <= 0 && f.onEnd) { const cb = f.onEnd; f.onEnd = null; cb(F, f.x, f.y); } if (f.k === 'bolt' && (f.jt = (f.jt || 0) - dt) <= 0) { f.jt = 0.04; f.pts = null; } }
     j = 0; for (const f of fxs) if (f.life > 0) fxs[j++] = f; fxs.length = j;
   };
-  F.clear = () => { P.length = 0; parts.length = 0; fxs.length = 0; };
-  F.count = () => ({ proj: P.length, parts: parts.length, fx: fxs.length });
+  F.clear = () => { P.length = 0; parts.length = 0; fxs.length = 0; W3P.length = 0; W3R.length = 0; };
+  F.count = () => ({ proj: P.length, parts: parts.length + W3P.length, fx: fxs.length });
 
   // ------------------------------ 绘制
   F.draw = (g, v) => {
@@ -298,6 +380,7 @@ function create() {
       if (!onScreen(p.rx, p.ry)) continue;
       const st = p.st, sx = X(p.rx), sy = Y(p.ry, p.z), k = S * p.scale * SIZE;
       const ang = Math.atan2(-Math.sin(p.ang) - Math.sin(p.pitch || 0) * 0.6, Math.cos(p.ang));   // 屏幕上的朝向（y 翻转 + 抛物线俯仰）
+      if (st.w3) { drawW3Body(g, p, st.w3, sx, sy, ang, S); continue; }
       if (st.tracer && p.hist.length) {             // 子弹：亮色曳光
         const [hx, hy, hz] = p.hist[0]; g.globalCompositeOperation = 'lighter';
         g.strokeStyle = st.tracer; g.lineWidth = Math.max(1.5, 4 * k); g.lineCap = 'round';
@@ -317,6 +400,7 @@ function create() {
       if (st.ball) { const r = st.ball[1] * k; g.fillStyle = st.ball[0]; g.beginPath(); g.arc(sx, sy, Math.max(1.5, r), 0, TAU); g.fill(); g.fillStyle = 'rgba(255,255,255,.35)'; g.beginPath(); g.arc(sx - r * 0.35, sy - r * 0.35, Math.max(0.6, r * 0.35), 0, TAU); g.fill(); }
       if (st.shape) { g.save(); g.translate(sx, sy); g.rotate(ang); SHAPES[st.shape](g, k, st.col, p.t * (st.spin || 0)); g.restore(); }
     }
+    drawW3Parts(g, X, Y, S, onScreen);
     // 发光粒子
     g.globalCompositeOperation = 'lighter';
     for (const q of parts) if (q.add && onScreen(q.x, q.y)) {
@@ -368,6 +452,53 @@ function create() {
     }
     g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
   };
+  function drawW3Body(g, p, d, sx, sy, ang, S) {
+    const b = d.body; if (!b) return;
+    const k = S * p.scale * W3SIZE / b.res;
+    g.save(); g.translate(sx, sy); g.rotate(ang);
+    const im = w3img(b.img), ad = w3img(b.add);
+    if (im) g.drawImage(im, -b.ox * k, -b.oy * k, im.naturalWidth * k, im.naturalHeight * k);
+    if (ad) { g.globalCompositeOperation = 'lighter'; g.drawImage(ad, -b.ox * k, -b.oy * k, ad.naturalWidth * k, ad.naturalHeight * k); }
+    g.restore();
+  }
+  function ribbon(g, X, Y, S, r, h, now, scale) {   // 拖尾：发射点上下各伸出 above / below 的竖直带子，扫过的轨迹画成四边形条
+    if (h.length < 2) return;
+    const k = W3SIZE * scale;
+    g.globalCompositeOperation = r.filter >= 3 ? 'lighter' : 'source-over';
+    g.fillStyle = `rgb(${r.color.map(v => Math.round(Math.min(1, v) * 255)).join(',')})`;
+    for (let i = 1; i < h.length; i++) {
+      const a = 1 - (now - h[i].t) / r.lifespan; if (a <= 0) continue;
+      const p0 = h[i - 1], p1 = h[i];
+      g.globalAlpha = Math.min(1, a * r.alpha);
+      g.beginPath();
+      g.moveTo(X(p0.x), Y(p0.y, p0.z + r.above * k)); g.lineTo(X(p1.x), Y(p1.y, p1.z + r.above * k));
+      g.lineTo(X(p1.x), Y(p1.y, p1.z - r.below * k)); g.lineTo(X(p0.x), Y(p0.y, p0.z - r.below * k));
+      g.closePath(); g.fill();
+    }
+  }
+  function drawW3Parts(g, X, Y, S, onScreen) {
+    for (const p of P) if (p.rib) p.st.w3.ribbons.forEach((r, i) => ribbon(g, X, Y, S, r, p.rib[i], p.t, p.scale));
+    for (const r of W3R) ribbon(g, X, Y, S, r.r, r.h, r.t, r.scale);
+    for (const q of W3P) {
+      const e = q.e, im = w3img(e.tex); if (!im) continue;
+      const [x, y, z] = w3pos(q); if (!onScreen(x, y)) continue;
+      const f = q.t / e.lifespan, [c0, c1, kc] = seg(e.colors, f, e.time), [a0, a1, ka] = seg(e.alpha, f, e.time), [s0, s1, ks] = seg(e.scaling, f, e.time);
+      const col = [0, 1, 2].map(i => lerp(c0[i], c1[i], kc)), alpha = lerp(a0, a1, ka) / 255, size = lerp(s0, s1, ks) * S * W3SIZE * (q.owner ? q.owner.scale : 1);
+      if (alpha <= 0.01 || size < 0.5) continue;
+      const tex = w3tint(im, col), cw = im.naturalWidth / e.cols, chh = im.naturalHeight / e.rows;
+      g.globalCompositeOperation = e.filter === 1 ? 'lighter' : e.filter === 2 || e.filter === 3 ? 'multiply' : 'source-over';
+      g.globalAlpha = Math.min(1, alpha);
+      const sx = X(x), sy = Y(y, z);
+      if (e.headOrTail !== 1) { const n = w3cell(e, f, false); g.drawImage(tex, (n % e.cols) * cw, Math.floor(n / e.cols) * chh, cw, chh, sx - size / 2, sy - size / 2, size, size); }
+      if (e.headOrTail >= 1) {               // 尾巴：沿速度方向拉长
+        const vx = q.owner ? q.lvx : q.vx, vy = q.owner ? q.lvy : q.vy, vz = q.owner ? q.lvz : q.vz;
+        const len = Math.hypot(vx, vy, vz) * e.tailLength * S, an = Math.atan2(-(vy + vz * ZK), vx);
+        if (len > 0.5) { const n = w3cell(e, f, true); g.save(); g.translate(sx, sy); g.rotate(an);
+          g.drawImage(tex, (n % e.cols) * cw, Math.floor(n / e.cols) * chh, cw, chh, -len, -size / 2, len, size); g.restore(); }
+      }
+    }
+    g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+  }
   return F;
 }
 // 烟雾按颜色着色的缓存

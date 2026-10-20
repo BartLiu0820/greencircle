@@ -1,13 +1,13 @@
 {
  "key": "unit:ntrd",
- "src": "sprites/unit_ntrd.png",
- "frameW": 384,
- "frameH": 384,
+ "src": "sprites/w3_monster_Units_Creeps_DragonSeaTurtle_DragonSeaTurtle.png",
+ "frameW": 160,
+ "frameH": 160,
  "cols": 8,
  "rows": 16,
  "anchor": [
   0.5,
-  0.7
+  0.62
  ],
  "unitsPerPixel": 2.0,
  "pitch": 50,
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 0.9,
+ "aliasOf": "model:monster:Units/Creeps/DragonSeaTurtle/DragonSeaTurtle",
+ "war3": true
 }

@@ -1,15 +1,15 @@
 {
  "key": "unit:nenf",
- "src": "sprites/unit_nenf.png",
+ "src": "sprites/w3_monster_Units_Creeps_Unbroken_Unbroken.png",
  "frameW": 160,
  "frameH": 160,
  "cols": 8,
  "rows": 16,
  "anchor": [
   0.5,
-  0.62
+  0.7
  ],
- "unitsPerPixel": 2.0,
+ "unitsPerPixel": 1.4285714285714286,
  "pitch": 50,
  "actions": {
   "walk": {
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 0.7,
+ "aliasOf": "model:monster:Units/Creeps/Unbroken/Unbroken",
+ "war3": true
 }

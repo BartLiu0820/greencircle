@@ -1,15 +1,15 @@
 {
  "key": "tower:牛头塔",
- "src": "sprites/tower_牛头塔.png",
+ "src": "sprites/w3_tower_Units_Orc_Tauren_Tauren.png",
  "frameW": 192,
  "frameH": 192,
  "cols": 6,
  "rows": 2,
  "anchor": [
   0.5,
-  0.76
+  0.7
  ],
- "unitsPerPixel": 2.0,
+ "unitsPerPixel": 1.4545454545454546,
  "pitch": 50,
  "actions": {
   "idle": {
@@ -26,5 +26,8 @@
    "fps": 14,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.1,
+ "aliasOf": "model:tower:Units/Orc/Tauren/Tauren",
+ "war3": true
 }
