@@ -15,8 +15,8 @@
   "idle": {
    "row": 0,
    "dirs": 8,
-   "frames": 6,
-   "fps": 8,
+   "frames": 8,
+   "fps": 6.0,
    "loop": true
   },
   "walk": {

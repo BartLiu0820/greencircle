@@ -3,7 +3,7 @@
  "src": "sprites/w3_tower_Buildings_Other_ElvenGuardMagicTower_ElvenGuardMagicTower.png",
  "frameW": 160,
  "frameH": 160,
- "cols": 6,
+ "cols": 10,
  "rows": 1,
  "anchor": [
   0.5,
@@ -15,8 +15,8 @@
   "idle": {
    "row": 0,
    "dirs": 1,
-   "frames": 6,
-   "fps": 8,
+   "frames": 10,
+   "fps": 3.0,
    "loop": true
   }
  },

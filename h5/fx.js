@@ -177,6 +177,28 @@ function w3tint(im, c) {                // 贴图乘颜色（只用合成模式�
   }
   return cv;
 }
+// 叠加（lighter）用的黑底贴图：投射物画在透明的界面层上（3D 单位上面），黑底会变成黑框。
+// 改成"亮度当不透明度"（alpha = 最亮的通道，颜色按它还原），叠在透明层上再合成到画面上和直接叠加差不多。
+// 用 file:// 打开时读不了像素，就用原图
+const ADDSAFE = new WeakMap();
+function addSafe(im) {
+  let cv = ADDSAFE.get(im);
+  if (cv) return cv;
+  cv = im;
+  try {
+    const c = document.createElement('canvas'); c.width = im.naturalWidth || im.width; c.height = im.naturalHeight || im.height;
+    const g = c.getContext('2d'); g.drawImage(im, 0, 0);
+    const d = g.getImageData(0, 0, c.width, c.height), a = d.data;
+    for (let i = 0; i < a.length; i += 4) {
+      const m = Math.max(a[i], a[i + 1], a[i + 2]);
+      if (m) { a[i] = a[i] * 255 / m; a[i + 1] = a[i + 1] * 255 / m; a[i + 2] = a[i + 2] * 255 / m; }
+      a[i + 3] = m * a[i + 3] / 255;
+    }
+    g.putImageData(d, 0, 0); cv = c;
+  } catch (_) { /* 画布被污染（file://） */ }
+  ADDSAFE.set(im, cv);
+  return cv;
+}
 const lerp = (a, b, k) => a + (b - a) * k;
 // 三段插值：0 → 1 在 [0, time]，1 → 2 在 [time, 1]
 function seg(arr, f, tm) { return f < tm ? [arr[0], arr[1], f / (tm || 1)] : [arr[1], arr[2], (f - tm) / ((1 - tm) || 1)]; }
@@ -458,18 +480,19 @@ function create() {
     g.save(); g.translate(sx, sy); g.rotate(ang);
     const im = w3img(b.img), ad = w3img(b.add);
     if (im) g.drawImage(im, -b.ox * k, -b.oy * k, im.naturalWidth * k, im.naturalHeight * k);
-    if (ad) { g.globalCompositeOperation = 'lighter'; g.drawImage(ad, -b.ox * k, -b.oy * k, ad.naturalWidth * k, ad.naturalHeight * k); }
+    if (ad) { g.globalCompositeOperation = 'lighter'; g.drawImage(addSafe(ad), -b.ox * k, -b.oy * k, ad.naturalWidth * k, ad.naturalHeight * k); }
     g.restore();
   }
   function ribbon(g, X, Y, S, r, h, now, scale) {   // 拖尾：发射点上下各伸出 above / below 的竖直带子，扫过的轨迹画成四边形条
     if (h.length < 2) return;
     const k = W3SIZE * scale;
-    g.globalCompositeOperation = r.filter >= 3 ? 'lighter' : 'source-over';
-    g.fillStyle = `rgb(${r.color.map(v => Math.round(Math.min(1, v) * 255)).join(',')})`;
+    const add = r.filter >= 3, c = r.color.map(v => Math.min(1, Math.max(0, v))), cm = add ? Math.max(...c, 1e-3) : 1;
+    g.globalCompositeOperation = add ? 'lighter' : 'source-over';
+    g.fillStyle = `rgb(${c.map(v => Math.round(v / cm * 255)).join(',')})`;     // 叠加的拖尾：亮度当不透明度（同 addSafe）
     for (let i = 1; i < h.length; i++) {
       const a = 1 - (now - h[i].t) / r.lifespan; if (a <= 0) continue;
       const p0 = h[i - 1], p1 = h[i];
-      g.globalAlpha = Math.min(1, a * r.alpha);
+      g.globalAlpha = Math.min(1, a * r.alpha) * cm;
       g.beginPath();
       g.moveTo(X(p0.x), Y(p0.y, p0.z + r.above * k)); g.lineTo(X(p1.x), Y(p1.y, p1.z + r.above * k));
       g.lineTo(X(p1.x), Y(p1.y, p1.z - r.below * k)); g.lineTo(X(p0.x), Y(p0.y, p0.z - r.below * k));
@@ -485,7 +508,7 @@ function create() {
       const f = q.t / e.lifespan, [c0, c1, kc] = seg(e.colors, f, e.time), [a0, a1, ka] = seg(e.alpha, f, e.time), [s0, s1, ks] = seg(e.scaling, f, e.time);
       const col = [0, 1, 2].map(i => lerp(c0[i], c1[i], kc)), alpha = lerp(a0, a1, ka) / 255, size = lerp(s0, s1, ks) * S * W3SIZE * (q.owner ? q.owner.scale : 1);
       if (alpha <= 0.01 || size < 0.5) continue;
-      const tex = w3tint(im, col), cw = im.naturalWidth / e.cols, chh = im.naturalHeight / e.rows;
+      const tex = e.filter === 1 ? addSafe(w3tint(im, col)) : w3tint(im, col), cw = im.naturalWidth / e.cols, chh = im.naturalHeight / e.rows;
       g.globalCompositeOperation = e.filter === 1 ? 'lighter' : e.filter === 2 || e.filter === 3 ? 'multiply' : 'source-over';
       g.globalAlpha = Math.min(1, alpha);
       const sx = X(x), sy = Y(y, z);

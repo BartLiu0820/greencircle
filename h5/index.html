@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>绿色循环圈外传 H5</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=20261020e">
 </head>
 <body>
 <div id="app">
@@ -19,12 +19,15 @@
       <span class="r"><i class="ico gold-ico"></i><b id="r-gold" class="gold">0</b></span>
       <span class="r"><i class="ico wood-ico"></i><b id="r-wood" class="wood">0</b></span>
       <span class="r"><i class="ico food-ico"></i><b id="r-food">0/0</b></span>
+      <span class="r" title="当局成就：在兔子那里买道具"><i class="ico ach-ico"></i><b id="r-ach" class="ach">0</b></span>
       <span class="r mode" id="r-mode"></span>
     </div>
   </header>
 
   <main id="stage">
     <canvas id="cv"></canvas>
+    <canvas id="gl3d" class="layer"></canvas>
+    <canvas id="ov" class="layer"></canvas>
     <div id="quick">
       <button id="q-builder" title="守卫者 (F1)"><span>守</span></button>
       <button id="q-hero" class="hidden" title="英雄塔 (F2)"><span id="q-hero-name">英</span><em id="q-hero-lv">1</em></button>
@@ -43,18 +46,25 @@
       <canvas id="minimap"></canvas>
       <div class="zbtn"><button id="btn-zin" title="放大">+</button><button id="btn-zout" title="缩小">−</button></div>
     </div>
+    <div id="portrait"><canvas id="pcv"></canvas><div class="fb"></div></div>
+    <div id="hpt" class="bartxt"></div>
+    <div id="mpt" class="bartxt"></div>
     <div id="info"></div>
     <div id="cmd"></div>
   </footer>
 </div>
 <div id="modal" class="hidden"><div id="modal-box"></div></div>
-<script src="assets/manifest.js"></script>
-<script src="assets/war3_icons.js"></script>
-<script src="assets/sprites.js"></script>
-<script src="assets/w3missiles.js"></script>
-<script src="data.js"></script>
-<script src="terrain.js"></script>
-<script src="fx.js"></script>
-<script src="game.js"></script>
+<script src="assets/manifest.js?v=20261020b"></script>
+<script src="assets/war3_icons.js?v=20261020d"></script>
+<script src="assets/sprites.js?v=20261020c"></script>
+<script src="assets/w3missiles.js?v=20261020b"></script>
+<script src="assets/w3portraits.js?v=20261020b"></script>
+<script src="data.js?v=20261020b"></script>
+<script src="assets/w3terrain.js?v=20261020c"></script>
+<script src="terrain.js?v=20261020c"></script>
+<script src="fx.js?v=20261020d"></script>
+<script src="vendor/mdx-m3-viewer-5.12.0.min.js"></script>
+<script src="units3d.js?v=20261020f"></script>
+<script src="game.js?v=20261020i"></script>
 </body>
 </html>

@@ -1,0 +1,34 @@
+{
+ "key": "glow:tower:灵魂塔:3",
+ "src": "sprites/w3_tower_Units_Undead_SkeletonMage_SkeletonMage_glow.png",
+ "frameW": 160,
+ "frameH": 160,
+ "cols": 10,
+ "rows": 2,
+ "anchor": [
+  0.5,
+  0.7
+ ],
+ "unitsPerPixel": 2.0,
+ "pitch": 50,
+ "actions": {
+  "idle": {
+   "row": 0,
+   "dirs": 1,
+   "frames": 10,
+   "fps": 6.67,
+   "loop": true
+  },
+  "attack": {
+   "row": 1,
+   "dirs": 1,
+   "frames": 6,
+   "fps": 14,
+   "loop": false
+  }
+ },
+ "modelScale": 1.0,
+ "glow": true,
+ "aliasOf": "model:tower:Units/Undead/SkeletonMage/SkeletonMage_glow",
+ "war3": true
+}

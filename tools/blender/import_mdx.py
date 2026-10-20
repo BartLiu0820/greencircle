@@ -10,9 +10,9 @@
   - 动画：按序列名挑出 idle(Stand) / walk / attack / death / spell，各存成一个 Action（30 fps）
   - 坐标：WC3 是 Z 朝上、正面朝 +X，单位约等于游戏单位；转成 Blender 的米（÷80）、正面朝 -Y
 根骨骼的水平位移（比如死亡时被击飞）会去掉，让精灵原地播放。
-没处理：粒子、拖尾、贴图动画、全局序列（按静止处理）、geoset 透明度动画（只把一直透明的 geoset 去掉）。
+没处理：粒子、拖尾、贴图动画、全局序列（按静止处理）。geoset 透明度动画只做显隐：每个动作逐帧的可见性存在网格物体的 mdx_vis 上，render_sprites.py 出图时按帧切换。
 """
-import argparse, math, os, struct, sys
+import argparse, json, math, os, struct, sys
 
 import bpy
 import numpy as np
@@ -29,7 +29,9 @@ WANT = {   # 我们的动作名 → 按优先级匹配的 WC3 序列名（小写
     'attack': ['attack', 'attack slam', 'attack 2'],
     'death': ['death'],
     'spell': ['spell', 'spell throw', 'spell slam', 'attack slam'],
+    'spin': ['attack walk stand spin'],                    # 剑圣的旋风斩（剑刃风暴）
 }
+SHOW_IN = ('attack', 'spell', 'spin')                       # 这些动作里会出现的 geoset 也导入（出图时按帧显隐）
 
 
 def seqkey(name):
@@ -142,10 +144,10 @@ def parse(path):
                 M['geos'].append(g); r.p = gs + gsize
         elif tg == 'GEOA':
             while r.p < end:
-                s0 = r.p; sz = r.u32(); alpha = r.f32(); r.u32(); r.fs(3); gid = r.u32(); tr = {}
+                s0 = r.p; sz = r.u32(); alpha = r.f32(); r.u32(); col = r.fs(3); gid = r.u32(); tr = {}
                 while r.p < s0 + sz:
                     t = r.tag(); tr[t] = read_track(r, TRACK_DIM.get(t, 3))
-                M['geoa'].append(dict(alpha=alpha, geo=gid, tracks=tr)); r.p = s0 + sz
+                M['geoa'].append(dict(alpha=alpha, geo=gid, color=tuple(col), tracks=tr)); r.p = s0 + sz
         elif tg == 'BONE':
             while r.p < end:
                 n = read_node(r); n['kind'] = 'bone'; r.u32(); r.u32(); M['nodes'][n['id']] = n
@@ -177,6 +179,11 @@ def sample(track, t, start, end, default):
                 q = q0.slerp(q1, a); return (q.x, q.y, q.z, q.w)
             return tuple(x0 + (x1 - x0) * a for x0, x1 in zip(v0, v1))
     return ks[-1][1]
+
+
+def vis_times(tr, s):
+    """取可见性要看的时刻：序列首尾、中点和序列内的关键帧"""
+    return sorted({s['start'], (s['start'] + s['end']) // 2, s['end']} | {k[0] for k in tr['keys'] if s['start'] <= k[0] <= s['end']})
 
 
 def key_times(nodes, start, end):
@@ -229,7 +236,7 @@ def find_texture(mdx_path, tex_path):
     return loose
 
 
-OPT = dict(skin=None, skin_from=None, tint=None, w3roots=None)
+OPT = dict(skin=None, skin_from=None, tint=None, w3roots=None, rtex=None, glow=False)
 
 
 def tint(nt, color_out):
@@ -271,6 +278,7 @@ def make_material(name, layers, M, mdx_path, team, png_dir):
         bsdf.inputs['Base Color'].default_value = (*team, 1); return mat, False
     L, t = main
     src = find_texture(mdx_path, t['path'])
+    if not t['path'] and t['rid'] > 2 and OPT.get('rtex'): src = OPT['rtex']   # 可替换贴图（树 = 31 等）：由地形 / 装饰物数据指定
     if OPT['skin'] and t['path'] and os.path.basename(t['path'].replace('\\', '/')).lower() == OPT['skin_from']:   # 换一套配色
         src = OPT['skin']
     if not src:
@@ -296,11 +304,39 @@ def make_material(name, layers, M, mdx_path, team, png_dir):
     if L['filter'] in (3, 4):                             # 叠加发光
         nt.links.new(tex.outputs['Color'], bsdf.inputs['Emission Color']); bsdf.inputs['Emission Strength'].default_value = 1.0
     if cut:
-        nt.links.new(tex.outputs['Alpha'], bsdf.inputs['Alpha'])
+        alpha = tex.outputs['Alpha']
+        if L['alpha'] < 0.999:                            # 材质层自带的透明度（魔幻塔攻击时飞刃的运动模糊片只有 0.2）
+            k = nt.nodes.new('ShaderNodeMath'); k.operation = 'MULTIPLY'; k.inputs[1].default_value = L['alpha']
+            nt.links.new(alpha, k.inputs[0]); alpha = k.outputs['Value']
+        nt.links.new(alpha, bsdf.inputs['Alpha'])
         try: mat.surface_render_method = 'DITHERED'
         except AttributeError: mat.blend_method = 'CLIP'
     if L['shading'] & 0x10: mat.use_backface_culling = False  # two sided
     return mat, cut
+
+
+def make_glow_material(name, L, M, mdx_path, png_dir, color):
+    """光效模式：叠加层画成纯自发光（贴图颜色 × 贴图 alpha × geoset 颜色），黑底上出图，游戏里用 lighter 叠上去"""
+    mat = bpy.data.materials.new(name); mat.use_nodes = True
+    nt = mat.node_tree; nt.nodes.clear()
+    out = nt.nodes.new('ShaderNodeOutputMaterial'); em = nt.nodes.new('ShaderNodeEmission')
+    t = M['tex'][L['tex']]; src = find_texture(mdx_path, t['path'])
+    png = os.path.join(png_dir, os.path.splitext(os.path.basename(src))[0] + '_glow.png')
+    if not os.path.exists(png): blp.write_png(png, blp.decode_blp(open(src, 'rb').read()))
+    img = bpy.data.images.load(png); img.pack()
+    tex = nt.nodes.new('ShaderNodeTexImage'); tex.image = img
+    mul = nt.nodes.new('ShaderNodeMix'); mul.data_type = 'RGBA'; mul.blend_type = 'MULTIPLY'; mul.inputs['Factor'].default_value = 1
+    nt.links.new(tex.outputs['Color'], mul.inputs['A']); mul.inputs['B'].default_value = (*color, 1)
+    nt.links.new(mul.outputs['Result'], em.inputs['Color'])
+    k = nt.nodes.new('ShaderNodeMath'); k.operation = 'MULTIPLY'; k.inputs[1].default_value = L['alpha']
+    nt.links.new(tex.outputs['Alpha'], k.inputs[0]); nt.links.new(k.outputs['Value'], em.inputs['Strength'])
+    add = nt.nodes.new('ShaderNodeAddShader'); tr = nt.nodes.new('ShaderNodeBsdfTransparent')
+    nt.links.new(em.outputs[0], add.inputs[0]); nt.links.new(tr.outputs[0], add.inputs[1])
+    nt.links.new(add.outputs[0], out.inputs['Surface'])
+    try: mat.surface_render_method = 'BLENDED'
+    except AttributeError: mat.blend_method = 'BLEND'
+    mat.use_backface_culling = False
+    return mat, False
 
 
 # ---------------------------------------------------------------- 搭场景
@@ -332,22 +368,36 @@ def build(mdx_path, out, scale, team, height=None):
             arm_data.edit_bones[names[nid]].parent = arm_data.edit_bones[names[n['parent']]]
     bpy.ops.object.mode_set(mode='OBJECT')
 
+    pick = {}
+    for want, cands in WANT.items():
+        for c in cands:                                   # 先找名字完全一样的（"Stand"），再找带编号的变体（"Stand - 2" 常是东张西望的长动作）
+            s = next((s for s in M['seqs'] if s['name'].lower().strip() == c), None) or next((s for s in M['seqs'] if seqkey(s['name']) == c), None)
+            if s: pick[want] = s; break
+
     # 一直透明的 geoset 去掉（比如单独的阴影片）
-    # 以及在待机（Stand）里透明度为 0 的 geoset（比如死亡后才出现的内脏 gutz）
+    # 以及待机（Stand）和攻击 / 施法动作里都看不见的（比如死亡后才出现的内脏 gutz）；
+    # 只在攻击 / 施法里出现的（魔幻塔攻击时的旋转飞刃、剑圣旋风斩的旋风）留下，按动作逐帧显隐（vis_frames）
     stand = next((s for s in M['seqs'] if seqkey(s['name']) == 'stand'), M['seqs'][0] if M['seqs'] else None)
-    hidden = set()
-    for ga in M['geoa']:
+    shown = [stand] + [pick[w] for w in SHOW_IN if w in pick]
+    def seen(ga, s):
         tr = ga['tracks'].get('KGAO')
-        if tr is None: a = ga['alpha']
-        elif stand: a = max(sample(tr, t, stand['start'], stand['end'], (ga['alpha'],))[0] for t in (stand['start'], (stand['start'] + stand['end']) // 2, stand['end']))
-        else: a = 1
-        if a <= 0.01: hidden.add(ga['geo'])
-    if hidden: log(f'  隐藏待机时看不见的 geoset：{sorted(hidden)}')
+        if tr is None: return ga['alpha'] > 0.01
+        if s is None: return True
+        return max(sample(tr, t, s['start'], s['end'], (ga['alpha'],))[0] for t in vis_times(tr, s)) > 0.01
+    hidden = {ga['geo'] for ga in M['geoa'] if not any(seen(ga, s) for s in shown)}
+    if hidden and not OPT['glow']: log(f'  隐藏待机 / 攻击 / 施法时都看不见的 geoset：{sorted(hidden)}')
+    geo_ob = {}
+    gcol = {ga['geo']: ga.get('color', (1, 1, 1)) for ga in M['geoa']}
     mats = {}
     for gi, g in enumerate(M['geos']):
-        if gi in hidden or 0 < g.get('lod', 0) < 0xFFFFFFFF: continue   # 低精度 LOD 是重复的网格（0xFFFFFFFF = 所有精度都显示）
+        if 0 < g.get('lod', 0) < 0xFFFFFFFF: continue                   # 低精度 LOD 是重复的网格（0xFFFFFFFF = 所有精度都显示）
         layers = M['mats'][g['mat']]
-        if all(L['filter'] in (3, 4, 5, 6) for L in layers):   # 纯叠加 / 调制层（光效、阴影）不渲染
+        glow = all(L['filter'] in (3, 4) and M['tex'][L['tex']]['path'] for L in layers)   # 有贴图的叠加层（不含队伍光晕）
+        if OPT['glow']:                                                 # 光效模式：只出叠加层，动作里才出现的也要（剑圣旋风斩的旋风）
+            if not glow or gi in hidden: continue
+            if (g['mat'], gi) not in mats: mats[(g['mat'], gi)] = make_glow_material(f'MDX_GLOW_{gi}', layers[0], M, mdx_path, png_dir, gcol.get(gi, (1, 1, 1)))
+            mats[g['mat']] = mats[(g['mat'], gi)]
+        elif gi in hidden or all(L['filter'] in (3, 4, 5, 6) for L in layers):   # 纯叠加 / 调制层（光效、阴影）不渲染
             continue
         if g['mat'] not in mats: mats[g['mat']] = make_material(f'MDX_MAT_{g["mat"]}', layers, M, mdx_path, team, png_dir)
         me = bpy.data.meshes.new(f'geoset_{gi}')
@@ -358,7 +408,7 @@ def build(mdx_path, out, scale, team, height=None):
             uvl.data.foreach_set('uv', uv.ravel())
         me.materials.append(mats[g['mat']][0])
         for poly in me.polygons: poly.use_smooth = True
-        ob = bpy.data.objects.new(f'geoset_{gi}', me); bpy.context.scene.collection.objects.link(ob)
+        ob = bpy.data.objects.new(f'geoset_{gi}', me); bpy.context.scene.collection.objects.link(ob); geo_ob[gi] = ob
         ob.parent = arm
         # 蒙皮：GNDX[顶点] = matrix group 编号；group 由 MTGC 个连续的 MATS 骨头组成，平均分权重
         groups, i = [], 0
@@ -380,12 +430,17 @@ def build(mdx_path, out, scale, team, height=None):
                 vg[bid].add([vi], 1.0 / len(bones), 'ADD')
         mod = ob.modifiers.new('Armature', 'ARMATURE'); mod.object = arm
 
+    if OPT['glow'] and not geo_ob:
+        log('  没有叠加发光的 geoset'); sys.exit(3)                     # 光效模式：没东西可出，war3_batch.py 据此跳过
+    # 每个动作里 geoset 的逐帧可见性（帧号和动作关键帧一致：1 + 毫秒 × FPS / 1000），透明度动画会变的才存
+    for ga in M['geoa']:
+        tr = ga['tracks'].get('KGAO'); ob = geo_ob.get(ga['geo'])
+        if tr is None or ob is None: continue
+        vis = {want: [int(sample(tr, s['start'] + f * 1000 / FPS, s['start'], s['end'], (ga['alpha'],))[0] > 0.01)
+                      for f in range(int((s['end'] - s['start']) * FPS / 1000) + 2)] for want, s in pick.items()}
+        if any(0 in v for v in vis.values()): ob['mdx_vis'] = json.dumps(vis)
+
     # 动作
-    pick = {}
-    for want, cands in WANT.items():
-        for c in cands:
-            s = next((s for s in M['seqs'] if seqkey(s['name']) == c), None)
-            if s: pick[want] = s; break
     arm.animation_data_create()
     for o in arm.pose.bones: o.rotation_mode = 'QUATERNION'
     for want, s in pick.items():
@@ -441,8 +496,10 @@ if __name__ == '__main__':
     ap.add_argument('--skin', help='换配色：用这张贴图替换模型的主贴图（同一套 UV 的其他配色）')
     ap.add_argument('--tint', help='染色 r,g,b（0~1，乘到贴图颜色上）')
     ap.add_argument('--pedestal', action='store_true', help='塔：放到标准塔座上')
+    ap.add_argument('--glow', action='store_true', help='光效模式：只导入叠加发光的 geoset（另出一张光效精灵表）')
+    ap.add_argument('--rtex', help='可替换贴图（ReplaceableId > 2，如树的贴图）用这个文件')
     ap.add_argument('--w3root', action='append', help='原版资源目录（可多个，前面的优先），贴图按模型里写的完整路径在这里找')
     a = ap.parse_args(argv)
     OPT.update(skin=a.skin and os.path.abspath(a.skin), tint=a.tint and tuple(float(x) for x in a.tint.split(',')), pedestal=a.pedestal,
-               w3roots=a.w3root and [os.path.abspath(r) for r in a.w3root])
+               w3roots=a.w3root and [os.path.abspath(r) for r in a.w3root], rtex=a.rtex and os.path.abspath(a.rtex), glow=a.glow)
     build(a.mdx, a.out, a.scale, tuple(float(x) for x in a.team.split(',')), a.height)

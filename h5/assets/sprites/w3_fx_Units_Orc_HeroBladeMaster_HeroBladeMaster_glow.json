@@ -1,0 +1,25 @@
+{
+ "key": "model:fx:Units/Orc/HeroBladeMaster/HeroBladeMaster_glow",
+ "src": "sprites/w3_fx_Units_Orc_HeroBladeMaster_HeroBladeMaster_glow.png",
+ "frameW": 240,
+ "frameH": 240,
+ "cols": 8,
+ "rows": 1,
+ "anchor": [
+  0.5,
+  0.76
+ ],
+ "unitsPerPixel": 3.3333333333333335,
+ "pitch": 50,
+ "actions": {
+  "spin": {
+   "row": 0,
+   "dirs": 1,
+   "frames": 8,
+   "fps": 18.48,
+   "loop": true
+  }
+ },
+ "modelScale": 1.5,
+ "glow": true
+}

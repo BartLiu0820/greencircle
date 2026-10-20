@@ -17,8 +17,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 8,
-    "frames": 6,
-    "fps": 8,
+    "frames": 8,
+    "fps": 6.0,
     "loop": true
    },
    "walk": {
@@ -33,12 +33,65 @@ window.SPRITE_SHEETS = {
   "aliasOf": "model:builder:Units/Critters/VillagerKid/VillagerKid",
   "war3": true
  },
- "hero:剑神": {
-  "key": "hero:剑神",
-  "src": "sprites/w3_hero_Units_Orc_HeroBladeMaster_HeroBladeMaster.webp",
+ "fx:bladestorm": {
+  "key": "fx:bladestorm",
+  "src": "sprites/w3_fx_Units_Orc_HeroBladeMaster_HeroBladeMaster.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 8,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 3.3333333333333335,
+  "pitch": 50,
+  "actions": {
+   "spin": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 8,
+    "fps": 18.48,
+    "loop": true
+   }
+  },
+  "modelScale": 1.5,
+  "aliasOf": "model:fx:Units/Orc/HeroBladeMaster/HeroBladeMaster",
+  "war3": true
+ },
+ "glow:fx:bladestorm": {
+  "key": "glow:fx:bladestorm",
+  "src": "sprites/w3_fx_Units_Orc_HeroBladeMaster_HeroBladeMaster_glow.webp",
   "frameW": 240,
   "frameH": 240,
   "cols": 8,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.76
+  ],
+  "unitsPerPixel": 3.3333333333333335,
+  "pitch": 50,
+  "actions": {
+   "spin": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 8,
+    "fps": 18.48,
+    "loop": true
+   }
+  },
+  "modelScale": 1.5,
+  "glow": true,
+  "aliasOf": "model:fx:Units/Orc/HeroBladeMaster/HeroBladeMaster_glow",
+  "war3": true
+ },
+ "glow:hero:枪神": {
+  "key": "glow:hero:枪神",
+  "src": "sprites/w3_hero_Units_Critters_ChaosSpaceOrc_ChaosSpaceOrc_glow.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
   "rows": 24,
   "anchor": [
    0.5,
@@ -50,8 +103,788 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 8,
+    "frames": 10,
+    "fps": 7.5,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.1,
+  "glow": true,
+  "aliasOf": "model:hero:Units/Critters/ChaosSpaceOrc/ChaosSpaceOrc_glow",
+  "war3": true
+ },
+ "glow:shop": {
+  "key": "glow:shop",
+  "src": "sprites/w3_tower_Doodads_Cinematic_RockinArthas_RockinArthas_glow.webp",
+  "frameW": 240,
+  "frameH": 240,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 2.5,
+    "loop": true
+   }
+  },
+  "modelScale": 2.0,
+  "glow": true,
+  "aliasOf": "model:tower:Doodads/Cinematic/RockinArthas/RockinArthas_glow",
+  "war3": true
+ },
+ "glow:tower:灵魂塔": {
+  "key": "glow:tower:灵魂塔",
+  "src": "sprites/w3_tower_Units_Undead_SkeletonMage_SkeletonMage_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
     "frames": 6,
-    "fps": 8,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "glow": true,
+  "aliasOf": "model:tower:Units/Undead/SkeletonMage/SkeletonMage_glow",
+  "war3": true
+ },
+ "glow:tower:灵魂塔:2": {
+  "key": "glow:tower:灵魂塔:2",
+  "src": "sprites/w3_tower_Units_Undead_SkeletonMage_SkeletonMage_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "glow": true,
+  "aliasOf": "model:tower:Units/Undead/SkeletonMage/SkeletonMage_glow",
+  "war3": true
+ },
+ "glow:tower:灵魂塔:3": {
+  "key": "glow:tower:灵魂塔:3",
+  "src": "sprites/w3_tower_Units_Undead_SkeletonMage_SkeletonMage_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "glow": true,
+  "aliasOf": "model:tower:Units/Undead/SkeletonMage/SkeletonMage_glow",
+  "war3": true
+ },
+ "glow:tower:灵魂塔:4": {
+  "key": "glow:tower:灵魂塔:4",
+  "src": "sprites/w3_tower_Units_Undead_SkeletonMage_SkeletonMage_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "glow": true,
+  "aliasOf": "model:tower:Units/Undead/SkeletonMage/SkeletonMage_glow",
+  "war3": true
+ },
+ "glow:tower:破坏塔": {
+  "key": "glow:tower:破坏塔",
+  "src": "sprites/w3_tower_Buildings_Other_ElvenGuardMagicTower_ElvenGuardMagicTower_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 3.0,
+    "loop": true
+   }
+  },
+  "modelScale": 0.6,
+  "glow": true,
+  "aliasOf": "model:tower:Buildings/Other/ElvenGuardMagicTower/ElvenGuardMagicTower_glow",
+  "war3": true
+ },
+ "glow:tower:破坏塔:2": {
+  "key": "glow:tower:破坏塔:2",
+  "src": "sprites/w3_tower_Buildings_Other_ElvenGuardMagicTower_ElvenGuardMagicTower_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 3.0,
+    "loop": true
+   }
+  },
+  "modelScale": 0.6,
+  "glow": true,
+  "aliasOf": "model:tower:Buildings/Other/ElvenGuardMagicTower/ElvenGuardMagicTower_glow",
+  "war3": true
+ },
+ "glow:tower:破坏塔:3": {
+  "key": "glow:tower:破坏塔:3",
+  "src": "sprites/w3_tower_Buildings_Other_ElvenGuardMagicTower_ElvenGuardMagicTower_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 3.0,
+    "loop": true
+   }
+  },
+  "modelScale": 0.6,
+  "glow": true,
+  "aliasOf": "model:tower:Buildings/Other/ElvenGuardMagicTower/ElvenGuardMagicTower_glow",
+  "war3": true
+ },
+ "glow:tower:破坏塔:4": {
+  "key": "glow:tower:破坏塔:4",
+  "src": "sprites/w3_tower_Buildings_Other_ElvenGuardMagicTower_ElvenGuardMagicTower_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 3.0,
+    "loop": true
+   }
+  },
+  "modelScale": 0.6,
+  "glow": true,
+  "aliasOf": "model:tower:Buildings/Other/ElvenGuardMagicTower/ElvenGuardMagicTower_glow",
+  "war3": true
+ },
+ "glow:tower:神圣塔": {
+  "key": "glow:tower:神圣塔",
+  "src": "sprites/w3_tower_Units_Orc_StasisTotem_StasisTotem_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 1.25,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   }
+  },
+  "modelScale": 1.6,
+  "glow": true,
+  "aliasOf": "model:tower:Units/Orc/StasisTotem/StasisTotem_glow",
+  "war3": true
+ },
+ "glow:tower:神圣塔:2": {
+  "key": "glow:tower:神圣塔:2",
+  "src": "sprites/w3_tower_Units_Orc_StasisTotem_StasisTotem_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 1.375,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   }
+  },
+  "modelScale": 1.6,
+  "glow": true,
+  "aliasOf": "model:tower:Units/Orc/StasisTotem/StasisTotem_glow",
+  "war3": true
+ },
+ "glow:tower:神圣塔:3": {
+  "key": "glow:tower:神圣塔:3",
+  "src": "sprites/w3_tower_Units_Orc_StasisTotem_StasisTotem_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 1.4999999999999998,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   }
+  },
+  "modelScale": 1.6,
+  "glow": true,
+  "aliasOf": "model:tower:Units/Orc/StasisTotem/StasisTotem_glow",
+  "war3": true
+ },
+ "glow:tower:神圣塔:4": {
+  "key": "glow:tower:神圣塔:4",
+  "src": "sprites/w3_tower_Units_Orc_StasisTotem_StasisTotem_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 1.625,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   }
+  },
+  "modelScale": 1.6,
+  "glow": true,
+  "aliasOf": "model:tower:Units/Orc/StasisTotem/StasisTotem_glow",
+  "war3": true
+ },
+ "glow:tower:神圣塔:5": {
+  "key": "glow:tower:神圣塔:5",
+  "src": "sprites/w3_tower_Units_Orc_StasisTotem_StasisTotem_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 1.7499999999999998,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   }
+  },
+  "modelScale": 1.6,
+  "glow": true,
+  "aliasOf": "model:tower:Units/Orc/StasisTotem/StasisTotem_glow",
+  "war3": true
+ },
+ "glow:tower:神圣塔:6": {
+  "key": "glow:tower:神圣塔:6",
+  "src": "sprites/w3_tower_Units_Orc_StasisTotem_StasisTotem_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   }
+  },
+  "modelScale": 1.6,
+  "glow": true,
+  "aliasOf": "model:tower:Units/Orc/StasisTotem/StasisTotem_glow",
+  "war3": true
+ },
+ "glow:tower:精灵塔": {
+  "key": "glow:tower:精灵塔",
+  "src": "sprites/w3_tower_Buildings_NightElf_AncientOfWonder_AncientOfWonder_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.0,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 0.7,
+  "glow": true,
+  "aliasOf": "model:tower:Buildings/NightElf/AncientOfWonder/AncientOfWonder_glow",
+  "war3": true
+ },
+ "glow:tower:精灵塔:2": {
+  "key": "glow:tower:精灵塔:2",
+  "src": "sprites/w3_tower_Buildings_NightElf_AncientOfWonder_AncientOfWonder_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.0,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 0.7,
+  "glow": true,
+  "aliasOf": "model:tower:Buildings/NightElf/AncientOfWonder/AncientOfWonder_glow",
+  "war3": true
+ },
+ "glow:tower:精灵塔:3": {
+  "key": "glow:tower:精灵塔:3",
+  "src": "sprites/w3_tower_Buildings_NightElf_AncientOfWonder_AncientOfWonder_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.0,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 0.7,
+  "glow": true,
+  "aliasOf": "model:tower:Buildings/NightElf/AncientOfWonder/AncientOfWonder_glow",
+  "war3": true
+ },
+ "glow:tower:精灵塔:4": {
+  "key": "glow:tower:精灵塔:4",
+  "src": "sprites/w3_tower_Buildings_NightElf_AncientOfWonder_AncientOfWonder_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.0,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 0.7,
+  "glow": true,
+  "aliasOf": "model:tower:Buildings/NightElf/AncientOfWonder/AncientOfWonder_glow",
+  "war3": true
+ },
+ "glow:tower:魔幻塔": {
+  "key": "glow:tower:魔幻塔",
+  "src": "sprites/w3_tower_Units_Human_BloodElfSpellThief_BloodElfSpellThief_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 1.3333333333333335,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.2,
+  "glow": true,
+  "aliasOf": "model:tower:Units/Human/BloodElfSpellThief/BloodElfSpellThief_glow",
+  "war3": true
+ },
+ "glow:tower:魔幻塔:2": {
+  "key": "glow:tower:魔幻塔:2",
+  "src": "sprites/w3_tower_Units_Human_BloodElfSpellThief_BloodElfSpellThief_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 1.5,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.2,
+  "glow": true,
+  "aliasOf": "model:tower:Units/Human/BloodElfSpellThief/BloodElfSpellThief_glow",
+  "war3": true
+ },
+ "glow:tower:魔幻塔:3": {
+  "key": "glow:tower:魔幻塔:3",
+  "src": "sprites/w3_tower_Units_Human_BloodElfSpellThief_BloodElfSpellThief_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 1.6666666666666667,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.2,
+  "glow": true,
+  "aliasOf": "model:tower:Units/Human/BloodElfSpellThief/BloodElfSpellThief_glow",
+  "war3": true
+ },
+ "glow:tower:魔幻塔:4": {
+  "key": "glow:tower:魔幻塔:4",
+  "src": "sprites/w3_tower_Units_Human_BloodElfSpellThief_BloodElfSpellThief_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 1.8333333333333335,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.2,
+  "glow": true,
+  "aliasOf": "model:tower:Units/Human/BloodElfSpellThief/BloodElfSpellThief_glow",
+  "war3": true
+ },
+ "glow:tower:魔幻塔:5": {
+  "key": "glow:tower:魔幻塔:5",
+  "src": "sprites/w3_tower_Units_Human_BloodElfSpellThief_BloodElfSpellThief_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.2,
+  "glow": true,
+  "aliasOf": "model:tower:Units/Human/BloodElfSpellThief/BloodElfSpellThief_glow",
+  "war3": true
+ },
+ "hero:剑神": {
+  "key": "hero:剑神",
+  "src": "sprites/w3_hero_Units_Orc_HeroBladeMaster_HeroBladeMaster.webp",
+  "frameW": 240,
+  "frameH": 240,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 8.57,
     "loop": true
    },
    "attack": {
@@ -78,7 +911,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_hero_Units_Critters_ChaosSpaceOrc_ChaosSpaceOrc.webp",
   "frameW": 192,
   "frameH": 192,
-  "cols": 8,
+  "cols": 10,
   "rows": 24,
   "anchor": [
    0.5,
@@ -90,8 +923,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 8,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 7.5,
     "loop": true
    },
    "attack": {
@@ -155,7 +988,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_hero_Units_Human_Jaina_Jaina.webp",
   "frameW": 192,
   "frameH": 192,
-  "cols": 8,
+  "cols": 10,
   "rows": 24,
   "anchor": [
    0.5,
@@ -167,8 +1000,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 8,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 7.5,
     "loop": true
    },
    "attack": {
@@ -195,12 +1028,38 @@ window.SPRITE_SHEETS = {
    0.0
   ]
  },
+ "shop": {
+  "key": "shop",
+  "src": "sprites/w3_tower_Doodads_Cinematic_RockinArthas_RockinArthas.webp",
+  "frameW": 240,
+  "frameH": 240,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 2.5,
+    "loop": true
+   }
+  },
+  "modelScale": 2.0,
+  "aliasOf": "model:tower:Doodads/Cinematic/RockinArthas/RockinArthas",
+  "war3": true
+ },
  "tower:冰霜塔": {
   "key": "tower:冰霜塔",
   "src": "sprites/w3_tower_Units_Human_Sorceress_Sorceress.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -212,8 +1071,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    }
   },
@@ -230,7 +1089,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Human_Sorceress_Sorceress.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -242,8 +1101,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    }
   },
@@ -260,7 +1119,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Human_Sorceress_Sorceress.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -272,8 +1131,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    }
   },
@@ -290,7 +1149,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Human_Sorceress_Sorceress.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -302,8 +1161,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    }
   },
@@ -374,7 +1233,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Demon_HeroChaosBladeMaster_HeroChaosBladeMaster.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -386,8 +1245,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 8.57,
     "loop": true
    },
    "attack": {
@@ -402,7 +1261,7 @@ window.SPRITE_SHEETS = {
   "aliasOf": "model:tower:Units/Demon/HeroChaosBladeMaster/HeroChaosBladeMaster",
   "war3": true,
   "vis": [
-   119,
+   96,
    190
   ]
  },
@@ -411,7 +1270,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Demon_HeroChaosBladeMaster_HeroChaosBladeMaster.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -423,8 +1282,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 8.57,
     "loop": true
    },
    "attack": {
@@ -444,7 +1303,7 @@ window.SPRITE_SHEETS = {
    1.0
   ],
   "vis": [
-   134,
+   108,
    214
   ]
  },
@@ -453,7 +1312,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Demon_HeroChaosBladeMaster_HeroChaosBladeMaster.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -465,8 +1324,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 8.57,
     "loop": true
    },
    "attack": {
@@ -486,7 +1345,7 @@ window.SPRITE_SHEETS = {
    0.392
   ],
   "vis": [
-   149,
+   120,
    238
   ]
  },
@@ -495,7 +1354,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Demon_HeroChaosBladeMaster_HeroChaosBladeMaster.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -507,8 +1366,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 8.57,
     "loop": true
    },
    "attack": {
@@ -528,7 +1387,7 @@ window.SPRITE_SHEETS = {
    0.0
   ],
   "vis": [
-   164,
+   132,
    262
   ]
  },
@@ -537,7 +1396,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Demon_HeroChaosBladeMaster_HeroChaosBladeMaster.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -549,8 +1408,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 8.57,
     "loop": true
    },
    "attack": {
@@ -570,7 +1429,7 @@ window.SPRITE_SHEETS = {
    0.0
   ],
   "vis": [
-   179,
+   144,
    285
   ]
  },
@@ -579,7 +1438,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Demon_HeroChaosBladeMaster_HeroChaosBladeMaster.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -591,8 +1450,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 8.57,
     "loop": true
    },
    "attack": {
@@ -612,7 +1471,7 @@ window.SPRITE_SHEETS = {
    0.0
   ],
   "vis": [
-   194,
+   156,
    309
   ]
  },
@@ -621,7 +1480,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Demon_HeroChaosBladeMaster_HeroChaosBladeMaster.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -633,8 +1492,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 8.57,
     "loop": true
    },
    "attack": {
@@ -654,7 +1513,7 @@ window.SPRITE_SHEETS = {
    0.784
   ],
   "vis": [
-   208,
+   168,
    333
   ]
  },
@@ -663,7 +1522,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Demon_HeroChaosBladeMaster_HeroChaosBladeMaster.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -675,8 +1534,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 8.57,
     "loop": true
    },
    "attack": {
@@ -696,7 +1555,7 @@ window.SPRITE_SHEETS = {
    0.0
   ],
   "vis": [
-   223,
+   180,
    357
   ]
  },
@@ -732,7 +1591,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_NightElf_ChimaeraRoost_ChimaeraRoost.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -744,8 +1603,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 3.0,
     "loop": true
    }
   },
@@ -762,7 +1621,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_NightElf_ChimaeraRoost_ChimaeraRoost.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -774,8 +1633,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 3.0,
     "loop": true
    }
   },
@@ -797,7 +1656,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_NightElf_ChimaeraRoost_ChimaeraRoost.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -809,8 +1668,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 3.0,
     "loop": true
    }
   },
@@ -832,7 +1691,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_NightElf_ChimaeraRoost_ChimaeraRoost.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -844,8 +1703,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 3.0,
     "loop": true
    }
   },
@@ -867,7 +1726,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_NightElf_ChimaeraRoost_ChimaeraRoost.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -879,8 +1738,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 3.0,
     "loop": true
    }
   },
@@ -936,7 +1795,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Human_HeroMountainKing_HeroMountainKing.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -948,8 +1807,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    },
    "attack": {
@@ -973,7 +1832,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Human_HeroMountainKing_HeroMountainKing.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -985,8 +1844,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    },
    "attack": {
@@ -1015,7 +1874,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Human_HeroMountainKing_HeroMountainKing.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -1027,8 +1886,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    },
    "attack": {
@@ -1057,7 +1916,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Human_HeroMountainKing_HeroMountainKing.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -1069,8 +1928,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    },
    "attack": {
@@ -1099,7 +1958,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Human_Jaina_Jaina.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -1111,8 +1970,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 7.5,
     "loop": true
    },
    "attack": {
@@ -1136,7 +1995,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Human_Jaina_Jaina.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -1148,8 +2007,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 7.5,
     "loop": true
    },
    "attack": {
@@ -1178,7 +2037,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Human_Jaina_Jaina.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -1190,8 +2049,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 7.5,
     "loop": true
    },
    "attack": {
@@ -1220,7 +2079,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Human_Jaina_Jaina.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -1232,8 +2091,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 7.5,
     "loop": true
    },
    "attack": {
@@ -1262,7 +2121,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Human_Jaina_Jaina.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -1274,8 +2133,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 7.5,
     "loop": true
    },
    "attack": {
@@ -1299,7 +2158,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_Orc_WatchTower_WatchTower.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -1311,8 +2170,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 14.99,
     "loop": true
    }
   },
@@ -1329,7 +2188,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_Orc_WatchTower_WatchTower.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -1341,8 +2200,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 14.99,
     "loop": true
    }
   },
@@ -1359,7 +2218,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_Orc_WatchTower_WatchTower.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -1371,8 +2230,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 14.99,
     "loop": true
    }
   },
@@ -1389,7 +2248,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Human_Priest_Priest.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -1401,8 +2260,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    }
   },
@@ -1410,7 +2269,7 @@ window.SPRITE_SHEETS = {
   "aliasOf": "model:tower:Units/Human/Priest/Priest",
   "war3": true,
   "vis": [
-   64,
+   66,
    70
   ]
  },
@@ -1419,7 +2278,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_Orc_TrollBurrow_TrollBurrow.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -1431,8 +2290,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 1.52,
     "loop": true
    }
   },
@@ -1454,7 +2313,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_Orc_TrollBurrow_TrollBurrow.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -1466,8 +2325,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 1.52,
     "loop": true
    }
   },
@@ -1489,7 +2348,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_Orc_TrollBurrow_TrollBurrow.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -1501,8 +2360,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 1.52,
     "loop": true
    }
   },
@@ -1524,7 +2383,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_Orc_TrollBurrow_TrollBurrow.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -1536,8 +2395,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 1.52,
     "loop": true
    }
   },
@@ -1559,7 +2418,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_Orc_TrollBurrow_TrollBurrow.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -1571,8 +2430,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 1.52,
     "loop": true
    }
   },
@@ -1594,7 +2453,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_Orc_TrollBurrow_TrollBurrow.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -1606,8 +2465,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 1.52,
     "loop": true
    }
   },
@@ -1629,7 +2488,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_Orc_TrollBurrow_TrollBurrow.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -1641,8 +2500,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 1.52,
     "loop": true
    }
   },
@@ -1664,7 +2523,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_Orc_TrollBurrow_TrollBurrow.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -1676,8 +2535,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 1.52,
     "loop": true
    }
   },
@@ -1699,7 +2558,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_Orc_TrollBurrow_TrollBurrow.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -1711,8 +2570,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 1.52,
     "loop": true
    }
   },
@@ -1831,7 +2690,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Human_Rifleman_Rifleman.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -1843,8 +2702,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 7.5,
     "loop": true
    },
    "attack": {
@@ -1873,7 +2732,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Human_Rifleman_Rifleman.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -1885,8 +2744,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 7.5,
     "loop": true
    },
    "attack": {
@@ -1915,7 +2774,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Human_Rifleman_Rifleman.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -1927,8 +2786,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 7.5,
     "loop": true
    },
    "attack": {
@@ -1957,7 +2816,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Human_Rifleman_Rifleman.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -1969,8 +2828,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 7.5,
     "loop": true
    },
    "attack": {
@@ -1994,7 +2853,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Creeps_SkeletonArcher_SkeletonArcher.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -2006,8 +2865,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    },
    "attack": {
@@ -2031,7 +2890,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Creeps_SkeletonArcher_SkeletonArcher.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -2043,8 +2902,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    },
    "attack": {
@@ -2068,7 +2927,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Creeps_SkeletonArcher_SkeletonArcher.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -2080,8 +2939,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    },
    "attack": {
@@ -2105,7 +2964,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Creeps_SkeletonArcher_SkeletonArcher.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -2117,8 +2976,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    },
    "attack": {
@@ -2147,7 +3006,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Creeps_SkeletonArcher_SkeletonArcher.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -2159,8 +3018,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    },
    "attack": {
@@ -2189,7 +3048,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Human_WaterElemental_WaterElemental.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -2201,8 +3060,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.0,
     "loop": true
    },
    "attack": {
@@ -2231,7 +3090,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Human_WaterElemental_WaterElemental.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -2243,8 +3102,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.0,
     "loop": true
    },
    "attack": {
@@ -2268,7 +3127,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Human_WaterElemental_WaterElemental.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -2280,8 +3139,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.0,
     "loop": true
    },
    "attack": {
@@ -2310,7 +3169,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Human_WaterElemental_WaterElemental.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -2322,8 +3181,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.0,
     "loop": true
    },
    "attack": {
@@ -2352,7 +3211,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Human_WaterElemental_WaterElemental.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -2364,8 +3223,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.0,
     "loop": true
    },
    "attack": {
@@ -2394,7 +3253,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Undead_SkeletonMage_SkeletonMage.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -2406,8 +3265,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    },
    "attack": {
@@ -2436,7 +3295,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Undead_SkeletonMage_SkeletonMage.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -2448,8 +3307,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    },
    "attack": {
@@ -2478,7 +3337,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Undead_SkeletonMage_SkeletonMage.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -2490,8 +3349,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    },
    "attack": {
@@ -2520,7 +3379,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Undead_SkeletonMage_SkeletonMage.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -2532,8 +3391,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    },
    "attack": {
@@ -2562,7 +3421,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Orc_Tauren_Tauren.webp",
   "frameW": 192,
   "frameH": 192,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -2574,8 +3433,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 3.75,
     "loop": true
    },
    "attack": {
@@ -2599,7 +3458,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Orc_Tauren_Tauren.webp",
   "frameW": 192,
   "frameH": 192,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -2611,8 +3470,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 3.75,
     "loop": true
    },
    "attack": {
@@ -2641,7 +3500,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Orc_Tauren_Tauren.webp",
   "frameW": 192,
   "frameH": 192,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -2653,8 +3512,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 3.75,
     "loop": true
    },
    "attack": {
@@ -2683,7 +3542,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Orc_Tauren_Tauren.webp",
   "frameW": 192,
   "frameH": 192,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -2695,8 +3554,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 3.75,
     "loop": true
    },
    "attack": {
@@ -2720,7 +3579,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_Other_ElvenGuardMagicTower_ElvenGuardMagicTower.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -2732,8 +3591,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 3.0,
     "loop": true
    }
   },
@@ -2755,7 +3614,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_Other_ElvenGuardMagicTower_ElvenGuardMagicTower.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -2767,8 +3626,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 3.0,
     "loop": true
    }
   },
@@ -2790,7 +3649,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_Other_ElvenGuardMagicTower_ElvenGuardMagicTower.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -2802,8 +3661,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 3.0,
     "loop": true
    }
   },
@@ -2825,7 +3684,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_Other_ElvenGuardMagicTower_ElvenGuardMagicTower.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -2837,8 +3696,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 3.0,
     "loop": true
    }
   },
@@ -2860,7 +3719,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Orc_StasisTotem_StasisTotem.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -2872,8 +3731,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    }
   },
@@ -2895,7 +3754,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Orc_StasisTotem_StasisTotem.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -2907,8 +3766,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    }
   },
@@ -2930,7 +3789,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Orc_StasisTotem_StasisTotem.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -2942,8 +3801,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    }
   },
@@ -2965,7 +3824,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Orc_StasisTotem_StasisTotem.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -2977,8 +3836,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    }
   },
@@ -3000,7 +3859,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Orc_StasisTotem_StasisTotem.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -3012,8 +3871,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    }
   },
@@ -3035,7 +3894,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Orc_StasisTotem_StasisTotem.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -3047,8 +3906,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    }
   },
@@ -3185,7 +4044,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_NightElf_AncientOfWonder_AncientOfWonder.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -3197,8 +4056,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.0,
     "loop": true
    },
    "attack": {
@@ -3222,7 +4081,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_NightElf_AncientOfWonder_AncientOfWonder.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -3234,8 +4093,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.0,
     "loop": true
    },
    "attack": {
@@ -3264,7 +4123,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_NightElf_AncientOfWonder_AncientOfWonder.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -3276,8 +4135,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.0,
     "loop": true
    },
    "attack": {
@@ -3306,7 +4165,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_NightElf_AncientOfWonder_AncientOfWonder.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -3318,8 +4177,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.0,
     "loop": true
    },
    "attack": {
@@ -3348,7 +4207,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Creeps_GolemStatue_GolemStatue.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -3360,8 +4219,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.0,
     "loop": true
    },
    "attack": {
@@ -3390,7 +4249,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Creeps_GolemStatue_GolemStatue.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -3402,8 +4261,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.0,
     "loop": true
    },
    "attack": {
@@ -3432,7 +4291,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Creeps_GolemStatue_GolemStatue.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -3444,8 +4303,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.0,
     "loop": true
    },
    "attack": {
@@ -3474,7 +4333,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Creeps_GolemStatue_GolemStatue.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -3486,8 +4345,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.0,
     "loop": true
    },
    "attack": {
@@ -3516,7 +4375,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Creeps_GolemStatue_GolemStatue.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -3528,8 +4387,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.0,
     "loop": true
    },
    "attack": {
@@ -3553,7 +4412,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Creeps_ForestTrollShadowPriest_ForestTrollShadowPriest.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -3565,8 +4424,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 7.9,
     "loop": true
    },
    "attack": {
@@ -3590,7 +4449,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Creeps_ForestTrollShadowPriest_ForestTrollShadowPriest.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -3602,8 +4461,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 7.9,
     "loop": true
    },
    "attack": {
@@ -3632,7 +4491,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Creeps_ForestTrollShadowPriest_ForestTrollShadowPriest.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -3644,8 +4503,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 7.9,
     "loop": true
    },
    "attack": {
@@ -3674,7 +4533,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Creeps_ForestTrollShadowPriest_ForestTrollShadowPriest.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -3686,8 +4545,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 7.9,
     "loop": true
    },
    "attack": {
@@ -3711,7 +4570,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_Undead_Ziggurat_Ziggurat.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -3723,8 +4582,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 3.0,
     "loop": true
    }
   },
@@ -3741,7 +4600,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_Undead_Ziggurat_Ziggurat.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -3753,8 +4612,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 3.0,
     "loop": true
    }
   },
@@ -3771,7 +4630,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_Undead_Ziggurat_Ziggurat.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -3783,8 +4642,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 3.0,
     "loop": true
    }
   },
@@ -3801,7 +4660,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_Undead_Ziggurat_Ziggurat.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -3813,8 +4672,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 3.0,
     "loop": true
    }
   },
@@ -3831,7 +4690,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_Undead_Ziggurat_Ziggurat.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -3843,8 +4702,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 3.0,
     "loop": true
    }
   },
@@ -3861,7 +4720,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_NightElf_MountainGiant_MountainGiant.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -3873,8 +4732,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.0,
     "loop": true
    },
    "attack": {
@@ -3903,7 +4762,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_NightElf_MountainGiant_MountainGiant.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -3915,8 +4774,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.0,
     "loop": true
    },
    "attack": {
@@ -3945,7 +4804,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_NightElf_MountainGiant_MountainGiant.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -3957,8 +4816,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.0,
     "loop": true
    },
    "attack": {
@@ -3987,7 +4846,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_NightElf_MountainGiant_MountainGiant.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -3999,8 +4858,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.0,
     "loop": true
    },
    "attack": {
@@ -4147,13 +5006,13 @@ window.SPRITE_SHEETS = {
  "tower:魔幻塔": {
   "key": "tower:魔幻塔",
   "src": "sprites/w3_tower_Units_Human_BloodElfSpellThief_BloodElfSpellThief.webp",
-  "frameW": 192,
-  "frameH": 192,
-  "cols": 6,
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
-   0.82
+   0.76
   ],
   "unitsPerPixel": 1.3333333333333335,
   "pitch": 50,
@@ -4161,8 +5020,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    },
    "attack": {
@@ -4184,13 +5043,13 @@ window.SPRITE_SHEETS = {
  "tower:魔幻塔:2": {
   "key": "tower:魔幻塔:2",
   "src": "sprites/w3_tower_Units_Human_BloodElfSpellThief_BloodElfSpellThief.webp",
-  "frameW": 192,
-  "frameH": 192,
-  "cols": 6,
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
-   0.82
+   0.76
   ],
   "unitsPerPixel": 1.5,
   "pitch": 50,
@@ -4198,8 +5057,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    },
    "attack": {
@@ -4221,13 +5080,13 @@ window.SPRITE_SHEETS = {
  "tower:魔幻塔:3": {
   "key": "tower:魔幻塔:3",
   "src": "sprites/w3_tower_Units_Human_BloodElfSpellThief_BloodElfSpellThief.webp",
-  "frameW": 192,
-  "frameH": 192,
-  "cols": 6,
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
-   0.82
+   0.76
   ],
   "unitsPerPixel": 1.6666666666666667,
   "pitch": 50,
@@ -4235,8 +5094,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    },
    "attack": {
@@ -4258,13 +5117,13 @@ window.SPRITE_SHEETS = {
  "tower:魔幻塔:4": {
   "key": "tower:魔幻塔:4",
   "src": "sprites/w3_tower_Units_Human_BloodElfSpellThief_BloodElfSpellThief.webp",
-  "frameW": 192,
-  "frameH": 192,
-  "cols": 6,
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
-   0.82
+   0.76
   ],
   "unitsPerPixel": 1.8333333333333335,
   "pitch": 50,
@@ -4272,8 +5131,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    },
    "attack": {
@@ -4295,13 +5154,13 @@ window.SPRITE_SHEETS = {
  "tower:魔幻塔:5": {
   "key": "tower:魔幻塔:5",
   "src": "sprites/w3_tower_Units_Human_BloodElfSpellThief_BloodElfSpellThief.webp",
-  "frameW": 192,
-  "frameH": 192,
-  "cols": 6,
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
-   0.82
+   0.76
   ],
   "unitsPerPixel": 2.0,
   "pitch": 50,
@@ -4309,8 +5168,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    },
    "attack": {
@@ -11388,8 +12247,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 8,
-    "frames": 6,
-    "fps": 8,
+    "frames": 8,
+    "fps": 6.0,
     "loop": true
    },
    "walk": {
@@ -11402,12 +12261,61 @@ window.SPRITE_SHEETS = {
   },
   "modelScale": 1.2
  },
+ "model:fx:Units/Orc/HeroBladeMaster/HeroBladeMaster": {
+  "key": "model:fx:Units/Orc/HeroBladeMaster/HeroBladeMaster",
+  "src": "sprites/w3_fx_Units_Orc_HeroBladeMaster_HeroBladeMaster.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 8,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 3.3333333333333335,
+  "pitch": 50,
+  "actions": {
+   "spin": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 8,
+    "fps": 18.48,
+    "loop": true
+   }
+  },
+  "modelScale": 1.5
+ },
+ "model:fx:Units/Orc/HeroBladeMaster/HeroBladeMaster_glow": {
+  "key": "model:fx:Units/Orc/HeroBladeMaster/HeroBladeMaster_glow",
+  "src": "sprites/w3_fx_Units_Orc_HeroBladeMaster_HeroBladeMaster_glow.webp",
+  "frameW": 240,
+  "frameH": 240,
+  "cols": 8,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.76
+  ],
+  "unitsPerPixel": 3.3333333333333335,
+  "pitch": 50,
+  "actions": {
+   "spin": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 8,
+    "fps": 18.48,
+    "loop": true
+   }
+  },
+  "modelScale": 1.5,
+  "glow": true
+ },
  "model:hero:Units/Critters/ChaosSpaceOrc/ChaosSpaceOrc": {
   "key": "model:hero:Units/Critters/ChaosSpaceOrc/ChaosSpaceOrc",
   "src": "sprites/w3_hero_Units_Critters_ChaosSpaceOrc_ChaosSpaceOrc.webp",
   "frameW": 192,
   "frameH": 192,
-  "cols": 8,
+  "cols": 10,
   "rows": 24,
   "anchor": [
    0.5,
@@ -11419,8 +12327,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 8,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 7.5,
     "loop": true
    },
    "attack": {
@@ -11440,12 +12348,12 @@ window.SPRITE_SHEETS = {
   },
   "modelScale": 1.1
  },
- "model:hero:Units/Human/Jaina/Jaina": {
-  "key": "model:hero:Units/Human/Jaina/Jaina",
-  "src": "sprites/w3_hero_Units_Human_Jaina_Jaina.webp",
+ "model:hero:Units/Critters/ChaosSpaceOrc/ChaosSpaceOrc_glow": {
+  "key": "model:hero:Units/Critters/ChaosSpaceOrc/ChaosSpaceOrc_glow",
+  "src": "sprites/w3_hero_Units_Critters_ChaosSpaceOrc_ChaosSpaceOrc_glow.webp",
   "frameW": 192,
   "frameH": 192,
-  "cols": 8,
+  "cols": 10,
   "rows": 24,
   "anchor": [
    0.5,
@@ -11457,8 +12365,47 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 8,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 7.5,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.1,
+  "glow": true
+ },
+ "model:hero:Units/Human/Jaina/Jaina": {
+  "key": "model:hero:Units/Human/Jaina/Jaina",
+  "src": "sprites/w3_hero_Units_Human_Jaina_Jaina.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 7.5,
     "loop": true
    },
    "attack": {
@@ -11483,7 +12430,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_hero_Units_Orc_HeroBladeMaster_HeroBladeMaster.webp",
   "frameW": 240,
   "frameH": 240,
-  "cols": 8,
+  "cols": 10,
   "rows": 24,
   "anchor": [
    0.5,
@@ -11495,8 +12442,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 8,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 8.57,
     "loop": true
    },
    "attack": {
@@ -15392,7 +16339,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_NightElf_AncientOfWonder_AncientOfWonder.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -15404,8 +16351,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.0,
     "loop": true
    },
    "attack": {
@@ -15418,12 +16365,44 @@ window.SPRITE_SHEETS = {
   },
   "modelScale": 0.7
  },
+ "model:tower:Buildings/NightElf/AncientOfWonder/AncientOfWonder_glow": {
+  "key": "model:tower:Buildings/NightElf/AncientOfWonder/AncientOfWonder_glow",
+  "src": "sprites/w3_tower_Buildings_NightElf_AncientOfWonder_AncientOfWonder_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.0,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 0.7,
+  "glow": true
+ },
  "model:tower:Buildings/NightElf/ChimaeraRoost/ChimaeraRoost": {
   "key": "model:tower:Buildings/NightElf/ChimaeraRoost/ChimaeraRoost",
   "src": "sprites/w3_tower_Buildings_NightElf_ChimaeraRoost_ChimaeraRoost.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -15435,8 +16414,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 3.0,
     "loop": true
    }
   },
@@ -15447,7 +16426,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_Orc_TrollBurrow_TrollBurrow.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -15459,8 +16438,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 1.52,
     "loop": true
    }
   },
@@ -15471,7 +16450,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_Orc_WatchTower_WatchTower.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -15483,8 +16462,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 14.99,
     "loop": true
    }
   },
@@ -15495,7 +16474,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_Other_ElvenGuardMagicTower_ElvenGuardMagicTower.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -15507,12 +16486,37 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 3.0,
     "loop": true
    }
   },
   "modelScale": 0.6
+ },
+ "model:tower:Buildings/Other/ElvenGuardMagicTower/ElvenGuardMagicTower_glow": {
+  "key": "model:tower:Buildings/Other/ElvenGuardMagicTower/ElvenGuardMagicTower_glow",
+  "src": "sprites/w3_tower_Buildings_Other_ElvenGuardMagicTower_ElvenGuardMagicTower_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 3.0,
+    "loop": true
+   }
+  },
+  "modelScale": 0.6,
+  "glow": true
  },
  "model:tower:Buildings/Other/TowerDefenseTower/TowerDefenseTower": {
   "key": "model:tower:Buildings/Other/TowerDefenseTower/TowerDefenseTower",
@@ -15543,7 +16547,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Buildings_Undead_Ziggurat_Ziggurat.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -15555,19 +16559,68 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 3.0,
     "loop": true
    }
   },
   "modelScale": 0.8
+ },
+ "model:tower:Doodads/Cinematic/RockinArthas/RockinArthas": {
+  "key": "model:tower:Doodads/Cinematic/RockinArthas/RockinArthas",
+  "src": "sprites/w3_tower_Doodads_Cinematic_RockinArthas_RockinArthas.webp",
+  "frameW": 240,
+  "frameH": 240,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 2.5,
+    "loop": true
+   }
+  },
+  "modelScale": 2.0
+ },
+ "model:tower:Doodads/Cinematic/RockinArthas/RockinArthas_glow": {
+  "key": "model:tower:Doodads/Cinematic/RockinArthas/RockinArthas_glow",
+  "src": "sprites/w3_tower_Doodads_Cinematic_RockinArthas_RockinArthas_glow.webp",
+  "frameW": 240,
+  "frameH": 240,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 2.5,
+    "loop": true
+   }
+  },
+  "modelScale": 2.0,
+  "glow": true
  },
  "model:tower:Units/Creeps/ForestTrollShadowPriest/ForestTrollShadowPriest": {
   "key": "model:tower:Units/Creeps/ForestTrollShadowPriest/ForestTrollShadowPriest",
   "src": "sprites/w3_tower_Units_Creeps_ForestTrollShadowPriest_ForestTrollShadowPriest.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -15579,8 +16632,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 7.9,
     "loop": true
    },
    "attack": {
@@ -15598,7 +16651,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Creeps_GolemStatue_GolemStatue.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -15610,8 +16663,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.0,
     "loop": true
    },
    "attack": {
@@ -15629,7 +16682,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Creeps_SkeletonArcher_SkeletonArcher.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -15641,8 +16694,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    },
    "attack": {
@@ -15660,7 +16713,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Demon_HeroChaosBladeMaster_HeroChaosBladeMaster.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -15672,8 +16725,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 8.57,
     "loop": true
    },
    "attack": {
@@ -15689,13 +16742,13 @@ window.SPRITE_SHEETS = {
  "model:tower:Units/Human/BloodElfSpellThief/BloodElfSpellThief": {
   "key": "model:tower:Units/Human/BloodElfSpellThief/BloodElfSpellThief",
   "src": "sprites/w3_tower_Units_Human_BloodElfSpellThief_BloodElfSpellThief.webp",
-  "frameW": 192,
-  "frameH": 192,
-  "cols": 6,
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
-   0.82
+   0.76
   ],
   "unitsPerPixel": 2.0,
   "pitch": 50,
@@ -15703,8 +16756,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    },
    "attack": {
@@ -15717,12 +16770,12 @@ window.SPRITE_SHEETS = {
   },
   "modelScale": 1.2
  },
- "model:tower:Units/Human/HeroMountainKing/HeroMountainKing": {
-  "key": "model:tower:Units/Human/HeroMountainKing/HeroMountainKing",
-  "src": "sprites/w3_tower_Units_Human_HeroMountainKing_HeroMountainKing.webp",
+ "model:tower:Units/Human/BloodElfSpellThief/BloodElfSpellThief_glow": {
+  "key": "model:tower:Units/Human/BloodElfSpellThief/BloodElfSpellThief_glow",
+  "src": "sprites/w3_tower_Units_Human_BloodElfSpellThief_BloodElfSpellThief_glow.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -15734,8 +16787,40 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
     "frames": 6,
-    "fps": 8,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.2,
+  "glow": true
+ },
+ "model:tower:Units/Human/HeroMountainKing/HeroMountainKing": {
+  "key": "model:tower:Units/Human/HeroMountainKing/HeroMountainKing",
+  "src": "sprites/w3_tower_Units_Human_HeroMountainKing_HeroMountainKing.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    },
    "attack": {
@@ -15753,7 +16838,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Human_Jaina_Jaina.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -15765,8 +16850,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 7.5,
     "loop": true
    },
    "attack": {
@@ -15784,7 +16869,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Human_Priest_Priest.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -15796,8 +16881,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    }
   },
@@ -15808,7 +16893,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Human_Rifleman_Rifleman.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -15820,8 +16905,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 7.5,
     "loop": true
    },
    "attack": {
@@ -15839,7 +16924,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Human_Sorceress_Sorceress.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -15851,8 +16936,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    }
   },
@@ -15863,7 +16948,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Human_WaterElemental_WaterElemental.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -15875,8 +16960,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.0,
     "loop": true
    },
    "attack": {
@@ -15894,7 +16979,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_NightElf_MountainGiant_MountainGiant.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -15906,8 +16991,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.0,
     "loop": true
    },
    "attack": {
@@ -15925,7 +17010,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Orc_StasisTotem_StasisTotem.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 1,
   "anchor": [
    0.5,
@@ -15937,19 +17022,44 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    }
   },
   "modelScale": 1.6
+ },
+ "model:tower:Units/Orc/StasisTotem/StasisTotem_glow": {
+  "key": "model:tower:Units/Orc/StasisTotem/StasisTotem_glow",
+  "src": "sprites/w3_tower_Units_Orc_StasisTotem_StasisTotem_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   }
+  },
+  "modelScale": 1.6,
+  "glow": true
  },
  "model:tower:Units/Orc/Tauren/Tauren": {
   "key": "model:tower:Units/Orc/Tauren/Tauren",
   "src": "sprites/w3_tower_Units_Orc_Tauren_Tauren.webp",
   "frameW": 192,
   "frameH": 192,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -15961,8 +17071,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 3.75,
     "loop": true
    },
    "attack": {
@@ -15980,7 +17090,7 @@ window.SPRITE_SHEETS = {
   "src": "sprites/w3_tower_Units_Undead_SkeletonMage_SkeletonMage.webp",
   "frameW": 160,
   "frameH": 160,
-  "cols": 6,
+  "cols": 10,
   "rows": 2,
   "anchor": [
    0.5,
@@ -15992,8 +17102,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 6.67,
     "loop": true
    },
    "attack": {
@@ -16005,5 +17115,37 @@ window.SPRITE_SHEETS = {
    }
   },
   "modelScale": 1.0
+ },
+ "model:tower:Units/Undead/SkeletonMage/SkeletonMage_glow": {
+  "key": "model:tower:Units/Undead/SkeletonMage/SkeletonMage_glow",
+  "src": "sprites/w3_tower_Units_Undead_SkeletonMage_SkeletonMage_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "glow": true
  }
 };

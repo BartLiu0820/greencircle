@@ -3,7 +3,7 @@
  "src": "sprites/w3_tower_Units_Demon_HeroChaosBladeMaster_HeroChaosBladeMaster.png",
  "frameW": 160,
  "frameH": 160,
- "cols": 6,
+ "cols": 10,
  "rows": 2,
  "anchor": [
   0.5,
@@ -15,8 +15,8 @@
   "idle": {
    "row": 0,
    "dirs": 1,
-   "frames": 6,
-   "fps": 8,
+   "frames": 10,
+   "fps": 8.57,
    "loop": true
   },
   "attack": {

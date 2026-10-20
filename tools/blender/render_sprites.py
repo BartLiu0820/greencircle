@@ -33,14 +33,15 @@ ANCHOR = (0.5, 0.7)          # 脚底在画面中的位置（从左上角算，�
 CATEGORY = {
     'monster': dict(size=128, dirs=8, actions={'walk': 8, 'death': 6}),
     'boss':    dict(size=192, dirs=8, ppm=24, actions={'walk': 8, 'death': 6, 'spell': 6}),   # BOSS 体型大，用较低像素密度，图不至于太大
-    'tower':   dict(size=160, dirs=1, actions={'idle': 6, 'attack': 6}),
-    'hero':    dict(size=192, dirs=8, actions={'idle': 6, 'attack': 8, 'spell': 8}),
-    'builder': dict(size=128, dirs=8, actions={'idle': 6, 'walk': 8, 'build': 6}),
+    'tower':   dict(size=160, dirs=1, actions={'idle': 10, 'attack': 6}),
+    'hero':    dict(size=192, dirs=8, actions={'idle': 10, 'attack': 8, 'spell': 8}),
+    'builder': dict(size=128, dirs=8, actions={'idle': 8, 'walk': 8, 'build': 6}),
 }
-FPS = {'idle': 8, 'walk': 12, 'attack': 14, 'death': 12, 'spell': 12, 'build': 10}
-LOOP = {'idle': True, 'walk': True, 'build': True, 'attack': False, 'death': False, 'spell': False}
+FPS = {'idle': 8, 'walk': 12, 'attack': 14, 'death': 12, 'spell': 12, 'build': 10, 'spin': 18}
+REAL_TIME = ('idle', 'spin')   # 这些动作按模型里的原始时长播放（待机压缩了会像在不停摇摆）
+LOOP = {'idle': True, 'walk': True, 'build': True, 'attack': False, 'death': False, 'spell': False, 'spin': True}
 ALIASES = {'idle': ['idle', 'stand', '待机'], 'walk': ['walk', 'run', 'move', '行走'], 'attack': ['attack', 'atk', '攻击'],
-           'death': ['death', 'die', 'dead', '死亡'], 'spell': ['spell', 'cast', '施法'], 'build': ['build', 'work', '建造']}
+           'death': ['death', 'die', 'dead', '死亡'], 'spell': ['spell', 'cast', '施法'], 'build': ['build', 'work', '建造'], 'spin': ['spin']}
 
 
 def log(*a):
@@ -177,6 +178,14 @@ def assign_action(targets, act):
                 pass
 
 
+def apply_vis(name, f):
+    """WC3 模型的 geoset 显隐（import_mdx.py 存在 mdx_vis 上）：比如攻击时才出现的飞刃、施法时才出现的光效"""
+    for o in bpy.context.scene.objects:
+        if 'mdx_vis' not in o: continue
+        v = json.loads(o['mdx_vis']).get(name)
+        o.hide_render = bool(v) and not v[min(len(v) - 1, max(0, int(round(f - 1))))]
+
+
 def sample_frames(act, n, loop):
     if act is None:
         return [bpy.context.scene.frame_current] * 1
@@ -189,6 +198,9 @@ def sample_frames(act, n, loop):
 
 
 # ---------------------------------------------------------------- 渲染与拼图
+GLOW = False                 # 光效模式：黑底出图，再把亮度换成 alpha（游戏里用 lighter 叠加，结果和原来一样）
+
+
 def render_to_array(tmp_path):
     scene = bpy.context.scene
     scene.render.filepath = tmp_path
@@ -198,7 +210,11 @@ def render_to_array(tmp_path):
     arr = np.empty(w * h * 4, dtype=np.float32)
     img.pixels.foreach_get(arr)
     bpy.data.images.remove(img)
-    return arr.reshape(h, w, 4)[::-1]          # Blender 像素从下往上，翻成从上往下
+    arr = arr.reshape(h, w, 4)[::-1]           # Blender 像素从下往上，翻成从上往下
+    if GLOW:                                   # 加法颜色 c → (c / a, a)，a = 最亮的通道
+        a = np.clip(arr[..., :3].max(-1), 0, 1)
+        arr[..., :3] = np.clip(arr[..., :3] / np.maximum(a, 1e-4)[..., None], 0, 1); arr[..., 3] = a
+    return arr
 
 
 def edge_clipped(arr):
@@ -220,6 +236,10 @@ def render_entry(key, category, model, dirs=None, scale=1.0, actions=None, ppm=N
     apply_scale(float(scale or 1))
     ppm = float(ppm or spec.get('ppm', PPM))
     rig = setup_rig(size, ppm)
+    if GLOW:
+        w = bpy.context.scene.world; bpy.context.scene.render.film_transparent = False; w.color = (0, 0, 0)
+        for n in (w.node_tree.nodes if w.node_tree else []):     # 世界默认是节点背景（灰色），也压成黑
+            if n.type == 'BACKGROUND': n.inputs['Color'].default_value = (0, 0, 0, 1)
     targets = anim_targets()
 
     plan = []                                    # (动作名, Action, 帧时间列表)
@@ -250,12 +270,15 @@ def render_entry(key, category, model, dirs=None, scale=1.0, actions=None, ppm=N
         meta_actions, row, clipped, edges = {}, 0, set(), set()
         for name, act, frames in plan:
             assign_action(targets, act)
-            meta_actions[name] = dict(row=row, dirs=dirs, frames=len(frames), fps=FPS[name], loop=LOOP[name])
+            fps = FPS[name]
+            if name in REAL_TIME and act is not None and act.frame_range[1] > act.frame_range[0] and len(frames) > 1:
+                fps = round(len(frames) * scene.render.fps / (act.frame_range[1] - act.frame_range[0]), 2)
+            meta_actions[name] = dict(row=row, dirs=dirs, frames=len(frames), fps=fps, loop=LOOP[name])
             for d in range(dirs):
                 # 方向 d：0=朝下(南) 1=西南 2=西 3=西北 4=北 5=东北 6=东 7=东南（顺时针）
                 rig.rotation_euler = (0, 0, math.radians(45 * d))
                 for c, f in enumerate(frames):
-                    scene.frame_set(int(f), subframe=f - int(f))
+                    scene.frame_set(int(f), subframe=f - int(f)); apply_vis(name, f)
                     frame = render_to_array(tmp)
                     e = edge_clipped(frame)
                     if e:
@@ -315,8 +338,10 @@ def main():
     ap.add_argument('--dirs'); ap.add_argument('--scale', default='1'); ap.add_argument('--actions', help='如 walk:8,death:6')
     ap.add_argument('--ppm', help='像素/米（覆盖类别默认值；大模型用小一点，图不至于太大）')
     ap.add_argument('--batch', help='清单 CSV（列：key,category,model,dirs,scale,actions）')
+    ap.add_argument('--glow', action='store_true', help='光效模式（模型用 import_mdx.py --glow 导入）：黑底出图，亮度当 alpha')
     ap.add_argument('--skip-done', action='store_true', help='批量时跳过已经出过图的')
     args = ap.parse_args(argv)
+    global GLOW; GLOW = args.glow
     if args.batch:
         base = os.path.dirname(os.path.abspath(args.batch))
         with open(args.batch, encoding='utf-8-sig') as fp:

@@ -1,5 +1,11 @@
-/* 地图美术：草地 / 泥土 / 石板路纹理、路边细节、外围森林、出怪口传送阵、中央法阵。
- * 纹理全部在启动时用 Canvas 程序化生成（不需要图片素材），之后每帧只做贴图和裁剪，开销很小。
+/* 地图美术：照原图（war3map.w3e / war3map.doo）的地块规则铺地面，贴图和树都是魔兽原版资源（tools/war3_terrain.py 导出，见 assets/w3terrain.js）。
+ *   - 底色 Lgrd 暗草地；路面 Arck 灰绿岩石（3 格宽）；路两侧 1、3 格外各一条 Zvin 遗迹暗草的细纹（原图每条路都这样）
+ *   - 出怪口：原图四角的围栏——Arck 岩石地面、外面一圈 2 格宽的 Crck 费伍德岩石，再围一圈树墙，路从一侧开口出去
+ *   - 中央：原图中心的 cZc1 十字地面，上面是"循环圈"法阵
+ *   - 地图边缘一圈原版树墙
+ * 地块和魔兽一样定义在格点上（每 64 单位一个，和建造网格的格子中心重合），每个格子按四个角的地块从低到高叠图：
+ * 最低的一层画整块（偶尔用带花草碎石的变体），更高的每层按"哪几个角是这种地块"取图集左边 4×4 里对应的过渡遮罩。
+ * 地面按 16×16 格分块，用到时才画、画好缓存；镜头拉远时改用一张低分辨率的整图。
  * 用法：const T = Terrain.create({ world, roadSegs, roadHalf, spawn, center });
  *       每帧 T.drawGround(ctx, view, t)；T.drawTrees(ctx, view)（在单位之前画）；T.drawOverlay(ctx, view)（最后画）
  *       view = { W, H, S, cx, cy }：画布像素尺寸、每世界单位的像素数、镜头中心（世界坐标，y 朝上）
@@ -7,297 +13,171 @@
 window.Terrain = (() => {
 'use strict';
 const rng = seed => () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+const hash = (i, j) => { let h = Math.imul(i, 374761393) + Math.imul(j, 668265263) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
 const mkCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
-const segDist2 = (px, py, [ax, ay], [bx, by]) => {
-  const dx = bx - ax, dy = by - ay, L = dx * dx + dy * dy;
-  const t = L ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / L)) : 0;
-  return (px - ax - t * dx) ** 2 + (py - ay - t * dy) ** 2;
-};
-// 在可平铺的纹理上画东西：越过边界的部分在对边再画一次，保证无缝
-function wrapDraw(size, x, y, r, fn) {
-  for (const ox of [-size, 0, size]) for (const oy of [-size, 0, size])
-    if (x + ox + r > 0 && x + ox - r < size && y + oy + r > 0 && y + oy - r < size) fn(x + ox, y + oy);
-}
+const DATA = window.W3_TERRAIN;
+const T = 64;                                    // 格点间距（世界单位）
+const CH = 16;                                   // 每块多少格
+const HI = 64;                                   // 高清块：每格像素（= 原版贴图一格的像素）
+const LO = 12;                                   // 低清整图：每格像素
+const PRIO = ['Zvin', 'Crck', 'cZc1', 'Lgrd', 'Arck'];   // 叠放顺序（原图 w3e 地块表的顺序，后面的盖在前面上）
+const PLAIN = [0, 15, 16, 17, 20, 21];           // 整块时常用的几格（较素）；其余变体（花草、碎石）偶尔用
 
-// ---------------------------------------------------------------- 纹理
-function grassTile(size = 512) {
-  const c = mkCanvas(size, size), g = c.getContext('2d'), R = rng(7);
-  g.fillStyle = '#35632d'; g.fillRect(0, 0, size, size);
-  const pal = ['#2b5425', '#3d6f32', '#467b37', '#30592a', '#4f853b', '#3a6a2f', '#5a8a40'];
-  for (let i = 0; i < 900; i++) {                         // 色块：大小不一的柔和斑点
-    const x = R() * size, y = R() * size, r = 6 + R() ** 2 * 46, col = pal[(R() * pal.length) | 0];
-    wrapDraw(size, x, y, r, (X, Y) => {
-      const gr = g.createRadialGradient(X, Y, 0, X, Y, r); gr.addColorStop(0, col); gr.addColorStop(1, col + '00');
-      g.globalAlpha = 0.35; g.fillStyle = gr; g.beginPath(); g.arc(X, Y, r, 0, 7); g.fill();
-    });
-  }
-  g.globalAlpha = 1; g.lineCap = 'round';
-  for (let i = 0; i < 7000; i++) {                        // 草叶：短斜线，亮暗两种
-    const x = R() * size, y = R() * size, l = 2 + R() * 5, a = -Math.PI / 2 + (R() - 0.5) * 1.1, light = R() < 0.55;
-    g.strokeStyle = light ? `rgba(${120 + R() * 50 | 0},${170 + R() * 40 | 0},${70 + R() * 30 | 0},.55)` : `rgba(20,${45 + R() * 25 | 0},18,.5)`;
-    g.lineWidth = 0.8 + R() * 0.8;
-    wrapDraw(size, x, y, l, (X, Y) => { g.beginPath(); g.moveTo(X, Y); g.lineTo(X + Math.cos(a) * l, Y + Math.sin(a) * l); g.stroke(); });
-  }
-  const flowers = ['#f4e98a', '#ffffff', '#d9a8ff', '#ffb3c6'];
-  for (let i = 0; i < 60; i++) {                          // 小花
-    const x = R() * size, y = R() * size, col = flowers[(R() * flowers.length) | 0];
-    for (let k = 0; k < 3 + R() * 4; k++) {
-      const X = (x + (R() - 0.5) * 14 + size) % size, Y = (y + (R() - 0.5) * 14 + size) % size;
-      g.fillStyle = col; g.globalAlpha = 0.85; g.beginPath(); g.arc(X, Y, 1.2 + R(), 0, 7); g.fill();
-    }
-  }
-  g.globalAlpha = 1;
-  return c;
-}
-function dirtTile(size = 256) {
-  const c = mkCanvas(size, size), g = c.getContext('2d'), R = rng(11);
-  g.fillStyle = '#6e5636'; g.fillRect(0, 0, size, size);
-  const pal = ['#5d4829', '#7d6340', '#866b45', '#614c2e', '#735a37'];
-  for (let i = 0; i < 500; i++) {
-    const x = R() * size, y = R() * size, r = 3 + R() ** 2 * 26, col = pal[(R() * pal.length) | 0];
-    wrapDraw(size, x, y, r, (X, Y) => { g.globalAlpha = 0.4; g.fillStyle = col; g.beginPath(); g.arc(X, Y, r, 0, 7); g.fill(); });
-  }
-  for (let i = 0; i < 260; i++) {                         // 小石子
-    const x = R() * size, y = R() * size, r = 0.8 + R() * 2.2;
-    g.globalAlpha = 0.8; g.fillStyle = R() < 0.5 ? '#9a8a70' : '#4a3a24'; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
-  }
-  g.globalAlpha = 1;
-  return c;
-}
-function cobbleTile(size = 256) {
-  const c = mkCanvas(size, size), g = c.getContext('2d'), R = rng(23);
-  g.fillStyle = '#3a362f'; g.fillRect(0, 0, size, size);               // 缝隙
-  const n = 8, cell = size / n, pal = ['#8c8677', '#7d786b', '#979080', '#6f6a5f', '#857d6c', '#a09684'];
-  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
-    const off = (j % 2) * cell * 0.5;                                     // 错缝铺法
-    const x = i * cell + off + cell / 2 + (R() - 0.5) * 4, y = j * cell + cell / 2 + (R() - 0.5) * 4;
-    const w = cell * (0.8 + R() * 0.12), h = cell * (0.78 + R() * 0.12), col = pal[(R() * pal.length) | 0], rot = (R() - 0.5) * 0.25;
-    wrapDraw(size, x, y, cell, (X, Y) => {
-      g.save(); g.translate(X, Y); g.rotate(rot);
-      const rr = Math.min(w, h) * 0.32;
-      const path = new Path2D(); path.roundRect(-w / 2, -h / 2, w, h, rr);
-      g.fillStyle = col; g.fill(path);
-      const sh = g.createLinearGradient(0, -h / 2, 0, h / 2);              // 上亮下暗，有立体感
-      sh.addColorStop(0, 'rgba(255,250,230,.28)'); sh.addColorStop(0.5, 'rgba(255,255,255,0)'); sh.addColorStop(1, 'rgba(0,0,0,.32)');
-      g.fillStyle = sh; g.fill(path);
-      for (let k = 0; k < 6; k++) { g.fillStyle = `rgba(${R() < 0.5 ? '40,35,28' : '200,190,170'},.18)`; g.beginPath(); g.arc((R() - 0.5) * w * 0.7, (R() - 0.5) * h * 0.7, 1 + R() * 2.5, 0, 7); g.fill(); }
-      g.restore();
-    });
-  }
-  for (let i = 0; i < 90; i++) {                                         // 缝里的青苔
-    const x = R() * size, y = R() * size;
-    g.fillStyle = 'rgba(70,110,45,.55)'; g.beginPath(); g.arc(x, y, 1 + R() * 2, 0, 7); g.fill();
-  }
-  return c;
-}
-
-// ---------------------------------------------------------------- 装饰物精灵（底部中心为锚点）
-function pine(R, hue) {
-  const w = 120, h = 170, c = mkCanvas(w, h), g = c.getContext('2d');
-  g.fillStyle = '#4a3220'; g.fillRect(w / 2 - 6, h - 30, 12, 26);
-  const tiers = 4;
-  for (let i = 0; i < tiers; i++) {
-    const t = i / (tiers - 1), y0 = h - 24 - t * (h - 50), hw = 54 - t * 34, th = 62 - t * 12;
-    const gr = g.createLinearGradient(w / 2 - hw, 0, w / 2 + hw, 0);
-    gr.addColorStop(0, `hsl(${hue},45%,${30 + i * 2}%)`); gr.addColorStop(0.45, `hsl(${hue},40%,${22 + i * 2}%)`); gr.addColorStop(1, `hsl(${hue},45%,11%)`);
-    g.fillStyle = gr; g.beginPath();
-    g.moveTo(w / 2, y0 - th);
-    for (let k = 0; k <= 6; k++) { const x = w / 2 - hw + (2 * hw * k) / 6; g.lineTo(x, y0 + (k % 2 ? -4 : 3) + (R() - 0.5) * 3); }
-    g.closePath(); g.fill();
-    g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = 1.5; g.stroke();
-  }
-  return { c, ax: 0.5, ay: 0.95 };
-}
-function oak(R, hue) {
-  const w = 150, h = 160, c = mkCanvas(w, h), g = c.getContext('2d');
-  g.fillStyle = '#4d3522'; g.beginPath(); g.moveTo(w / 2 - 8, h - 6); g.lineTo(w / 2 - 5, h - 60); g.lineTo(w / 2 + 5, h - 60); g.lineTo(w / 2 + 8, h - 6); g.fill();
-  const blobs = [];
-  for (let i = 0; i < 9; i++) blobs.push([w / 2 + (R() - 0.5) * 80, h - 85 + (R() - 0.5) * 60, 22 + R() * 16]);
-  blobs.sort((a, b) => a[1] - b[1]).reverse();
-  for (const [x, y, r] of blobs) {                          // 暗边
-    g.fillStyle = `hsl(${hue},45%,13%)`; g.beginPath(); g.arc(x + 2, y + 3, r + 2, 0, 7); g.fill();
-  }
-  for (const [x, y, r] of blobs) {
-    const gr = g.createRadialGradient(x - r * 0.4, y - r * 0.45, r * 0.1, x, y, r);
-    gr.addColorStop(0, `hsl(${hue},50%,42%)`); gr.addColorStop(0.6, `hsl(${hue},45%,26%)`); gr.addColorStop(1, `hsl(${hue},45%,17%)`);
-    g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
-  }
-  return { c, ax: 0.5, ay: 0.96 };
-}
-function rock(R) {
-  const w = 90, h = 70, c = mkCanvas(w, h), g = c.getContext('2d');
-  const pts = []; const n = 7 + (R() * 3 | 0);
-  for (let i = 0; i < n; i++) { const a = Math.PI + (i / (n - 1)) * Math.PI; pts.push([w / 2 + Math.cos(a) * (30 + R() * 12), h - 10 + Math.sin(a) * (28 + R() * 18)]); }
-  const p = new Path2D(); p.moveTo(...pts[0]); pts.forEach(q => p.lineTo(...q)); p.closePath();
-  const gr = g.createLinearGradient(0, h - 60, 0, h); gr.addColorStop(0, '#a8a397'); gr.addColorStop(0.5, '#7a766c'); gr.addColorStop(1, '#4b4841');
-  g.fillStyle = gr; g.fill(p); g.strokeStyle = 'rgba(20,18,15,.6)'; g.lineWidth = 2; g.stroke(p);
-  g.fillStyle = 'rgba(80,120,50,.6)'; g.beginPath(); g.ellipse(w / 2 - 6, h - 40, 12, 5, -0.3, 0, 7); g.fill();       // 青苔
-  return { c, ax: 0.5, ay: 0.86 };
-}
-function bush(R, hue) {
-  const w = 80, h = 56, c = mkCanvas(w, h), g = c.getContext('2d');
-  for (let i = 0; i < 6; i++) {
-    const x = w / 2 + (R() - 0.5) * 44, y = h - 18 - R() * 14, r = 12 + R() * 8;
-    const gr = g.createRadialGradient(x - r * 0.4, y - r * 0.4, 1, x, y, r);
-    gr.addColorStop(0, `hsl(${hue},50%,40%)`); gr.addColorStop(1, `hsl(${hue},45%,16%)`);
-    g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
-  }
-  if (R() < 0.5) for (let i = 0; i < 5; i++) { g.fillStyle = R() < 0.5 ? '#ffd0e0' : '#fff6a0'; g.beginPath(); g.arc(w / 2 + (R() - 0.5) * 50, h - 22 - R() * 18, 2, 0, 7); g.fill(); }
-  return { c, ax: 0.5, ay: 0.85 };
-}
-function tuft(R) {
-  const w = 40, h = 30, c = mkCanvas(w, h), g = c.getContext('2d'); g.lineCap = 'round';
-  for (let i = 0; i < 12; i++) {
-    const x = w / 2 + (R() - 0.5) * 18, a = -Math.PI / 2 + (R() - 0.5) * 1.2, l = 10 + R() * 14;
-    g.strokeStyle = R() < 0.5 ? '#5f9a3e' : '#3f7a2c'; g.lineWidth = 2;
-    g.beginPath(); g.moveTo(x, h - 3); g.quadraticCurveTo(x + Math.cos(a) * l * 0.5, h - 3 + Math.sin(a) * l * 0.6, x + Math.cos(a) * l, h - 3 + Math.sin(a) * l); g.stroke();
-  }
-  return { c, ax: 0.5, ay: 0.9 };
-}
-function pebbles(R) {
-  const w = 50, h = 26, c = mkCanvas(w, h), g = c.getContext('2d');
-  for (let i = 0; i < 5; i++) {
-    const x = 8 + R() * 34, y = 8 + R() * 12, rx = 3 + R() * 5, ry = rx * 0.7;
-    g.fillStyle = '#3a372f'; g.beginPath(); g.ellipse(x + 1, y + 1.5, rx, ry, 0, 0, 7); g.fill();
-    g.fillStyle = ['#a39d8e', '#8a8475', '#bdb5a2'][i % 3]; g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, 7); g.fill();
-  }
-  return { c, ax: 0.5, ay: 0.7 };
-}
-function mushroom(R) {
-  const w = 30, h = 30, c = mkCanvas(w, h), g = c.getContext('2d');
-  for (let i = 0; i < 3; i++) {
-    const x = 8 + i * 7 + R() * 3, s = 4 + R() * 3;
-    g.fillStyle = '#efe6cf'; g.fillRect(x - 1.5, h - 4 - s * 1.4, 3, s * 1.4);
-    g.fillStyle = R() < 0.6 ? '#c8402e' : '#d9a046'; g.beginPath(); g.ellipse(x, h - 4 - s * 1.4, s, s * 0.65, 0, Math.PI, 0); g.fill();
-    g.fillStyle = '#fff'; g.beginPath(); g.arc(x - s * 0.3, h - 5 - s * 1.7, 1, 0, 7); g.fill();
-  }
-  return { c, ax: 0.5, ay: 0.9 };
-}
-
-// ---------------------------------------------------------------- 主体
 function create({ world, roadSegs, roadHalf, spawn, center = [0, 0] }) {
   const R = rng(1234);
-  const tex = { grass: grassTile(), dirt: dirtTile(), cobble: cobbleTile() };
-  const pats = {};
-  const pattern = (ctx, k) => pats[k] || (pats[k] = ctx.createPattern(tex[k], 'repeat'));
-  const TEXK = { grass: 1.3, dirt: 1.1, cobble: 1.25 };        // 每个纹理像素对应多少世界单位
-  const nearRoad = (x, y) => Math.min(...roadSegs.map(s => Math.sqrt(segDist2(x, y, s[0], s[1]))));
+  // 横平竖直的路段：到路中线的"方形距离"（切比雪夫距离），让拐角是方的，和原图一样
+  const roadDist = (x, y) => {
+    let m = Infinity;
+    for (const [a, b] of roadSegs) {
+      const dx = Math.max(Math.min(a[0], b[0]) - x, 0, x - Math.max(a[0], b[0]));
+      const dy = Math.max(Math.min(a[1], b[1]) - y, 0, y - Math.max(a[1], b[1]));
+      m = Math.min(m, Math.max(dx, dy));
+    }
+    return m;
+  };
+  const cheb = (x, y, p) => Math.max(Math.abs(x - p[0]), Math.abs(y - p[1]));
 
-  // 路径（世界坐标），供每帧描边
-  const roadPath = new Path2D();
-  for (const [a, b] of roadSegs) { roadPath.moveTo(a[0], a[1]); roadPath.lineTo(b[0], b[1]); }
+  // ------------------------------------------------ 格点地块
+  const N = Math.ceil((world + 420) / T);        // 格点范围 -N..N
+  const NV = 2 * N + 1;
+  const vt = new Uint8Array(NV * NV);
+  const K = Object.fromEntries(PRIO.map((k, i) => [k, i]));
+  for (let j = 0; j < NV; j++) for (let i = 0; i < NV; i++) {
+    const x = (i - N) * T, y = (j - N) * T, d = roadDist(x, y), ds = spawn ? cheb(x, y, spawn) : Infinity;
+    const ax = Math.abs(x - center[0]), ay = Math.abs(y - center[1]);
+    let k = 'Lgrd';
+    if (d <= T + 1 || ds <= 3 * T) k = 'Arck';
+    else if (ds <= 5 * T) k = 'Crck';
+    else if (center && (Math.max(ax, ay) <= 6 * T || (Math.min(ax, ay) <= 2 * T && Math.max(ax, ay) <= 12 * T))) k = 'cZc1';
+    else if (Math.abs(d - 2 * T) < 1 || Math.abs(d - 4 * T) < 1) k = 'Zvin';
+    vt[j * NV + i] = K[k];
+  }
+  const vtype = (i, j) => vt[Math.max(0, Math.min(NV - 1, j + N)) * NV + Math.max(0, Math.min(NV - 1, i + N))];
 
-  // 大尺度明暗变化：低分辨率图，整体拉伸后叠加（让大片草地不单调）
-  const L = world + 2600, MK = 0.06, msz = Math.ceil(2 * L * MK);
-  const macro = mkCanvas(msz, msz), mg = macro.getContext('2d');
-  const mx = x => (x + L) * MK, my = y => (L - y) * MK;
-  for (let i = 0; i < 160; i++) {
-    const x = (R() * 2 - 1) * L, y = (R() * 2 - 1) * L, r = (300 + R() * 900) * MK, dark = R() < 0.55;
-    const gr = mg.createRadialGradient(mx(x), my(y), 0, mx(x), my(y), r);
-    gr.addColorStop(0, dark ? 'rgba(10,25,8,.32)' : 'rgba(190,210,120,.16)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
-    mg.fillStyle = gr; mg.beginPath(); mg.arc(mx(x), my(y), r, 0, 7); mg.fill();
+  // ------------------------------------------------ 贴图
+  const img = {};
+  let pending = 0, ready = false;
+  const onAll = [];
+  const load = (src, cb) => { pending++; const im = new Image(); im.onload = () => { cb && cb(im); if (--pending === 0) { ready = true; onAll.forEach(f => f()); } }; im.onerror = im.onload; im.src = 'assets/' + src; return im; };
+  if (DATA) {
+    for (const k of PRIO) img[k] = load(DATA.tiles[k].src);
+    img.trees = load(DATA.trees.src);
   }
-  // 路两边被踩秃的泥土（柔和过渡）
-  mg.save(); mg.filter = 'blur(3px)'; mg.lineCap = 'round'; mg.lineJoin = 'round';
-  mg.strokeStyle = 'rgba(95,72,40,.55)'; mg.lineWidth = (roadHalf * 2 + 170) * MK; mg.beginPath();
-  for (const [a, b] of roadSegs) { mg.moveTo(mx(a[0]), my(a[1])); mg.lineTo(mx(b[0]), my(b[1])); }
-  mg.stroke(); mg.restore();
-  // 可建造区以外（森林地面）压暗
-  mg.save(); mg.filter = 'blur(6px)'; mg.fillStyle = 'rgba(8,18,8,.55)';
-  const e = world + 40;
-  mg.fillRect(0, 0, msz, my(e)); mg.fillRect(0, my(-e), msz, msz - my(-e)); mg.fillRect(0, 0, mx(-e), msz); mg.fillRect(mx(e), 0, msz - mx(e), msz);
-  mg.restore();
-
-  // 装饰物
-  const SPR = { pine: [], oak: [], rock: [], bush: [], tuft: [], pebbles: [], mushroom: [] };
-  for (let i = 0; i < 4; i++) { SPR.pine.push(pine(R, 95 + i * 12)); SPR.oak.push(oak(R, 85 + i * 14)); SPR.bush.push(bush(R, 90 + i * 10)); SPR.rock.push(rock(R)); }
-  for (let i = 0; i < 3; i++) { SPR.tuft.push(tuft(R)); SPR.pebbles.push(pebbles(R)); SPR.mushroom.push(mushroom(R)); }
-  const pickS = k => SPR[k][(R() * SPR[k].length) | 0];
-  const trees = [], flat = [];
-  // 外围森林：地图边缘往外一圈，越往外越密
-  for (let i = 0; i < 2600; i++) {
-    const x = (R() * 2 - 1) * (world + 2400), y = (R() * 2 - 1) * (world + 2400);
-    const out = Math.max(Math.abs(x), Math.abs(y)) - world;
-    if (out < -60 || (out < 300 && R() < 0.45)) continue;
-    if (spawn && Math.hypot(x - spawn[0], y - spawn[1]) < 650) continue;
-    if (nearRoad(x, y) < roadHalf + 160) continue;
-    const kind = R() < 0.62 ? 'pine' : 'oak';
-    trees.push({ x, y, s: kind === 'pine' ? 230 + R() * 140 : 250 + R() * 120, spr: pickS(kind) });
-  }
-  // 林缘的灌木和石头
-  for (let i = 0; i < 260; i++) {
-    const side = (R() * 4) | 0, t = (R() * 2 - 1) * world, d = world - 60 + R() * 240;
-    const x = side === 0 ? t : side === 1 ? t : side === 2 ? d : -d, y = side === 0 ? d : side === 1 ? -d : t;
-    if (nearRoad(x, y) < roadHalf + 120 || (spawn && Math.hypot(x - spawn[0], y - spawn[1]) < 500)) continue;
-    const kind = R() < 0.6 ? 'bush' : 'rock';
-    trees.push({ x, y, s: kind === 'bush' ? 90 + R() * 60 : 70 + R() * 70, spr: pickS(kind) });
-  }
-  trees.sort((a, b) => b.y - a.y);
-  // 地面小细节（扁平，画在塔和单位下面）：草丛、小花丛、蘑菇；路边的碎石
-  for (let i = 0; i < 1500; i++) {
-    const x = (R() * 2 - 1) * world, y = (R() * 2 - 1) * world, d = nearRoad(x, y);
-    if (d < roadHalf + 10) continue;
-    const kind = d < roadHalf + 70 ? (R() < 0.7 ? 'pebbles' : 'tuft') : R() < 0.8 ? 'tuft' : R() < 0.75 ? 'mushroom' : 'pebbles';
-    flat.push({ x, y, s: kind === 'tuft' ? 40 + R() * 30 : kind === 'pebbles' ? 45 + R() * 25 : 32 + R() * 14, spr: pickS(kind) });
-  }
-  // 路边石：沿每段路两侧，间隔随机
-  const curb = [];
-  for (const [a, b] of roadSegs) {
-    const dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy), nx = -dy / len, ny = dx / len;
-    for (let t = 0; t < len; t += 70 + R() * 90) for (const side of [1, -1]) {
-      if (R() < 0.45) continue;
-      const off = roadHalf + 8 + R() * 18, x = a[0] + dx * t / len + nx * off * side, y = a[1] + dy * t / len + ny * off * side;
-      if (nearRoad(x, y) < roadHalf - 5) continue;
-      curb.push({ x, y, r: 10 + R() * 14, c: ['#8f897a', '#7a7466', '#a39c8a'][(R() * 3) | 0] });
+  const tileXY = (k, idx) => {
+    if (idx >= 16 && !DATA.tiles[k].ext) idx = 15;
+    return idx < 16 ? [(idx % 4) * 64, (idx >> 2) * 64] : [256 + ((idx - 16) % 4) * 64, ((idx - 16) >> 2) * 64];
+  };
+  // 一格：四个角 TL TR BL BR（图上北在上）
+  function drawCell(g, i, j, px, py, P) {
+    const bl = vtype(i, j), br = vtype(i + 1, j), tl = vtype(i, j + 1), tr = vtype(i + 1, j + 1);
+    const lo = Math.min(bl, br, tl, tr), hi = Math.max(bl, br, tl, tr);
+    for (let k = lo; k <= hi; k++) {
+      let idx;
+      if (k === lo) {                             // 最低一层：整块
+        const h = hash(i, j);
+        idx = h < 0.8 ? PLAIN[(h * 1000 | 0) % PLAIN.length] : 16 + ((h * 7919 | 0) % 16);
+        if (lo !== hi) idx = 15;
+      } else {
+        idx = (br === k) | (bl === k) << 1 | (tr === k) << 2 | (tl === k) << 3;
+        if (!idx) continue;
+      }
+      const name = PRIO[k], [sx, sy] = tileXY(name, idx);
+      g.drawImage(img[name], sx, sy, 64, 64, px, py, P, P);
     }
   }
+  // 高清块（世界坐标：格 i0..i0+CH，j0..j0+CH；格 (i,j) 的左下角格点是 (i,j)）
+  const chunks = new Map(), MAXC = 30;
+  function chunk(ci, cj) {
+    const key = ci + ',' + cj;
+    let c = chunks.get(key);
+    if (c) { chunks.delete(key); chunks.set(key, c); return c; }   // 最近用过的放到最后
+    c = mkCanvas(CH * HI, CH * HI); const g = c.getContext('2d');
+    const i0 = ci * CH, j0 = cj * CH;
+    for (let a = 0; a < CH; a++) for (let b = 0; b < CH; b++) drawCell(g, i0 + a, j0 + b, a * HI, (CH - 1 - b) * HI, HI);
+    chunks.set(key, c);
+    if (chunks.size > MAXC) chunks.delete(chunks.keys().next().value);
+    return c;
+  }
+  // 低清整图
+  let low = null;
+  function buildLow() {
+    low = mkCanvas(2 * N * LO, 2 * N * LO); const g = low.getContext('2d');
+    for (let j = -N; j < N; j++) for (let i = -N; i < N; i++) drawCell(g, i, j, (i + N) * LO, (N - 1 - j) * LO, LO);
+  }
+  onAll.push(buildLow);
+
+  // 地图外圈压暗（原图边界外是黑的），柔和过渡
+  const L = N * T, MK = 0.05, msz = Math.ceil(2 * L * MK);
+  const shade = mkCanvas(msz, msz), sg = shade.getContext('2d');
+  sg.filter = 'blur(5px)'; sg.fillStyle = 'rgba(0,0,0,.6)';
+  const e = (world + 60 + L) * MK;
+  sg.fillRect(0, 0, msz, msz - e); sg.fillRect(0, e, msz, msz - e); sg.fillRect(0, 0, msz - e, msz); sg.fillRect(e, 0, msz - e, msz);
+
+  // ------------------------------------------------ 树墙
+  const trees = [];
+  const TREE_SCALE = 0.62;                       // 地图整体缩小了，树也跟着按比例缩小（和格子的比例与原图一致）
+  const tlist = DATA ? DATA.trees.list : [];
+  const pickTree = () => {
+    let r = R(), id = 'VTlt';
+    for (const [k, w] of Object.entries(DATA.trees.weight)) { if ((r -= w) < 0) { id = k; break; } }
+    const opts = tlist.filter(t => t.id === id);
+    return opts[(R() * opts.length) | 0];
+  };
+  const addTree = (x, y) => trees.push({ x, y, t: pickTree(), s: TREE_SCALE * (0.85 + R() * 0.3), flip: R() < 0.5 });
+  if (DATA) {
+    // 地图边缘：建造区外一圈，越往外越密
+    for (let y = -L; y <= L; y += T) for (let x = -L; x <= L; x += T) {
+      const out = Math.max(Math.abs(x), Math.abs(y)) - world;
+      if (out < -90 || R() > (out < 60 ? 0.55 : 0.9)) continue;
+      if (roadDist(x, y) < roadHalf + 140) continue;
+      addTree(x + (R() - 0.5) * 40, y + (R() - 0.5) * 40);
+    }
+    // 出怪口围栏：Crck 那一圈上种树，路出去的那边留口子
+    if (spawn) for (const r of [4.5 * T, 5.5 * T]) {
+      for (let a = -r; a < r; a += T * 0.9) for (const [x, y] of [[a, r], [r, -a], [-a, -r], [-r, a]]) {
+        const X = spawn[0] + x, Y = spawn[1] + y;
+        if (roadDist(X, Y) < roadHalf + 70 || (r > 5 * T && R() < 0.35)) continue;
+        addTree(X + (R() - 0.5) * 16, Y + (R() - 0.5) * 16);
+      }
+    }
+  }
+  trees.sort((a, b) => b.y - a.y);
 
   // ------------------------------------------------ 每帧绘制
   const worldTf = (ctx, v) => ctx.setTransform(v.S, 0, 0, -v.S, v.W / 2 - v.cx * v.S, v.H / 2 + v.cy * v.S);
-  const usePattern = (ctx, k) => { const p = pattern(ctx, k); p.setTransform(new DOMMatrix([TEXK[k], 0, 0, TEXK[k], 0, 0])); return p; };
   const visible = (v, x, y, pad) => Math.abs(x - v.cx) * v.S < v.W / 2 + pad * v.S && Math.abs(y - v.cy) * v.S < v.H / 2 + pad * v.S;
-  function sprite(ctx, v, o, alpha = 1) {
-    const { c, ax, ay } = o.spr, w = o.s * v.S, h = w * c.height / c.width;
-    const px = v.W / 2 + (o.x - v.cx) * v.S, py = v.H / 2 - (o.y - v.cy) * v.S;
-    if (alpha !== 1) ctx.globalAlpha = alpha;
-    ctx.drawImage(c, px - w * ax, py - h * ay, w, h);
-    if (alpha !== 1) ctx.globalAlpha = 1;
-  }
+  const px = (v, x) => v.W / 2 + (x - v.cx) * v.S, py = (v, y) => v.H / 2 - (y - v.cy) * v.S;
 
   function drawGround(ctx, v, t) {
     ctx.save();
-    worldTf(ctx, v);
-    const hw = v.W / 2 / v.S + 50, hh = v.H / 2 / v.S + 50;
-    ctx.fillStyle = usePattern(ctx, 'grass'); ctx.fillRect(v.cx - hw, v.cy - hh, hw * 2, hh * 2);
+    ctx.fillStyle = '#1d3314'; ctx.fillRect(0, 0, v.W, v.H);
     ctx.imageSmoothingEnabled = true;
-    ctx.save(); ctx.scale(1, -1); ctx.drawImage(macro, -L, -L, 2 * L, 2 * L); ctx.restore();   // 低分辨率图的 y 朝下
-    // 路：泥土路肩 → 暗色路沿 → 石板路面 → 路中间踩出来的泥
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.globalAlpha = 0.85; ctx.strokeStyle = usePattern(ctx, 'dirt'); ctx.lineWidth = roadHalf * 2 + 70; ctx.stroke(roadPath);
-    ctx.globalAlpha = 1; ctx.strokeStyle = '#2f2b24'; ctx.lineWidth = roadHalf * 2 + 16; ctx.stroke(roadPath);
-    ctx.strokeStyle = usePattern(ctx, 'cobble'); ctx.lineWidth = roadHalf * 2; ctx.stroke(roadPath);
-    ctx.globalAlpha = 0.28; ctx.strokeStyle = usePattern(ctx, 'dirt'); ctx.lineWidth = roadHalf * 0.75; ctx.stroke(roadPath);
-    ctx.globalAlpha = 1;
-    // 中央法阵
+    if (ready) {
+      if (v.S * T < 22) {                        // 拉远：低清整图
+        ctx.drawImage(low, px(v, -L), py(v, L), 2 * L * v.S, 2 * L * v.S);
+      } else {                                   // 高清块：只画看得见的
+        const x0 = v.cx - v.W / 2 / v.S, x1 = v.cx + v.W / 2 / v.S, y0 = v.cy - v.H / 2 / v.S, y1 = v.cy + v.H / 2 / v.S;
+        const span = CH * T;
+        const ci0 = Math.max(Math.floor(x0 / span), -Math.ceil(N / CH)), ci1 = Math.min(Math.floor(x1 / span), Math.ceil(N / CH) - 1);
+        const cj0 = Math.max(Math.floor(y0 / span), -Math.ceil(N / CH)), cj1 = Math.min(Math.floor(y1 / span), Math.ceil(N / CH) - 1);
+        for (let cj = cj0; cj <= cj1; cj++) for (let ci = ci0; ci <= ci1; ci++) {
+          const X = Math.floor(px(v, ci * span)), Y = Math.floor(py(v, (cj + 1) * span));
+          const X2 = Math.ceil(px(v, (ci + 1) * span)), Y2 = Math.ceil(py(v, cj * span));
+          ctx.drawImage(chunk(ci, cj), X, Y, X2 - X + 1, Y2 - Y + 1);   // 多画 1 像素，块与块之间不露缝
+        }
+      }
+    }
+    worldTf(ctx, v);
+    ctx.save(); ctx.scale(1, -1); ctx.drawImage(shade, -L, -L, 2 * L, 2 * L); ctx.restore();   // 低分辨率图的 y 朝下
     if (center) drawEmblem(ctx, center, t);
     ctx.restore();
-    // 路边石、地面小细节
-    for (const o of curb) if (visible(v, o.x, o.y, 40)) {
-      const px = v.W / 2 + (o.x - v.cx) * v.S, py = v.H / 2 - (o.y - v.cy) * v.S, r = o.r * v.S;
-      ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(px + r * 0.15, py + r * 0.25, r, r * 0.7, 0, 0, 7); ctx.fill();
-      ctx.fillStyle = o.c; ctx.beginPath(); ctx.ellipse(px, py, r, r * 0.68, 0, 0, 7); ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,240,.25)'; ctx.beginPath(); ctx.ellipse(px - r * 0.2, py - r * 0.22, r * 0.5, r * 0.3, 0, 0, 7); ctx.fill();
-    }
-    if (v.S * 60 > 3) for (const o of flat) if (visible(v, o.x, o.y, 60)) sprite(ctx, v, o);   // 太小时不画
     if (spawn) drawPortal(ctx, v, spawn, t);
   }
 
-  // 中央"循环圈"法阵：石圈 + 缓慢旋转的绿色符文环（世界坐标下绘制）
+  // 中央"循环圈"法阵：缓慢旋转的绿色符文环（画在 cZc1 十字地面上，世界坐标下绘制）
   function drawEmblem(ctx, [x, y], t) {
     const r = 330;
-    ctx.fillStyle = usePattern(ctx, 'cobble'); ctx.beginPath(); ctx.arc(x, y, r + 40, 0, 7); ctx.fill();
-    ctx.lineWidth = 16; ctx.strokeStyle = '#2f2b24'; ctx.stroke();
-    ctx.fillStyle = 'rgba(20,40,20,.55)'; ctx.beginPath(); ctx.arc(x, y, r - 30, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(20,40,20,.35)'; ctx.beginPath(); ctx.arc(x, y, r - 30, 0, 7); ctx.fill();
     const pulse = 0.55 + 0.25 * Math.sin(t * 1.6);
     ctx.save(); ctx.translate(x, y);
     ctx.shadowColor = '#6dff6d'; ctx.shadowBlur = 25 * pulse;
@@ -322,45 +202,36 @@ function create({ world, roadSegs, roadHalf, spawn, center = [0, 0] }) {
     ctx.restore();
   }
 
-  // 出怪口：烧焦的地面 + 旋转的红色传送阵 + 往上飘的火星（屏幕坐标绘制）
-  const embers = Array.from({ length: 40 }, () => ({ a: R() * 7, r: R(), sp: 0.4 + R() * 0.8, ph: R() }));
+  // 出怪口：原图只是一块围起来的岩石空地；这里在地面上加一点暗红的光和往上飘的火星，好认出怪的位置（屏幕坐标绘制）
+  const embers = Array.from({ length: 28 }, () => ({ a: R() * 7, r: R(), sp: 0.4 + R() * 0.8, ph: R() }));
   function drawPortal(ctx, v, [x, y], t) {
-    if (!visible(v, x, y, 600)) return;
-    const px = v.W / 2 + (x - v.cx) * v.S, py = v.H / 2 - (y - v.cy) * v.S, S = v.S, r = 250 * S;
-    let gr = ctx.createRadialGradient(px, py, 0, px, py, r * 1.6);
-    gr.addColorStop(0, 'rgba(20,5,5,.75)'); gr.addColorStop(0.6, 'rgba(40,12,8,.45)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(px, py, r * 1.6, r * 1.6, 0, 0, 7); ctx.fill();
-    const pulse = 0.6 + 0.4 * Math.sin(t * 3);
-    ctx.save(); ctx.translate(px, py); ctx.scale(1, 1);
-    ctx.shadowColor = '#ff3a2a'; ctx.shadowBlur = 18 * pulse;
-    ctx.strokeStyle = `rgba(255,80,50,${0.5 + 0.4 * pulse})`; ctx.lineWidth = Math.max(1.5, 10 * S);
-    ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.stroke();
-    ctx.lineWidth = Math.max(1, 5 * S); ctx.beginPath(); ctx.arc(0, 0, r * 0.72, 0, 7); ctx.stroke();
-    ctx.rotate(t * 0.8);                          // 五芒星
-    ctx.beginPath();
-    for (let k = 0; k <= 5; k++) { const a = -Math.PI / 2 + k * 4 * Math.PI / 5; ctx[k ? 'lineTo' : 'moveTo'](Math.cos(a) * r * 0.72, Math.sin(a) * r * 0.72); }
-    ctx.stroke();
-    ctx.rotate(-t * 1.6); ctx.fillStyle = `rgba(255,120,80,${0.6 + 0.3 * pulse})`;
-    for (let k = 0; k < 12; k++) { ctx.rotate(Math.PI / 6); ctx.fillRect(r * 0.8, -6 * S, 14 * S, 12 * S); }
-    ctx.restore();
-    gr = ctx.createRadialGradient(px, py, 0, px, py, r * 0.7);          // 中心的光
-    gr.addColorStop(0, `rgba(255,140,90,${0.45 * pulse})`); gr.addColorStop(1, 'rgba(255,60,30,0)');
-    ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(px, py, r * 0.7, 0, 7); ctx.fill();
-    for (const e of embers) {                                              // 火星
-      const life = (t * e.sp + e.ph) % 1, rr = e.r * r * 0.8;
-      const ex = px + Math.cos(e.a) * rr, ey = py + Math.sin(e.a) * rr * 0.6 - life * 220 * S;
-      ctx.fillStyle = `rgba(255,${150 + 80 * (1 - life) | 0},80,${(1 - life) * 0.9})`;
-      ctx.beginPath(); ctx.arc(ex, ey, Math.max(1, 5 * S * (1 - life)), 0, 7); ctx.fill();
+    if (!visible(v, x, y, 400)) return;
+    const X = px(v, x), Y = py(v, y), S = v.S, r = 170 * S, pulse = 0.6 + 0.4 * Math.sin(t * 2.4);
+    const gr = ctx.createRadialGradient(X, Y, 0, X, Y, r);
+    gr.addColorStop(0, `rgba(255,70,40,${0.28 + 0.12 * pulse})`); gr.addColorStop(0.6, 'rgba(160,30,20,.12)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(X, Y, r, 0, 7); ctx.fill();
+    for (const e of embers) {
+      const life = (t * e.sp + e.ph) % 1, rr = e.r * r * 0.9;
+      const ex = X + Math.cos(e.a) * rr, ey = Y + Math.sin(e.a) * rr * 0.6 - life * 180 * S;
+      ctx.fillStyle = `rgba(255,${150 + 80 * (1 - life) | 0},80,${(1 - life) * 0.85})`;
+      ctx.beginPath(); ctx.arc(ex, ey, Math.max(1, 4 * S * (1 - life)), 0, 7); ctx.fill();
     }
   }
 
   function drawTrees(ctx, v) {
-    const sh = 'rgba(0,0,0,.3)';
-    for (const o of trees) if (visible(v, o.x, o.y, 400)) {
-      const px = v.W / 2 + (o.x - v.cx) * v.S, py = v.H / 2 - (o.y - v.cy) * v.S;
-      ctx.fillStyle = sh; ctx.beginPath(); ctx.ellipse(px + o.s * 0.08 * v.S, py, o.s * 0.32 * v.S, o.s * 0.12 * v.S, 0, 0, 7); ctx.fill();
+    if (!ready || !img.trees) return;
+    const vis = trees.filter(o => visible(v, o.x, o.y, 260));
+    ctx.fillStyle = 'rgba(0,0,0,.3)';
+    for (const o of vis) {
+      const w = o.t.w * o.t.upp * o.s * v.S;
+      ctx.beginPath(); ctx.ellipse(px(v, o.x) + w * 0.12, py(v, o.y), w * 0.36, w * 0.14, 0, 0, 7); ctx.fill();
     }
-    for (const o of trees) if (visible(v, o.x, o.y, 400)) sprite(ctx, v, o);
+    for (const o of vis) {
+      const { x: sx, y: sy, w, h, ax, ay, upp } = o.t, k = upp * o.s * v.S, dw = w * k, dh = h * k;
+      const X = px(v, o.x), Y = py(v, o.y);
+      if (o.flip) { ctx.save(); ctx.translate(X, Y); ctx.scale(-1, 1); ctx.drawImage(img.trees, sx, sy, w, h, -dw * ax, -dh * ay, dw, dh); ctx.restore(); }
+      else ctx.drawImage(img.trees, sx, sy, w, h, X - dw * ax, Y - dh * ay, dw, dh);
+    }
   }
 
   // 屏幕四周压暗（暗角），让视线集中在中间
@@ -375,7 +246,9 @@ function create({ world, roadSegs, roadHalf, spawn, center = [0, 0] }) {
     }
     ctx.drawImage(vig, 0, 0);
   }
-  return { drawGround, drawTrees, drawOverlay, textures: tex };
+  // 小地图用：低清整图和它覆盖的世界范围（-L..L），贴图没加载完时是 null
+  const groundImage = () => ready ? { img: low, L } : null;
+  return { drawGround, drawTrees, drawOverlay, groundImage };
 }
 return { create };
 })();

@@ -37,10 +37,13 @@ button.primary, .go { background: #2a6b35; border-color: #57b062; }
 .gold-ico { background: radial-gradient(#fff3b0, #d9a520); }
 .wood-ico { background: linear-gradient(#3d8a3d 60%, #6b4a20 60%); border-radius: 3px 3px 1px 1px; }
 .food-ico { background: radial-gradient(#ffd0a0, #b55a2a); }
+.ach-ico { background: radial-gradient(#fff, #ff9ad5 55%, #b0306a); }
+.ach { color: #ff9ad5; }
 
 /* ---------- 游戏画面 ---------- */
 #stage { position: relative; min-height: 0; overflow: hidden; }
 #cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+#stage canvas.layer { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }   /* 3D 单位层、界面层：点击穿透到 #cv */
 /* WC3 风格指针（assets/cursors/*.svg）：默认金色手甲；悬停己方单位变绿、敌人变红；选点用瞄准环；放塔用锤子；拖动画面用四向箭头 */
 html, body, button, button:disabled, #minimap, #cv { cursor: url(assets/cursors/arrow.svg) 3 2, default; }
 #cv.cur-friend { cursor: url(assets/cursors/friend.svg) 3 2, pointer; }
@@ -182,3 +185,76 @@ html, body, button, button:disabled, #minimap, #cv { cursor: url(assets/cursors/
 .cb .tag.ok { color: #6fd17a; }
 .cb.passive img { filter: saturate(.75); }
 .cb.learned { border-color: #3f9a4c; }
+
+#portrait, .bartxt { display: none; }      /* 只在桌面的原版控制台里用；手机竖屏头像放在信息区里 */
+
+/* ---------- 桌面：原版控制台（暗夜精灵藤蔓，assets/ui/top.png + console.png，tools/war3_icons.py 导出） ----------
+   贴图按 WC3 的方式铺满：横向拉伸到屏幕宽度，高度按 4:3 时的比例（顶栏 100/1200、底栏 342/1200 屏幕高）。
+   里面的小地图、头像、血蓝条、信息区、命令卡都按贴图上对应窗口的位置摆（坐标 = 贴图像素 / 1600 或 / 342）。
+   透明的地方（垂下来的藤蔓之间）点得到地图。 */
+@media (min-width: 821px) {
+  #app { display: block; position: relative; }
+  #stage { position: absolute; inset: 0; }
+  #top { position: absolute; left: 0; right: 0; top: 0; z-index: 5; height: calc(100% * 100 / 1200); padding: 0; display: block;
+    background: url(assets/ui/top.png) 0 0 / 100% 100% no-repeat; border: 0; pointer-events: none; }
+  #top .menu, #top .res { display: contents; }
+  #top .menu button, #top .r { position: absolute; top: calc(100% * 2 / 100); height: calc(100% * 36 / 100); pointer-events: auto;
+    display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; padding: 0 6px; margin: 0;
+    background: none; border: 0; border-radius: 0; color: #ffd257; font-size: clamp(11px, 1.15vh, 14px); font-weight: 600; text-shadow: 0 1px 2px #000; }
+  #top .menu button:hover:not(:disabled) { color: #fff6c0; background: rgba(255, 210, 87, .08); }
+  #top .menu button.go { color: #6fd17a; }
+  #top .menu button:nth-child(1) { left: calc(100% * 6 / 1600); width: calc(100% * 164 / 1600); }
+  #top .menu button:nth-child(2) { left: calc(100% * 176 / 1600); width: calc(100% * 164 / 1600); }
+  #top .menu button:nth-child(3) { left: calc(100% * 346 / 1600); width: calc(100% * 164 / 1600); }
+  #top .menu button:nth-child(4) { left: calc(100% * 516 / 1600); width: calc(100% * 164 / 1600); }
+  #top .r { justify-content: flex-end; padding-right: 10px; color: #fff; }
+  #top .r:nth-child(1) { left: calc(100% * 922 / 1600); width: calc(100% * 153 / 1600); }
+  #top .r:nth-child(2) { left: calc(100% * 1094 / 1600); width: calc(100% * 155 / 1600); }
+  #top .r:nth-child(3) { left: calc(100% * 1268 / 1600); width: calc(100% * 155 / 1600); }
+  #top .r:nth-child(4) { left: calc(100% * 1442 / 1600); width: calc(100% * 153 / 1600); justify-content: center; }
+  #quick { top: calc(100% * 50 / 1200 + 8px); }
+  #wavebox { top: calc(100% * 50 / 1200 + 8px); }
+  #msgs { bottom: calc(100% * 342 / 1200 + 8px); left: 2%; }
+  #tip { bottom: calc(100% * 300 / 1200); right: 1%; width: 330px; background: rgba(0, 0, 0, .82); border: 1px solid #c9a94c; }
+
+  #console { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; height: calc(100% * 342 / 1200); display: block; padding: 0; gap: 0;
+    background: url(assets/ui/console.png) 0 0 / 100% 100% no-repeat; border: 0; pointer-events: none; }
+  #console > * { position: absolute; pointer-events: auto; }
+  #mmwrap { left: calc(100% * 18 / 1600); top: calc(100% * 46 / 342); width: calc(100% * 279 / 1600); height: calc(100% * 282 / 342); border: 0; }
+  .zbtn { left: calc(100% * 293 / 279); top: calc(100% * 10 / 282); width: calc(100% * 42 / 279); height: calc(100% * 80 / 282); right: auto;
+    display: flex; flex-direction: column; justify-content: space-between; gap: 0; }
+  .zbtn button { width: 100%; height: 45%; padding: 0; background: none; border: 0; border-radius: 0; color: #ffd257; font-size: 18px; font-weight: 700; }
+  .zbtn button:hover { background: rgba(255, 210, 87, .12); }
+  #portrait { display: block; left: calc(100% * 435 / 1600); top: calc(100% * 112 / 342); width: calc(100% * 144 / 1600); height: calc(100% * 168 / 342); background: #000; overflow: hidden; }
+  #portrait canvas, #portrait img { width: 100%; height: 100%; display: block; object-fit: cover; }
+  #portrait .pt { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: 800; color: #fff; }
+  .bartxt { left: calc(100% * 437 / 1600); width: calc(100% * 140 / 1600); display: flex; align-items: center; justify-content: center;
+    font-size: clamp(10px, 1.15vh, 14px); font-weight: 700; text-shadow: 0 1px 2px #000; white-space: nowrap; overflow: hidden; }
+  #hpt { top: calc(100% * 288 / 342); height: calc(100% * 22 / 342); color: #3cdc3c; }
+  #mpt { top: calc(100% * 315 / 342); height: calc(100% * 20 / 342); color: #5aa8ff; }
+  #info { left: calc(100% * 612 / 1600); top: calc(100% * 96 / 342); width: calc(100% * 390 / 1600); height: calc(100% * 244 / 342);
+    display: block; padding: 4px 8px; background: #000; border: 0; border-radius: 0; overflow: hidden; }
+  #info .mob { display: none; }
+  #info .empty { display: flex; height: 100%; align-items: center; justify-content: center; }
+  #info .nm { text-align: center; color: #fff; font-size: clamp(13px, 1.6vh, 18px); font-weight: 600; }
+  #info .nm small { display: none; }
+  #info .sub { text-align: center; color: #c8c8c8; font-size: clamp(11px, 1.2vh, 13px); margin-bottom: 6px; }
+  #info .card { display: flex; gap: 12px; }
+  #info .card .c { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  #info .st { display: flex; align-items: center; gap: 6px; font-size: clamp(11px, 1.2vh, 13px); }
+  #info .st img { width: clamp(26px, 3.4vh, 40px); height: clamp(26px, 3.4vh, 40px); border: 1px solid #555; flex: none; }
+  #info .st span { color: #ffd257; } #info .st b { color: #fff; font-weight: 400; }
+  #info .st em { font-style: normal; color: #6fd17a; }
+  #info .attr { display: grid; grid-template-columns: auto auto; gap: 1px 8px; align-items: center; font-size: clamp(11px, 1.2vh, 13px); }
+  #info .attr img { grid-row: span 3; width: clamp(34px, 4.5vh, 52px); height: clamp(34px, 4.5vh, 52px); border: 1px solid #555; }
+  #info .attr span { color: #ffd257; } #info .attr span.pri { color: #fff; }
+  #info .buffs { display: flex; align-items: center; gap: 4px; margin-top: 6px; font-size: 12px; color: #ffd257; }
+  #info .buffs img { width: 22px; height: 22px; border: 1px solid #444; }
+  #info .tip { color: #a9bcae; font-size: 11px; margin-top: 4px; max-height: 3.2em; overflow: hidden; }
+  #info .kv { font-size: 12px; margin-top: 4px; }
+  #cmd { left: calc(100% * 1233 / 1600); top: calc(100% * 75 / 342); width: calc(100% * 341 / 1600); height: calc(100% * 255 / 342);
+    display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(3, 1fr); column-gap: calc(100% * 8.5 / 341); row-gap: calc(100% * 6 / 341);
+    padding: 0; background: none; border: 0; }
+  #cmd .cb { width: 100%; height: 100%; border-radius: 0; }
+  #cmd .cb.none { background: #000; border: 0; box-shadow: none; }
+}

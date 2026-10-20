@@ -1,0 +1,26 @@
+{
+ "key": "shop",
+ "src": "sprites/w3_tower_Doodads_Cinematic_RockinArthas_RockinArthas.png",
+ "frameW": 240,
+ "frameH": 240,
+ "cols": 10,
+ "rows": 1,
+ "anchor": [
+  0.5,
+  0.7
+ ],
+ "unitsPerPixel": 2.0,
+ "pitch": 50,
+ "actions": {
+  "idle": {
+   "row": 0,
+   "dirs": 1,
+   "frames": 10,
+   "fps": 2.5,
+   "loop": true
+  }
+ },
+ "modelScale": 2.0,
+ "aliasOf": "model:tower:Doodads/Cinematic/RockinArthas/RockinArthas",
+ "war3": true
+}

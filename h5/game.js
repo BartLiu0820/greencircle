@@ -13,8 +13,13 @@ const RULE = {
   eliteChance: 1 / 55,       // GetRandomInt(1,55)==30
   eliteHp: [150, 2000, 6000, 25000, 90000], eliteArmor: 20,
   hpPerWave: 0.01,           // 科技 Rhar: 每级 +1% 生命
-  foodPrice: 12, woodToGold: 300, goldToWood: 500,
+  foodPrice: 12, woodToGold: 300,
   maxAuraPerKind: 2,
+  // 兔子 = 原图单位 nshe「成就商店」：每个 BOSS 波刷在地图随机位置，60 秒后消失（UnitApplyTimedLife 60），用当局成就买道具。
+  // 原图的当局成就大多来自平台账号（至尊等级开局送 1~10 点、各种成就），这里改成开局送 5 点 + 每次 Perfect 1 点
+  startAch: 5, achPerPerfect: 1, rabbitLife: 60, rabbitReach: 600, rabbitScrollAch: 20,
+  rabbitWaves: [10, 20, 30, 40, 49], rabbitDelay: 20,
+  shopReach: 600,            // 商店（u00L，原图摆在地图中央 (0,128)）：守卫者要走到旁边才能买
 };
 const MODES = {
   solo: { name: '单人推荐', interval: 38, hp: 0.35, food: 8, desc: '38 秒/波，怪物生命 ×0.35，起手人口 8' },
@@ -65,6 +70,7 @@ const ADJ = {};
 for (const [a, b] of EDGES) { (ADJ[a] = ADJ[a] || []).push(b); (ADJ[b] = ADJ[b] || []).push(a); }
 const ROAD_SEGS = EDGES.concat([['I', 'K'], ['K', 'L']]).map(([a, b]) => [NODES[a], NODES[b]]);
 const ROAD_HALF = 110;   // 路宽一半
+const SHOP = { isShop: true, x: 0, y: 64 };             // 原图 CreateUnit(Player(15),'u00L',0,128)，按 MAP_SCALE 缩放后对齐网格
 const WORLD = Math.round(6000 * MAP_SCALE);
 const BUILD_LIM = 3168;  // 可建造区外边界（格子边线）
 
@@ -98,6 +104,7 @@ function newGame(mode) {
     builder: { isBuilder: true, x: NODES.L[0] + 250, y: NODES.L[1] + 450, speed: 500, order: null, blinkCd: 0 },
     cam: { x: NODES.L[0] + 600, y: NODES.L[1] - 300, zoom: 2.4 },
     menu: 'main', pending: null,
+    ach: RULE.startAch, rabbit: null, rabbitScroll: false, buys: {}, itemCd: {},
   };
   G.selected = G.builder;
   FXS.clear();
@@ -153,8 +160,8 @@ function kill(m, src) {
     else msg(`击杀精英怪：木材 +${w}`);
   }
   if (m.onDeath) m.onDeath(src);
-  const sh = sheetOf(m);
-  if (sh && sh.m.actions.death) { const a = sh.m.actions.death; addFx({ kind: 'corpse', ent: { uid: m.uid, face: m.face, elite: m.elite, boss: m.boss }, x: m.x, y: m.y, t0: G.t, life: a.frames / a.fps + 1.2 }); }
+  const a = (metaOf(m) || {}).actions?.death;       // 按登记判断，不等精灵图加载（3D 模型画尸体时精灵图可能从没请求过）
+  if (a) { addFx({ kind: 'corpse', ent: { uid: m.uid, face: m.face, elite: m.elite, boss: m.boss }, x: m.x, y: m.y, t0: G.t, life: a.frames / a.fps + 1.2 }); }
   else addFx({ kind: 'death', x: m.x, y: m.y, r: m.r, life: 0.35, color: ARMOR_COLOR[m.type] });
 }
 
@@ -283,6 +290,7 @@ function cellBuildable(cx, cy) {
   }
   const [sx0, sy0] = NODES.I;
   if (Math.abs(cx - sx0) < 352 && Math.abs(cy - sy0) < 352) return false;
+  if (Math.abs(cx - SHOP.x) < 160 && Math.abs(cy - SHOP.y) < 160) return false;     // 中央商店
   return true;
 }
 // 格子是否被塔（或排队中的建造命令）占了
@@ -638,7 +646,6 @@ function aoe(h, c, r, dmg, atk, ignoreArmor, color) {
 }
 function zone(owner, x, y, r, dur, dps, atk, endFn, style) {
   G.zones.push({ owner, x, y, r, t0: G.t, until: G.t + dur, dps, atk, endFn, style, fxT: 0 });
-  if (style === 'bladestorm') { FXS.nova(x, y, r, '#9fe3ff', 0.4); FXS.flash(x, y, 60, '#bff4ff', r * 0.5); FXS.dust(x, y, '#a08860', Math.round(r / 30)); }
 }
 function later(s, fn) { G.timeouts.push({ at: G.t + s, fn }); }
 const LEARN_COST = [{ wood: 0, str: 0 }, { wood: 18, str: 80 }, { wood: 36, str: 160 }, { wood: 54, str: 240 }];
@@ -674,7 +681,7 @@ function applyAuras() {
   let armorAuras = [], slowAuras = [];
   for (const a of G.towers) {
     if (a.cat !== 'aura') continue;
-    const lv = curLevel(a), ab = lv.abils[0];
+    const ab = auraAb(a);
     if (!ab) continue;
     const r = ab.area || 900;
     if (a.fam === '加速光环') for (const t of G.towers) { if (dist2(a.x, a.y, t.x, t.y) <= r * r) t.buffAS = Math.max(t.buffAS, ab.A); }
@@ -732,7 +739,7 @@ function startWave() {
   }
   const alive = monstersAlive();
   G.wave++;
-  if (alive === 0) { G.perfect++; msg(`Perfect +1（当前 ${G.perfect}）`); }
+  if (alive === 0) { G.perfect++; G.ach += RULE.achPerPerfect; msg(`Perfect +1（当前 ${G.perfect}），当局成就 +${RULE.achPerPerfect}`); }
   G.score -= alive;
   G.gold += 8 + G.wave * 2;                 // 排名序号*8 + 波数*2 (单人排名 1)
   G.bossRule = null;
@@ -754,6 +761,7 @@ function startWave() {
     }
   } else if (n === 48) dur = wave48();
   else if (n === 49) dur = finalWave();
+  if (RULE.rabbitWaves.includes(n)) later(RULE.rabbitDelay, () => spawnRabbit());     // 原图：BOSS 波中途 TriggerExecute(Sr) 放出兔子
   G.timer = dur;
 }
 function setHint(n, hint, id) {
@@ -823,6 +831,136 @@ function finalWave() {
   return 300;
 }
 
+// ---------------------------------------------------------------- 兔子（成就商店）
+// 原图 nshe：中立单位，模型是复活节兔子（放大 3 倍），刷在可玩区域内随机一点，小地图闪烁，60 秒后"咕~"一声消失
+const RABBIT_TALK = ['跑圈啦! 跑圈啦!跑圈啦!', '咦，人呢？找不到我！啦啦啦！', '别过来，你们都别过来！我就只是想逛逛圈圈而已！',
+  '这些宠物一点都比不上我，我是说速度！1，2，3虚浮！', '主塔后面不补塔，一看就是个麻瓜！', '我真希望能永远在大家身边！T。T'];
+// 兔子卖的东西（原图 nshe 的物品栏，analysis/data/shops.json）。药水原图是买下后对塔使用；单人只有一个英雄塔，买下直接用在英雄塔上。
+// 没做：天赋秘籍（本复刻没有光环天赋）、重修药水（没有属性点）、许愿点（没有许愿商人）、卖东西 1/20 掉糖果（没有宠物）
+const RABBIT_SHOP = [
+  { id: 'I00K', key: 'Q', name: '原始之球', ach: 2, wood: 1, tip: '随机 1 次建造栏的原始塔', use: () => rerollSlot('raw') },
+  { id: 'I00M', key: 'W', name: '光环之球', ach: 2, wood: 1, tip: '随机 1 次建造栏的光环塔', use: () => rerollSlot('aura') },
+  { id: 'I00N', key: 'E', name: '辅助之球', ach: 2, wood: 1, tip: '随机 1 次建造栏的 2 个辅助塔', use: () => rerollSlot('sup') },
+  { id: 'I00L', key: 'R', name: '另类之球', ach: 2, wood: 1, tip: '随机 1 次建造栏的另类塔', use: () => rerollSlot('alt') },
+  { id: 'I01I', key: 'A', name: '5个木材', ach: 1, gold: 2500, cd: 1, tip: '购买 5 个木材', use: () => { G.wood += 5; msg('木材 +5'); } },
+  { id: 'I01U', key: 'S', name: '魔法药水', ach: 2, gold: 4000, cd: 6, hero: true, tip: '英雄塔获得 200 点魔法',
+    use: h => { h.mana = Math.min(h.maxMana(), h.mana + 200); msg(`${h.heroName} 魔法 +200`); } },
+  { id: 'I02A', key: 'D', name: '知识药水', ach: 3, gold: 2500, cd: 6, hero: true, max: 6, tip: '英雄塔当前成长属性 +7~12 点（每局最多 6 支）',
+    use: h => { const v = rint(7, 12); h.stat[h.growth] += v; msg(`${h.heroName} ${statCN(h.growth)} +${v}`); } },
+];
+function spawnRabbit(by) {
+  const lim = BUILD_LIM - 150;
+  let x, y;
+  do { x = rnd(-lim, lim); y = rnd(-lim, lim); } while (dist2(x, y, NODES.I[0], NODES.I[1]) < 700 * 700);   // 不刷进出怪口的围栏里
+  G.rabbit = { isRabbit: true, id: G.nextId++, x, y, hx: x, hy: y, t0: G.t, until: G.t + RULE.rabbitLife, face: rnd(0, TAU), next: G.t + 1 };
+  msg(by ? `${by}召唤了一次兔子，大家快找呀！` : `兔子：${pick(RABBIT_TALK)}`);
+  msg(`兔子出现了（小地图上闪烁的粉点），${RULE.rabbitLife} 秒内让守卫者走到它旁边，用当局成就买道具`);
+  uiDirty();
+}
+function rabbitUpdate(dt) {
+  const r = G.rabbit; if (!r) return;
+  if (G.t >= r.until) {
+    FXS.ring(r.x, r.y, 140, '#ff9ad5', 0.5, 4); msg('兔子：咕~');
+    if (G.selected === r) G.selected = G.builder;
+    G.rabbit = null; uiDirty(); return;
+  }
+  if (G.t >= r.next) {                                  // 在出生点附近蹦来蹦去
+    const a = rnd(0, TAU), d = rnd(0, 180);
+    r.tx = r.hx + Math.cos(a) * d; r.ty = r.hy + Math.sin(a) * d; r.next = G.t + rnd(1.5, 3.5);
+  }
+  if (r.tx != null) {
+    const dx = r.tx - r.x, dy = r.ty - r.y, d = Math.hypot(dx, dy);
+    if (d > 4) { const k = Math.min(d, 160 * dt) / d; r.x += dx * k; r.y += dy * k; r.face = Math.atan2(dy, dx); r.moving = true; }
+    else r.moving = false;
+  }
+}
+const rabbitNear = () => G.rabbit && dist2(G.builder.x, G.builder.y, G.rabbit.x, G.rabbit.y) <= RULE.rabbitReach ** 2;
+// 道具能不能买（兔子和商店共用）：返回不能买的原因，能买返回 null
+const itemCdLeft = it => Math.max(0, (G.itemCd[it.id] || 0) - G.t, (it.firstAt || 0) - G.t);
+function itemBlock(it) {
+  if (it.na) return it.na;
+  if (it.hero && !G.hero) return '还没有建造英雄塔';
+  if (it.max && (G.buys[it.id] || 0) >= it.max) return `每局最多购买 ${it.max} 支`;
+  if (it.firstAt && G.t < it.firstAt) return `开局 ${it.firstAt} 秒后才能购买（还有 ${Math.ceil(it.firstAt - G.t)} 秒）`;
+  if (itemCdLeft(it) > 0) return '冷却中';
+  if (G.ach < (it.ach || 0)) return '成就不足';
+  if (G.gold < (it.gold || 0)) return '金币不足';
+  if (G.wood < (it.wood || 0)) return '木材不足';
+  return null;
+}
+function payItem(it) {
+  G.ach -= it.ach || 0; G.gold -= it.gold || 0; G.wood -= it.wood || 0;
+  G.buys[it.id] = (G.buys[it.id] || 0) + 1; G.itemCd[it.id] = G.t + (it.cd || 0);
+  uiDirty();
+}
+function rabbitBlock(it) {
+  if (!G.rabbit) return '兔子已经走了';
+  if (!rabbitNear()) return `守卫者离兔子太远（要在 ${RULE.rabbitReach} 范围内）`;
+  return itemBlock(it);
+}
+function buyRabbit(it) {
+  const why = rabbitBlock(it); if (why) return msg(why);
+  if (it.use(G.hero) === false) return;
+  payItem(it);
+}
+// 球：只重新随机建造栏里这一类的格子（辅助塔两格一起换）
+function rerollSlot(cat) {
+  const idx = G.build.map((f, i) => D.towers[f] && D.towers[f].cat === cat ? i : -1).filter(i => i >= 0);
+  if (!idx.length) return msg(`建造栏里没有${CAT_CN[cat]}`), false;
+  const cur = idx.map(i => G.build[i]);
+  let pool = byCat(cat).filter(f => !cur.includes(f));
+  if (pool.length < idx.length) pool = byCat(cat);
+  pool.sort(() => Math.random() - 0.5);
+  idx.forEach((i, k) => { G.build[i] = pool[k]; });
+  if (G.placing && G.placing !== 'hero' && !G.build.includes(G.placing)) G.placing = null;
+  msg(`${CAT_CN[cat]}换成了：${idx.map(i => G.build[i]).join('、')}`);
+}
+// ---------------------------------------------------------------- 商店（地图中央，原图 u00L「商店」，模型是"摇滚阿尔萨斯"）
+// 卖的东西按原图 Sellitems：I001,I002,I009,I00A,I00B,I01Y,I028。卷轴原图是买下后对目标使用：
+// 魔力卷轴 / 知识之书只能对英雄塔用（本复刻只有英雄塔有魔法），买下直接用；天赋卷轴要选一座 MAX 光环塔。
+// 复制卷轴、收购卷轴的目标是队友的守卫者 / 光环塔，单人模式用不了，只显示
+const TALENT_A = { 加速光环: 0.8, 攻击光环: 1.42, 减防光环: -100, 减速光环: -0.7 };   // 基础天赋 = MAX 光环技能升到 2 级（A01F / A007 / A00W / A00V 的 2 级数值）
+const SHOP_ITEMS = [
+  { id: 'I001', key: 'Q', name: '1个小材', gold: 500, cd: 30, tip: '使用 500 金币购买 1 个木材', use: () => { G.wood += 1; } },
+  { id: 'I002', key: 'W', name: '10个木材', gold: 5000, cd: 300, tip: '使用 5000 金币购买 10 个木材', use: () => { G.wood += 10; msg('木材 +10'); } },
+  { id: 'I00A', key: 'E', name: '魔力卷轴', gold: 2400, hero: true, tip: '对英雄塔使用，获得 120 点魔法（原图天神塔获得 400 点，本复刻天神塔没有魔法）',
+    use: h => { h.mana = Math.min(h.maxMana(), h.mana + 120); msg(`${h.heroName} 魔法 +120`); } },
+  { id: 'I028', key: 'R', name: '知识之书', gold: 2200, hero: true, tip: '对英雄塔使用，随机一项属性（力量 / 敏捷 / 智力）+10',
+    use: h => { const st = pick(['str', 'agi', 'int']); h.stat[st] += 10; msg(`英雄增加${statCN(st)} 10`); } },
+  { id: 'I01Y', key: 'A', name: '天赋卷轴', wood: 15, firstAt: 1200, cd: 300, target: true,
+    tip: `对 MAX 光环塔使用，激活[基础天赋]：光环升到 2 级（加速 +80% / 攻击 +142% / 减防 -100 / 减速 -70%）<br>开局 1200 秒后开放，购买间隔 300 秒`,
+    pick: '选择一座 MAX 光环塔（Esc 取消）', use: t => {
+      if (!t || t.cat !== 'aura' || t.lv < t.levels.length - 1) return msg('只能对 MAX 光环塔使用'), false;
+      if (t.talent) return msg('该单位已经激活'), false;
+      t.talent = true; FXS.ring(t.x, t.y, 220, '#9fffb0', 0.6, 4); msg(`${curLevel(t).name}获得了基础天赋`);
+    } },
+  { id: 'I009', key: 'S', name: '复制卷轴', gold: 3000, na: '单人模式没有友军的守卫者可以复制',
+    tip: '对一位友军的守卫者使用，获得与其一模一样的建造能力（不保留自身守护神技等级，以后随机建筑需 6 木材）' },
+  { id: 'I00B', key: 'D', name: '收购卷轴', gold: 1800, na: '单人模式没有友军的光环塔可以收购',
+    tip: '对一个允许收购的友军 1 级光环塔使用，收购这个光环；出售者获得 1500 金币（收购荣誉光环要 10000 金币）' },
+];
+const shopNear = () => dist2(G.builder.x, G.builder.y, SHOP.x, SHOP.y) <= RULE.shopReach ** 2;
+function shopBlock(it) {
+  if (!it.na && !shopNear()) return `守卫者离商店太远（要在 ${RULE.shopReach} 范围内）`;
+  return itemBlock(it);
+}
+function buyShop(it, target) {
+  const why = shopBlock(it); if (why) return msg(why);
+  if (it.target && !target) { G.pending = 'item:' + it.id; G.placing = null; msg(it.pick); uiDirty(); return; }   // 要选目标：先进入选目标状态
+  if (it.use(target || G.hero) === false) return;
+  payItem(it);
+}
+const auraAb = t => { const ab = curLevel(t).abils[0]; return ab && t.talent ? { ...ab, A: TALENT_A[t.fam] } : ab; };
+
+// 兔子卷轴（原图守护宗师卖，20 点成就）：额外召唤一次兔子，每局只能 1 次
+function rabbitScroll() {
+  if (G.rabbitScroll) return msg('召唤失败，每局只能额外召唤一次');
+  if (G.rabbit) return msg('兔子已经在场上了');
+  if (G.ach < RULE.rabbitScrollAch) return msg('成就不足');
+  G.ach -= RULE.rabbitScrollAch; G.rabbitScroll = true;
+  spawnRabbit('你');
+}
+
 // ---------------------------------------------------------------- 主循环
 function step(dt) {
   if (G.phase === 'over' || G.phase === 'win') return;
@@ -845,6 +983,7 @@ function step(dt) {
   }
   G.spawners = G.spawners.filter(s => s.left > 0);
   builderUpdate(dt);
+  rabbitUpdate(dt);
   applyAuras();
   // 塔
   for (const t of G.towers) towerUpdate(t, dt);
@@ -853,14 +992,8 @@ function step(dt) {
   for (const z of G.zones) {
     const victims = inRange(z.x, z.y, z.r);
     for (const m of victims) hurt(m, z.dps * dt, z.atk, z.owner);
-    if (z.style === 'bladestorm' && (z.fxT -= dt) <= 0) {              // 剑魂扫过的怪身上冒刀光
-      z.fxT = 0.09;
-      for (let i = 0; i < Math.min(3, victims.length); i++) { const m = pick(victims); FXS.slash(m.x, m.y, 50, '#dff6ff'); FXS.sparks(m.x, m.y, 50, '#bfefff', 2, 200); }
-      if (Math.random() < 0.5) { const a = rnd(0, TAU), d = z.r * rnd(0.6, 1); FXS.dust(z.x + Math.cos(a) * d, z.y + Math.sin(a) * d, '#9a8a6a', 1); }
-    }
     if (z.until <= G.t && z.endFn) {
       const e = z.endFn(); aoe(z.owner, z, z.r, e.dmg, e.atk, e.ignore);
-      if (z.style === 'bladestorm') { const c = ATK_COLOR[e.atk] || '#c48bff'; FXS.nova(z.x, z.y, z.r * 1.1, c, 0.5); FXS.flash(z.x, z.y, 40, c, z.r * 0.6); FXS.sparks(z.x, z.y, 40, c, 18, z.r * 1.2); }
     }
   }
   G.zones = G.zones.filter(z => z.until > G.t);
@@ -923,7 +1056,7 @@ function img(key) {
   return IMG[key].complete && IMG[key].naturalWidth ? IMG[key] : null;
 }
 for (const k in AM.sprites || {}) img(k);            // 图标和头像先加载好，第一次打开面板就有图
-const spriteKey = e => e.isBuilder ? 'builder' : e.isHero ? 'hero:' + e.heroName : e.uid ? 'unit:' + e.uid : e.fam ? 'tower:' + e.fam + ':' + (e.lv + 1) : null;
+const spriteKey = e => e.isShop ? 'shop' : e.isRabbit ? 'rabbit' : e.isBuilder ? 'builder' : e.isHero ? 'hero:' + e.heroName : e.uid ? 'unit:' + e.uid : e.fam ? 'tower:' + e.fam + ':' + (e.lv + 1) : null;
 function entityImg(e) {
   const k = spriteKey(e); if (!k) return null;
   return img(k) || (e.fam && !e.isHero && img('tower:' + e.fam));
@@ -962,11 +1095,47 @@ function towerSheet(fam, lv) {
 function sheetOf(e) {
   if (!e) return null;
   if (e.isBuilder) return sheetByKey('builder');
+  if (e.isShop) return sheetByKey('shop');
   if (e.isHero) return sheetByKey('hero:' + e.heroName);
   if (e.uid) return sheetByKey('unit:' + e.uid);
   if (e.fam && e.cat !== 'summon') return towerSheet(e.fam, e.lv + 1);
   return null;
 }
+// 实体对应的精灵表登记（不管图片加载没有）：3D 模型按它找 MDX、算缩放和动作时长
+function metaOf(e) {
+  if (!e) return null;
+  if (e.isBuilder) return SHEETS.builder;
+  if (e.isShop) return SHEETS.shop;
+  if (e.isHero) return SHEETS['hero:' + e.heroName];
+  if (e.uid) return SHEETS['unit:' + e.uid];
+  if (e.fam && e.cat !== 'summon') {
+    for (let l = e.lv + 1; l >= 2; l--) if (SHEETS['tower:' + e.fam + ':' + l]) return SHEETS['tower:' + e.fam + ':' + l];
+    return SHEETS['tower:' + e.fam];
+  }
+  return null;
+}
+// ---------------------------------------------------------------- 实时 3D（units3d.js）：魔兽原版模型，拉近了也清楚；画不了时调用方退回精灵图
+const U3 = window.Units3D && window.Units3D.create(document.getElementById('gl3d'), SHEETS);
+// 打开页面就按出场顺序（第 1 波 → 第 47 波，再到 BOSS 波直接刷的怪）在后台预载怪物模型（没有原版模型的预载精灵图），
+// 不然每种怪第一次出场时还在下载，那几帧只能画成色块圆点
+{
+  const order = new Set();
+  for (let n = 1; D.waves[String(n)]; n++) for (const v of D.waves[String(n)]) for (const id of [...v.pool, ...v.direct]) order.add(id);
+  for (const id of Object.keys(D.units)) order.add(id);
+  for (const id of order) {
+    const m = SHEETS['unit:' + id]; if (!m) continue;
+    if (U3 && m.war3) U3.ready(m); else sheetByKey('unit:' + id);
+  }
+}
+const GHOST = {};                                     // 建造预览的虚影（固定一个实例）
+// key：哪个 3D 实例（实体本身，或尸体特效）；ent：用来定队伍颜色的实体（怪物属于玩家 12，棕色）
+function model3d(key, m, x, y, face, anim, scaleMul = 1, alpha = 1, ent = key) {
+  if (!U3 || !m) return false;
+  if (!((m.actions[anim[0]] || {}).dirs > 1)) face = null;       // 精灵图只有一个方向的（塔、建筑）：模型也固定朝南，不跟着攻击方向转
+  return U3.put(key, m, x, y, face ?? -Math.PI / 2, anim, G.t, { scale: scaleMul, alpha, team: ent.uid ? 11 : 0 });
+}
+// 精灵图画出来的顶部再往下 30%（放血条），3D 模型按同样的框算
+function sheetTop(m, y, scaleMul = 1) { const h = m.frameH * m.unitsPerPixel * S * scaleMul; return sy(y) - h * m.anchor[1] + h * 0.3; }
 // 方向：0=朝南(屏幕下) 1=西南 2=西 3=西北 4=北 5=东北 6=东 7=东南
 function dirIndex(angle, dirs) {
   if (dirs <= 1 || angle == null) return 0;
@@ -995,6 +1164,8 @@ function drawSheet(sh, e, x, y, anim, scaleMul = 1, alpha = 1) {
   const px = sx(x) - w * m.anchor[0], py = sy(y) - h * m.anchor[1];
   ctx.globalAlpha = alpha;
   ctx.drawImage(im, fx, fy, fw, fh, px, py, w, h);
+  const gl = m.war3 && !m.glow && sheetByKey('glow:' + m.key);    // 模型自带的叠加发光层（光效表，tools/war3_batch.py），用 lighter 叠上去
+  if (gl) { ctx.globalCompositeOperation = 'lighter'; drawSheet(gl, e, x, y, anim, scaleMul, alpha); ctx.globalCompositeOperation = 'source-over'; }
   ctx.globalAlpha = 1;
   return py + h * 0.3;
 }
@@ -1009,12 +1180,22 @@ function sheetThumb(sh, px) {
   return `background:#0b0f0b url('assets/${m.src}') ${ox}px ${oy}px / ${m.cols * m.frameW * k}px ${m.rows * m.frameH * k}px no-repeat`;
 }
 
-// 左上角快捷按钮：用模型正面（idle 第 1 帧，朝南）的头肩特写。
-// 先按不透明像素求出模型的包围盒再裁切，不同体型的模型都能把头部放在中间；
+// 左上角快捷按钮：有原版头像图标（manifest 的 portrait:xxx）就用图标，同原版英雄按钮；
+// 没有就用模型正面（idle 第 1 帧，朝南）的头肩特写：先按不透明像素求出模型的包围盒再裁切，不同体型的模型都能把头部放在中间；
 // 用 file:// 打开时画布读不了像素，就退回按锚点估算的固定裁切。
 const QT_DONE = new WeakMap();
 function quickThumb(btn, key) {
   if (QT_DONE.get(btn) === key) return;
+  if (AM.sprites && AM.sprites['portrait:' + key]) {
+    const ic = img('portrait:' + key); if (!ic) return;           // 图标还在加载，下一帧再画
+    let cv = btn.querySelector('canvas.qt');
+    if (!cv) { cv = document.createElement('canvas'); cv.className = 'qt'; btn.prepend(cv); }
+    const px = Math.round(btn.clientWidth * (window.devicePixelRatio || 1)) || 92;
+    cv.width = cv.height = px;
+    const g = cv.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(ic, 0, 0, px, px);
+    btn.classList.add('has-thumb'); QT_DONE.set(btn, key);
+    return;
+  }
   if (!SHEETS[key]) { btn.querySelector('canvas.qt')?.remove(); btn.classList.remove('has-thumb'); QT_DONE.set(btn, key); return; }   // 没有模型：显示文字
   const sh = sheetByKey(key); if (!sh) return;
   const { m, im } = sh, a = m.actions.idle || m.actions.walk || Object.values(m.actions)[0];
@@ -1042,13 +1223,17 @@ function quickThumb(btn, key) {
 }
 
 // ================================================================ 镜头
-const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+// 三层画布：#cv 地面（地块、阴影、选中圈、光环）→ #gl3d 单位的 3D 模型（units3d.js）→ #ov 界面（血条、特效、投射物、建造预览）。
+// 画图函数都画在 ctx 上，draw() 里按层切换它
+const cv = document.getElementById('cv'), gctx = cv.getContext('2d'), ov = document.getElementById('ov'), octx = ov.getContext('2d');
+let ctx = gctx;
+function onTop(fn) { const c = ctx; ctx = octx; fn(); ctx = c; }
 const mm = document.getElementById('minimap'), mctx = mm.getContext('2d');
 let S = 0.05, BASE = 0.05, DPR = 1, W = 0, H = 0;
 function resize() {
   const r = cv.getBoundingClientRect();
   DPR = window.devicePixelRatio || 1;
-  W = cv.width = Math.max(1, r.width * DPR); H = cv.height = Math.max(1, r.height * DPR);
+  W = cv.width = ov.width = Math.max(1, r.width * DPR); H = cv.height = ov.height = Math.max(1, r.height * DPR);
   BASE = Math.min(W, H) / (WORLD * 2 + 300);
   const mr = mm.getBoundingClientRect();
   mm.width = Math.max(1, mr.width * DPR); mm.height = Math.max(1, mr.height * DPR);
@@ -1070,7 +1255,9 @@ const TER = window.Terrain.create({ world: WORLD, roadSegs: ROAD_SEGS, roadHalf:
 function draw() {
   clampCam();
   const view = { W, H, S, cx: G.cam.x, cy: G.cam.y }, now = performance.now() / 1000;
-  TER.drawGround(ctx, view, now);                 // 草地、路、路边细节、中央法阵、出怪口（terrain.js）
+  ctx = gctx; octx.clearRect(0, 0, W, H);
+  if (U3) U3.frame(view);
+  TER.drawGround(ctx, view, now);                 // 原版地块铺的地面、中央法阵、出怪口（terrain.js）
   label('出怪口', NODES.I[0], NODES.I[1] + 300, '#ffb0a8', 12);
   for (const z of G.zones) if (z.style !== 'bladestorm') { ctx.fillStyle = 'rgba(122,184,255,.18)'; ctx.beginPath(); ctx.arc(sx(z.x), sy(z.y), z.r * S, 0, 7); ctx.fill(); }
   for (const z of G.zones) if (z.style === 'bladestorm') drawBladestormGround(z);
@@ -1094,10 +1281,13 @@ function draw() {
   }
   TER.drawTrees(ctx, view);
   HOV = hovered();
+  drawShop();
   for (const t of G.towers) drawTower(t);
   for (const m of G.monsters) drawMonster(m);
   drawBuilder(b);
+  if (G.rabbit) drawRabbit(G.rabbit);
   for (const z of G.zones) if (z.style === 'bladestorm') drawBladestormSpirit(z);
+  ctx = octx;                                     // 往下是界面层（盖在 3D 模型上面）
   for (const f of G.fx) {
     ctx.globalAlpha = f.kind === 'corpse' ? 1 : clamp(f.life * 4, 0, 1);
     if (f.kind === 'line') { ctx.strokeStyle = f.color; ctx.lineWidth = (f.w || 1.5) * DPR; ctx.beginPath(); ctx.moveTo(sx(f.x1), sy(f.y1)); ctx.lineTo(sx(f.x2), sy(f.y2)); ctx.stroke(); }
@@ -1112,7 +1302,13 @@ function draw() {
       }
       ctx.strokeStyle = f.color; ctx.lineWidth = 1.5 * DPR; ctx.beginPath(); ctx.ellipse(px, py, d * 0.8, d * 0.44, 0, 0, 7); ctx.stroke();
     }
-    if (f.kind === 'corpse') { const sh = sheetOf(f.ent); if (sh && sh.m.actions.death) { const a = sh.m.actions.death, done = G.t - f.t0 >= a.frames / a.fps; drawSheet(sh, f.ent, f.x, f.y, ['death', f.t0, done], f.ent.elite ? 1.3 : 1, done ? clamp(f.life, 0, 1) : 1); } }
+    if (f.kind === 'corpse') {
+      const m3 = metaOf(f.ent), a = m3 && m3.actions.death;
+      if (a) {
+        const done = G.t - f.t0 >= a.frames / a.fps, anim = ['death', f.t0, done], k = f.ent.elite ? 1.3 : 1, al = done ? clamp(f.life, 0, 1) : 1;
+        if (!model3d(f, m3, f.x, f.y, f.ent.face, anim, k, al, f.ent)) { const sh = sheetOf(f.ent); if (sh) drawSheet(sh, f.ent, f.x, f.y, anim, k, al); }
+      }
+    }
     if (f.kind === 'death') { ctx.fillStyle = f.color; ctx.beginPath(); ctx.arc(sx(f.x), sy(f.y), f.r * S * (1.6 - f.life), 0, 7); ctx.fill(); }
     if (f.kind === 'text') label(f.text, f.x, f.y + 120 + (0.7 - f.life) * 300, f.color, 12);
     ctx.globalAlpha = 1;
@@ -1135,11 +1331,17 @@ function draw() {
     }
     ctx.save(); ctx.shadowColor = col; ctx.shadowBlur = 10 * DPR; ctx.strokeStyle = col; ctx.lineWidth = 2 * DPR;
     footRect(x, y); ctx.stroke(); ctx.restore();
-    const gsh = fam === 'hero' ? sheetByKey('hero:' + G.heroChoice) : D.towers[fam].cat === 'aura' ? null : towerSheet(fam, 1);   // 光环塔没有建筑，只有地面光环
-    if (gsh) drawSheet(gsh, { face: -Math.PI / 2 }, x, y, [Object.keys(gsh.m.actions)[0], G.t], 1, ok ? 0.6 : 0.35);
+    const gm = fam === 'hero' ? SHEETS['hero:' + G.heroChoice] : D.towers[fam].cat === 'aura' ? null : SHEETS['tower:' + fam];   // 光环塔没有建筑，只有地面光环
+    const ganim = gm && [Object.keys(gm.actions)[0], G.t];
+    if (gm && !model3d(GHOST, gm, x, y, -Math.PI / 2, ganim, 1, ok ? 0.6 : 0.35)) {
+      const gsh = fam === 'hero' ? sheetByKey('hero:' + G.heroChoice) : towerSheet(fam, 1);
+      if (gsh) drawSheet(gsh, { face: -Math.PI / 2 }, x, y, ganim, 1, ok ? 0.6 : 0.35);
+    }
   }
-  if (G.pending && mouse) { label(G.pending === 'blink' ? '闪烁到这里' : '移动到这里', wx(mouse.x), wy(mouse.y) + 90, '#c8f5c8', 12); }
+  if (G.pending && mouse) { label(G.pending === 'blink' ? '闪烁到这里' : G.pending.startsWith('item:') ? '对这里的光环塔使用' : '移动到这里', wx(mouse.x), wy(mouse.y) + 90, '#c8f5c8', 12); }
   TER.drawOverlay(ctx, view);
+  ctx = gctx;
+  if (U3) { U3.render(G.t - (draw.lastT ?? G.t), gctx.canvas); draw.lastT = G.t; }
   drawMinimap();
 }
 const snap = v => Math.round(v / CELL) * CELL;
@@ -1174,75 +1376,16 @@ function selRing(x, y, r, color, alpha = 1) {
   ctx.strokeStyle = color; ctx.lineWidth = 2.2 * DPR; ctx.beginPath(); ctx.ellipse(x, y + r * 0.35, r * 1.15, r * 0.55, 0, 0, 7); ctx.stroke();
   ctx.shadowBlur = 0; ctx.globalAlpha = alpha * 0.18; ctx.fillStyle = color; ctx.fill(); ctx.restore();
 }
-// ---------------------------------------------------------------- 剑刃风暴：旋转的剑魂
-// 地面层：伤害范围（旋转的虚线圈）+ 几圈绕中心飞转的风刃（彗星尾渐隐的圆弧）
-const ZK_SCR = 0.64;                                             // 和 fx.js 一样：高度在屏幕上的压缩
+// ---------------------------------------------------------------- 剑刃风暴：剑魂
+// 原图：在被攻击的目标处召唤剑魂（n05F，1.5 倍的剑圣，带"幽灵"所以半透明）施放旋风斩，持续 5 秒；
+// 风暴镜像召唤的小剑魂（n05E）是 0.6 倍。精灵图是原版剑圣模型的旋风斩动作（tools/war3_batch.py 的 fx:bladestorm）
 function bsFade(z) { return clamp(Math.min((G.t - z.t0) / 0.25, (z.until - G.t) / 0.3), 0, 1); }
-function drawBladestormGround(z) {
-  const px = sx(z.x), py = sy(z.y), R = z.r * S, age = G.t - z.t0, fade = bsFade(z);
-  ctx.save(); ctx.globalAlpha = fade;
-  const gr = ctx.createRadialGradient(px, py, 0, px, py, R);
-  gr.addColorStop(0, 'rgba(170,230,255,.28)'); gr.addColorStop(0.7, 'rgba(120,200,255,.10)'); gr.addColorStop(1, 'rgba(120,200,255,0)');
-  ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(px, py, R, 0, 7); ctx.fill();
-  ctx.strokeStyle = 'rgba(190,240,255,.55)'; ctx.lineWidth = 1.5 * DPR; ctx.setLineDash([10 * DPR, 8 * DPR]); ctx.lineDashOffset = -age * 60 * DPR;
-  ctx.beginPath(); ctx.arc(px, py, R, 0, 7); ctx.stroke(); ctx.setLineDash([]);
-  ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
-  for (const [rk, sp, n, w] of [[0.32, 9, 3, 5], [0.58, 6.5, 4, 4], [0.86, 4.5, 5, 3]]) {
-    const r = R * rk, len = 1.5;
-    for (let k = 0; k < n; k++) {
-      const a0 = -age * sp + k * TAU / n;                       // 顺时针飞转
-      for (let i = 0; i < 8; i++) {                              // 从尾到头 8 段，越靠前越亮越粗
-        const t = i / 8;
-        ctx.strokeStyle = `rgba(215,248,255,${0.55 * t})`; ctx.lineWidth = Math.max(1, w * S * 4 * (0.3 + t)) ;
-        ctx.beginPath(); ctx.arc(px, py, r, a0 + len * t, a0 + len * (t + 1 / 8) + 0.02); ctx.stroke();
-      }
-    }
-  }
-  ctx.restore();
-}
-// 立体层（画在单位之上）：剑魂本体快速自转（8 方向帧轮换 = 绕竖直轴转）、残影、绕身的刀光环
+function drawBladestormGround(z) { shadow(z.x, z.y, z.r * 0.18 * S * (z.r >= 300 ? 1 : 0.5)); }
 function drawBladestormSpirit(z) {
-  const px = sx(z.x), py = sy(z.y), age = G.t - z.t0, fade = bsFade(z), k = z.r >= 300 ? 1 : 0.7;
-  const spin = age * TAU * 3.2;                                   // 每秒 3.2 圈
-  ctx.save(); ctx.globalAlpha = fade;
-  // 刀光环：几圈不同高度的椭圆弧，绕身旋转
-  ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
-  for (const [h, rr, off] of [[40, 150, 0], [85, 130, 2.1], [130, 105, 4.2]]) {
-    const cy = py - h * k * ZK_SCR * S, rx = rr * k * S, ry = rx * 0.38;
-    for (let i = 0; i < 10; i++) {
-      const t = i / 10, a0 = spin * 1.15 + off + t * 2.4;
-      ctx.strokeStyle = `rgba(210,248,255,${0.95 * t})`; ctx.lineWidth = Math.max(1.2, 11 * k * S * t + 0.8);
-      ctx.beginPath(); ctx.ellipse(px, cy, rx, ry, 0, a0, a0 + 0.26); ctx.stroke();
-    }
-  }
-  // 中心光
-  const gR = 150 * k * S, gy = py - 70 * k * ZK_SCR * S;
-  const g2 = ctx.createRadialGradient(px, gy, 0, px, gy, gR);
-  g2.addColorStop(0, 'rgba(230,250,255,.55)'); g2.addColorStop(0.4, 'rgba(120,210,255,.25)'); g2.addColorStop(1, 'rgba(120,210,255,0)');
-  ctx.fillStyle = g2; ctx.beginPath(); ctx.arc(px, gy, gR, 0, 7); ctx.fill();
-  ctx.globalCompositeOperation = 'source-over';
-  // 剑魂：用剑神的攻击动作，朝向每帧旋转；前几帧画成半透明残影
-  const sh = sheetByKey('hero:剑神');
-  if (sh) {
-    const a = sh.m.actions.attack ? 'attack' : Object.keys(sh.m.actions)[0];
-    const t0 = G.t - ((age * 2) % 0.5);                            // 攻击动作循环播放
-    for (let i = 3; i >= 0; i--) {
-      ctx.globalAlpha = fade * (i ? 0.18 * (4 - i) / 3 : 0.85);
-      drawSheet(sh, { face: spin - i * 0.5 }, z.x, z.y, [a, t0], 1.05 * k, ctx.globalAlpha);
-    }
-  } else {                                                        // 没有精灵图时：三把旋转的剑
-    ctx.translate(px, py - 60 * k * ZK_SCR * S);
-    for (let i = 3; i >= 0; i--) {
-      ctx.globalAlpha = fade * (i ? 0.2 : 1);
-      for (let b = 0; b < 3; b++) {
-        const ang = spin - i * 0.25 + b * TAU / 3, L = 120 * k * S, w = 9 * k * S;
-        ctx.save(); ctx.scale(1, 0.45); ctx.rotate(ang);
-        ctx.fillStyle = '#e8f8ff'; ctx.beginPath(); ctx.moveTo(L, 0); ctx.lineTo(L * 0.2, -w); ctx.lineTo(L * 0.2, w); ctx.closePath(); ctx.fill();
-        ctx.fillStyle = '#6a4a20'; ctx.fillRect(0, -w * 0.5, L * 0.2, w); ctx.restore();
-      }
-    }
-  }
-  ctx.restore();
+  const k = z.r >= 300 ? 1 : 0.6 / 1.5, fade = bsFade(z);
+  if (model3d(z, SHEETS['fx:bladestorm'], z.x, z.y, -Math.PI / 2, ['spin', z.t0], k, 0.62 * fade)) return;
+  const sh = sheetByKey('fx:bladestorm'); if (!sh) return;
+  drawSheet(sh, { face: -Math.PI / 2 }, z.x, z.y, ['spin', z.t0], k, 0.62 * fade);   // 旋风 + 红光是模型的叠加层，drawSheet 自动叠光效表
 }
 // 塔的选中圈：圆心 = 占地中心，半径 = 占地半边长，和建造时的方框对齐
 // ---------------------------------------------------------------- 塔的等级外观：越高级颜色越亮、光效越多
@@ -1386,12 +1529,14 @@ function drawTower(t) {
   const atk = t.cat === 'aura' ? 'aura' : (t.isHero ? heroStats(t).atk : curLevel(t).atk);
   if (t.cat === 'summon') { if (t === G.selected) selRing(x, y, s * 0.6, '#3cff3c'); else if (t === HOV) selRing(x, y, s * 0.6, '#3cff3c', 0.45); }
   else if (t === G.selected) footRing(t, 1); else if (t === HOV) footRing(t, 0.45);
-  if (t.cat === 'aura') { drawAuraCore(t, performance.now() / 1000); if (t === G.selected) drawLevelBadge(t, x, y, s); return; }
+  if (t.cat === 'aura') { drawAuraCore(t, performance.now() / 1000); return; }
   const tier = t.cat === 'summon' || t.isHero ? 0 : towerTier(t);
-  let sh = sheetOf(t); const im = !sh && entityImg(t);
+  const m3 = metaOf(t), in3d = m3 && model3d(t, m3, t.x, t.y, t.face, pickAnim(t, m3), towerFit(m3));
+  let sh = !in3d && sheetOf(t); const im = !in3d && !sh && entityImg(t);   // 3D 画了就不再加载精灵图
   const w3 = sh && sh.m.war3;                       // 原版模型：每级的颜色和大小用原图数据，不再额外染色放大
   if (sh && tier && !w3) sh = tintedSheet(sh, TIER[tier].color, TIER[tier].tint);
-  if (sh) { shadow(t.x, t.y, s * 0.55); drawSheet(sh, t, t.x, t.y, pickAnim(t, sh.m), towerFit(sh.m) * (w3 ? 1 : 1 + tier * 0.035)); }
+  if (in3d) shadow(t.x, t.y, s * 0.55);
+  else if (sh) { shadow(t.x, t.y, s * 0.55); drawSheet(sh, t, t.x, t.y, pickAnim(t, sh.m), towerFit(sh.m) * (w3 ? 1 : 1 + tier * 0.035)); }
   else if (im) drawSprite(im, x, y, s * 1.6);
   else {
     ctx.fillStyle = t.cat === 'aura' ? '#2f7a3b' : t.isHero ? '#6b4a12' : t.cat === 'summon' ? '#7a2a10' : '#2a3a4e';
@@ -1403,25 +1548,21 @@ function drawTower(t) {
     ctx.font = `bold ${Math.round(s * (small ? 0.62 : 0.36))}px sans-serif`; ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(small ? name.slice(0, 1) : name.slice(0, 2), x, y + 1);
   }
-  if (t.cat === 'summon') return;
-  if (tier >= 3) drawTierTop(t, tier, performance.now() / 1000);
-  if (t === G.selected) drawLevelBadge(t, x, y, s);         // 等级牌只在选中时显示
-}
-function drawLevelBadge(t, x, y, s) {
-  // 等级小牌子：深色底 + 金字（满级是红底）
-  const txt = t.isHero ? 'Lv' + t.level : t.lv === t.levels.length - 1 ? 'MAX' : 'Lv' + (t.lv + 1), fs = Math.round(Math.max(8 * DPR, s * 0.22));
-  ctx.font = `bold ${fs}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  const tw = ctx.measureText(txt).width + fs * 0.8, ty = y + s * 0.42 + 6 * DPR;
-  ctx.fillStyle = txt === 'MAX' ? 'rgba(120,20,10,.85)' : 'rgba(10,14,10,.75)'; ctx.strokeStyle = 'rgba(255,210,87,.7)'; ctx.lineWidth = 1 * DPR;
-  ctx.beginPath(); ctx.roundRect(x - tw / 2, ty - fs * 0.65, tw, fs * 1.3, fs * 0.4); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = '#ffd257'; ctx.fillText(txt, x, ty + 0.5);
+  if (tier >= 3) onTop(() => drawTierTop(t, tier, performance.now() / 1000));
 }
 function drawMonster(m) {
   const x = sx(m.x), y = sy(m.y), r = Math.max(2.5 * DPR, m.r * S);
   if (m === G.selected) selRing(x, y, r, '#ff3c3c'); else if (m === HOV) selRing(x, y, r, '#ff3c3c', 0.5);
-  const sh = sheetOf(m), im = !sh && entityImg(m);
+  const m3 = metaOf(m), k3 = m.elite ? 1.3 : 1;
+  const in3d = m3 && model3d(m, m3, m.x, m.y, m.face, pickAnim(m, m3), k3);
+  const sh = !in3d && sheetOf(m), im = !in3d && !sh && entityImg(m);
   let barY = y - r - 7 * DPR;
-  if (sh) {
+  if (in3d) {
+    shadow(m.x, m.y, r * 0.9 * k3);
+    if (m.elite) { ctx.strokeStyle = 'rgba(255,79,216,.8)'; ctx.lineWidth = 2 * DPR; ctx.beginPath(); ctx.ellipse(x, y, r * 1.3, r * 0.6, 0, 0, 7); ctx.stroke(); }
+    if (m.boss) { ctx.strokeStyle = 'rgba(255,43,43,.8)'; ctx.lineWidth = 2.5 * DPR; ctx.beginPath(); ctx.ellipse(x, y, r * 1.2, r * 0.55, 0, 0, 7); ctx.stroke(); }
+    barY = Math.min(barY, sheetTop(m3, m.y, k3) - 4 * DPR);
+  } else if (sh) {
     const k = m.elite ? 1.3 : 1;                                   // 精英怪放大 130%
     shadow(m.x, m.y, r * 0.9 * k);
     if (m.elite) { ctx.strokeStyle = 'rgba(255,79,216,.8)'; ctx.lineWidth = 2 * DPR; ctx.beginPath(); ctx.ellipse(x, y, r * 1.3, r * 0.6, 0, 0, 7); ctx.stroke(); }
@@ -1433,14 +1574,18 @@ function drawMonster(m) {
     ctx.fillStyle = ARMOR_COLOR[m.type] || '#ccc'; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
     if (m.boss) { ctx.strokeStyle = '#ff2b2b'; ctx.lineWidth = 2.5 * DPR; ctx.stroke(); }
   }
-  if (G.t < m.stunUntil) { ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.fillRect(x - r, y - r - 4 * DPR, r * 2, 2 * DPR); }
-  const w = Math.max(14 * DPR, r * 2.4), p = clamp(m.hp / m.maxHp, 0, 1);
-  ctx.fillStyle = '#000'; ctx.fillRect(x - w / 2, barY, w, 3 * DPR);
-  ctx.fillStyle = p > 0.5 ? '#3cdc3c' : p > 0.25 ? '#ffd257' : '#ff5a4f'; ctx.fillRect(x - w / 2, barY, w * p, 3 * DPR);
+  onTop(() => {
+    if (G.t < m.stunUntil) { ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.fillRect(x - r, y - r - 4 * DPR, r * 2, 2 * DPR); }
+    const w = Math.max(14 * DPR, r * 2.4), p = clamp(m.hp / m.maxHp, 0, 1);
+    ctx.fillStyle = '#000'; ctx.fillRect(x - w / 2, barY, w, 3 * DPR);
+    ctx.fillStyle = p > 0.5 ? '#3cdc3c' : p > 0.25 ? '#ffd257' : '#ff5a4f'; ctx.fillRect(x - w / 2, barY, w * p, 3 * DPR);
+  });
 }
 function drawBuilder(b) {
   const x = sx(b.x), y = sy(b.y), r = Math.max(9 * DPR, 70 * S);
   if (b === G.selected) selRing(x, y, r, '#3cff3c'); else if (b === HOV) selRing(x, y, r, '#3cff3c', 0.45);
+  const m3 = metaOf(b);
+  if (m3 && model3d(b, m3, b.x, b.y, b.face, pickAnim(b, m3))) { shadow(b.x, b.y, r * 0.9); return; }
   const sh = sheetOf(b);
   if (sh) { shadow(b.x, b.y, r * 0.9); drawSheet(sh, b, b.x, b.y, pickAnim(b, sh.m)); return; }
   const im = entityImg(b);
@@ -1451,23 +1596,75 @@ function drawBuilder(b) {
   ctx.fillStyle = '#ffd257'; ctx.beginPath(); ctx.arc(x + Math.cos(f) * r * 0.6, y - Math.sin(f) * r * 0.6, r * 0.28, 0, 7); ctx.fill();
   ctx.font = `bold ${Math.round(r * 0.9)}px sans-serif`; ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('守', x, y + 1);
 }
+// 商店：原版"摇滚阿尔萨斯"模型（tools/war3_batch.py 的 shop），没有图时画个占位
+function drawShop() {
+  const x = sx(SHOP.x), y = sy(SHOP.y), r = Math.max(10 * DPR, 90 * S);
+  if (G.selected === SHOP) selRing(x, y, r, '#ffd257'); else if (HOV === SHOP) selRing(x, y, r, '#ffd257', 0.45);
+  const m3 = metaOf(SHOP);
+  if (m3 && model3d(SHOP, m3, SHOP.x, SHOP.y, -Math.PI / 2, pickAnim(SHOP, m3))) shadow(SHOP.x, SHOP.y, r * 0.9);
+  else { const sh = sheetOf(SHOP);
+    if (sh) { shadow(SHOP.x, SHOP.y, r * 0.9); drawSheet(sh, SHOP, SHOP.x, SHOP.y, pickAnim(SHOP, sh.m)); }
+    else { ctx.fillStyle = '#5a3d1e'; ctx.strokeStyle = '#ffd257'; ctx.lineWidth = 2 * DPR; ctx.fillRect(x - r * 0.7, y - r * 0.7, r * 1.4, r * 1.4); ctx.strokeRect(x - r * 0.7, y - r * 0.7, r * 1.4, r * 1.4);
+      ctx.font = `bold ${Math.round(r * 0.8)}px sans-serif`; ctx.fillStyle = '#ffd257'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('商', x, y + 1); } }
+  onTop(() => label('商店', SHOP.x, SHOP.y - 150, '#ffd257', 11));
+}
+// 兔子：原版复活节兔子模型不在资源包里，程序画一只白兔子（蹦跳 + 地上一圈粉色光，方便找到）
+function drawRabbit(r) {
+  const x = sx(r.x), y = sy(r.y), k = Math.max(7 * DPR, 48 * S), age = G.t - r.t0, left = r.until - G.t;
+  const hop = r.moving ? Math.abs(Math.sin(age * 9)) : Math.max(0, Math.sin(age * 3)) ** 8;
+  const lift = hop * k * 0.7, dir = Math.cos(r.face) >= 0 ? 1 : -1;
+  const pulse = 0.6 + 0.4 * Math.sin(age * 4), blink = left < 10 && Math.sin(age * 12) < 0;     // 快消失时闪烁
+  if (r === G.selected) selRing(x, y, k * 1.2, '#ffd257'); else if (r === HOV) selRing(x, y, k * 1.2, '#ffd257', 0.45);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = `rgba(255,120,200,${0.55 * pulse})`; ctx.lineWidth = 2.5 * DPR;
+  ctx.beginPath(); ctx.ellipse(x, y, k * (2 + pulse * 0.6), k * (1 + pulse * 0.3), 0, 0, 7); ctx.stroke(); ctx.restore();
+  ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(x, y, k * (1.1 - hop * 0.3), k * 0.45, 0, 0, 7); ctx.fill();
+  ctx.save(); ctx.globalAlpha = blink ? 0.45 : 1; ctx.translate(x, y - lift); ctx.scale(dir, 1);
+  ctx.strokeStyle = 'rgba(80,60,70,.55)'; ctx.lineWidth = 1 * DPR;
+  const ear = (ox, rot) => { ctx.save(); ctx.translate(ox, -k * 2.05); ctx.rotate(rot);
+    ctx.fillStyle = '#f7f3f0'; ctx.beginPath(); ctx.ellipse(0, -k * 0.5, k * 0.2, k * 0.62, 0, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#ffa8c8'; ctx.beginPath(); ctx.ellipse(0, -k * 0.48, k * 0.09, k * 0.45, 0, 0, 7); ctx.fill(); ctx.restore(); };
+  ear(k * 0.3, -0.25 + hop * 0.2); ear(k * 0.62, 0.2 + hop * 0.25);
+  ctx.fillStyle = '#f7f3f0';
+  ctx.beginPath(); ctx.ellipse(-k * 0.1, -k * 0.75, k * 0.9, k * 0.72, 0, 0, 7); ctx.fill(); ctx.stroke();      // 身体
+  ctx.beginPath(); ctx.arc(-k * 0.95, -k * 0.85, k * 0.26, 0, 7); ctx.fill(); ctx.stroke();                    // 尾巴
+  ctx.beginPath(); ctx.ellipse(k * 0.55, -k * 1.55, k * 0.52, k * 0.46, 0, 0, 7); ctx.fill(); ctx.stroke();    // 头
+  ctx.fillStyle = '#c0306a'; ctx.beginPath(); ctx.arc(k * 0.72, -k * 1.62, k * 0.08, 0, 7); ctx.fill();         // 眼睛
+  ctx.fillStyle = '#ff8fb8'; ctx.beginPath(); ctx.arc(k * 1.03, -k * 1.45, k * 0.07, 0, 7); ctx.fill();         // 鼻子
+  ctx.fillStyle = '#ffb3cf'; ctx.beginPath(); ctx.ellipse(k * 0.3, -k * 0.12, k * 0.24, k * 0.12, 0, 0, 7); ctx.fill();   // 脚
+  ctx.restore();
+  onTop(() => label(`兔子 ${Math.ceil(left)}秒`, r.x, r.y + 48 * 3.4 + lift / S, '#ff9ad5', 12));
+}
 function drawMinimap() {
   const w = mm.width, h = mm.height, k = Math.min(w, h) / (WORLD * 2 + 300);
   const mx = x => w / 2 + x * k, my = y => h / 2 - y * k;
   mctx.fillStyle = '#10240f'; mctx.fillRect(0, 0, w, h);                 // 外围森林
-  mctx.fillStyle = '#2f5a29'; mctx.fillRect(mx(-WORLD), my(WORLD), WORLD * 2 * k, WORLD * 2 * k);
-  mctx.lineCap = 'round'; mctx.lineJoin = 'round';
-  for (const [lw, c] of [[ROAD_HALF * 2 + 70, '#5e4a2e'], [ROAD_HALF * 2, '#a39a86']]) {
-    mctx.strokeStyle = c; mctx.lineWidth = Math.max(2, lw * k); mctx.beginPath();
-    for (const [a, b] of ROAD_SEGS) { mctx.moveTo(mx(a[0]), my(a[1])); mctx.lineTo(mx(b[0]), my(b[1])); }
-    mctx.stroke();
+  const gi = TER.groundImage();
+  if (gi) {                                                               // 和原图小地图一样：直接缩小地面
+    mctx.imageSmoothingEnabled = true; mctx.drawImage(gi.img, mx(-gi.L), my(gi.L), gi.L * 2 * k, gi.L * 2 * k);
+    mctx.fillStyle = 'rgba(0,0,0,.45)';                                   // 地图边界外压暗
+    mctx.fillRect(0, 0, w, my(WORLD)); mctx.fillRect(0, my(-WORLD), w, h - my(-WORLD)); mctx.fillRect(0, my(WORLD), mx(-WORLD), WORLD * 2 * k); mctx.fillRect(mx(WORLD), my(WORLD), w - mx(WORLD), WORLD * 2 * k);
+  } else {
+    mctx.fillStyle = '#2f5a29'; mctx.fillRect(mx(-WORLD), my(WORLD), WORLD * 2 * k, WORLD * 2 * k);
+    mctx.lineCap = 'round'; mctx.lineJoin = 'round';
+    for (const [lw, c] of [[ROAD_HALF * 2 + 70, '#5e4a2e'], [ROAD_HALF * 2, '#a39a86']]) {
+      mctx.strokeStyle = c; mctx.lineWidth = Math.max(2, lw * k); mctx.beginPath();
+      for (const [a, b] of ROAD_SEGS) { mctx.moveTo(mx(a[0]), my(a[1])); mctx.lineTo(mx(b[0]), my(b[1])); }
+      mctx.stroke();
+    }
   }
   mctx.fillStyle = '#ff4a3a'; mctx.beginPath(); mctx.arc(mx(NODES.I[0]), my(NODES.I[1]), Math.max(3, 200 * k), 0, 7); mctx.fill();
   mctx.strokeStyle = '#6dff6d'; mctx.lineWidth = Math.max(1, 30 * k); mctx.beginPath(); mctx.arc(mx(0), my(0), 300 * k, 0, 7); mctx.stroke();
   const dot = (x, y, c, s) => { mctx.fillStyle = c; mctx.fillRect(mx(x) - s / 2, my(y) - s / 2, s, s); };
   for (const t of G.towers) dot(t.x, t.y, t.isHero ? '#ffd257' : '#3cdc3c', 4 * DPR);
   for (const m of G.monsters) dot(m.x, m.y, m.boss ? '#ff2bff' : '#ff3c3c', (m.boss ? 4 : 2.5) * DPR);
+  dot(SHOP.x, SHOP.y, '#ffd257', 5 * DPR);
   dot(G.builder.x, G.builder.y, '#ffffff', 4 * DPR);
+  if (G.rabbit) {                                        // 兔子：粉点 + 一圈圈扩散的提示（原图 PingMinimap）
+    const r = G.rabbit, ph = ((G.t - r.t0) * 0.8) % 1;
+    dot(r.x, r.y, '#ff9ad5', 5 * DPR);
+    mctx.strokeStyle = `rgba(255,154,213,${1 - ph})`; mctx.lineWidth = 1.5 * DPR;
+    mctx.beginPath(); mctx.arc(mx(r.x), my(r.y), (4 + ph * 14) * DPR, 0, 7); mctx.stroke();
+  }
   const hw = W / 2 / S, hh = H / 2 / S;
   mctx.strokeStyle = '#fff'; mctx.lineWidth = 1 * DPR;
   mctx.strokeRect(mx(G.cam.x - hw), my(G.cam.y + hh), hw * 2 * k, hh * 2 * k);
@@ -1486,6 +1683,7 @@ function msg(text) {
 function renderTop() {
   $('r-gold').textContent = Math.floor(G.gold); $('r-wood').textContent = G.wood;
   $('r-food').textContent = foodUsed() + '/' + G.foodCap;
+  $('r-ach').textContent = G.ach;
   $('r-mode').textContent = MODES[G.mode].name;
   $('w-title').textContent = G.phase === 'prep' ? '准备阶段' : G.wave >= 49 ? '最终BOSS' : `第${G.wave}波`;
   const t = Math.max(0, Math.ceil(G.timer));
@@ -1514,9 +1712,17 @@ function portrait(e, name, color) {
 function bar(cls, v, max, text) { return `<div class="bar ${cls}"><i style="width:${clamp(v / max, 0, 1) * 100}%"></i><span>${text}</span></div>`; }
 function renderInfo() {
   const e = G.selected, box = $('info');
-  if (!e || (e !== G.builder && !G.towers.includes(e) && !G.monsters.includes(e))) { G.selected = null; box.innerHTML = '<div class="empty">未选择单位</div>'; return; }
+  if (!e || (e !== G.builder && e !== G.rabbit && e !== SHOP && !G.towers.includes(e) && !G.monsters.includes(e))) { G.selected = null; box.innerHTML = '<div class="empty">未选择单位</div>'; $('hpt').textContent = $('mpt').textContent = ''; setPortrait(null); return; }
   let left = '', mid = '';
-  if (e.isBuilder) {
+  if (e.isShop) {
+    left = portrait(e, '商', '#5a3d1e') + bar('hp', 1, 1, '无敌的');
+    mid = `<div class="nm">商店</div><div class="sub">中立 · 木材和卷轴</div>
+      <div class="kv"><span>守卫者</span><b>${shopNear() ? '在旁边，可以购买' : `太远（要在 ${RULE.shopReach} 范围内）`}</b></div>`;
+  } else if (e.isRabbit) {
+    left = portrait(e, '兔', '#d86a9a') + bar('hp', 1, 1, '15 / 15');
+    mid = `<div class="nm">兔子</div><div class="sub">成就商店 · 剩余 ${Math.ceil(e.until - G.t)} 秒</div>
+      <div class="kv"><span>当局成就</span><b>${G.ach}</b><span>守卫者</span><b>${rabbitNear() ? '在旁边，可以购买' : `太远（要在 ${RULE.rabbitReach} 范围内）`}</b></div>`;
+  } else if (e.isBuilder) {
     left = portrait(e, '守', '#a5521a') + bar('hp', 1, 1, '400000') + bar('mp', 1, 1, '无敌');
     mid = `<div class="nm">循环圈守卫者</div><div class="sub">建造者 · 无敌的</div>
       <div class="kv"><span>移动速度</span><b>500</b><span>技能</span><b>建造 · 随机建造 · 使用木材 · 全图闪烁</b>
@@ -1535,7 +1741,7 @@ function renderInfo() {
     const lv = curLevel(e), st = towerStats(e);
     left = portrait(e, e.fam, e.cat === 'aura' ? '#2f7a3b' : '#2a3a4e') + bar('hp', 1, 1, '无敌的') + bar('mp', e.lv + 1, e.levels.length, `等级 ${e.lv + 1}/${e.levels.length}`);
     mid = `<div class="nm">${lv.name}</div><div class="sub">${CAT_CN[e.cat]}${e.branch ? ' · ' + e.branch + '分支' : ''} ${e.cat === 'aura' ? atkTag('aura') : atkTag(lv.atk)}</div><div class="kv">`;
-    if (e.cat === 'aura') { const ab = lv.abils[0] || {}; mid += `<span>光环</span><b>${auraText(e.fam, ab)}</b><span>范围</span><b>${ab.area}</b>`; }
+    if (e.cat === 'aura') { const ab = auraAb(e) || {}; mid += `<span>光环</span><b>${auraText(e.fam, ab)}${e.talent ? '（基础天赋）' : ''}</b><span>范围</span><b>${ab.area}</b>`; }
     else mid += `<span>攻击力</span><b>${fmt(st.dmg)}${e.buffDmg ? ` <em>+${Math.round(e.buffDmg * 100)}%</em>` : ''}</b><span>攻击间隔</span><b>${st.cd}s${e.buffAS ? ` <em>攻速+${Math.round(e.buffAS * 100)}%</em>` : ''}</b><span>射程</span><b>${st.range}</b>`;
     mid += `<span>击杀/伤害</span><b>${e.kills} / ${fmt(e.dealt || 0)}</b><span>已投入</span><b class="gold">${e.spent} 金</b></div><div class="tip">${(lv.tip || '').replace(/\n/g, ' ')}</div>`;
   } else {
@@ -1545,7 +1751,102 @@ function renderInfo() {
       <div class="kv"><span>护甲</span><b>${Math.round(ar)}（减伤 ${Math.round((1 - armorMult(ar)) * 100)}%）</b><span>移动速度</span><b>${e.speed}</b><span>赏金</span><b class="gold">${Math.round(e.bounty)}</b>
       ${e.elite ? `<span>光环</span><b>${e.elite.aura.name} ${e.elite.lvl} 级：${e.elite.aura.desc[e.elite.lvl - 1]}</b>` : ''}</div>`;
   }
-  box.innerHTML = `<div class="col-l">${left}</div><div class="col-m">${mid}</div>`;
+  if (innerWidth <= 820) { box.innerHTML = `<div class="col-l">${left}</div><div class="col-m">${mid}</div>`; return; }
+  renderCard(e);
+}
+
+// ---------------------------------------------------------------- 桌面：原版控制台的信息区（头像窗 + 血蓝条 + 中间的信息卡）
+const ATK_ICON = { normal: 'attack-melee', pierce: 'attack-piercing', magic: 'attack-magic', chaos: 'attack-chaos', hero: 'attack-hero', spells: 'attack-magic', siege: 'attack-siege' };
+const ARMOR_ICON = { small: 'armor-small', medium: 'armor-medium', large: 'armor-large', divine: 'armor-divine', hero: 'armor-hero', fort: 'armor-fortified' };
+const HERO_PRIMARY = 'str';                       // 原图 4 个英雄的主属性都是力量
+const ui = n => `assets/ui/infocard-${n}.png`;
+const stat = (icon, label, val) => `<div class="st"><img src="${ui(icon)}"><div><span>${label}：</span><br><b>${val}</b></div></div>`;
+const INVULN = '<b style="color:#ff4f4f">无敌的</b>';
+function renderCard(e) {
+  let name = '', sub = '', c1 = '', c2 = '', extra = '', hp = '', mp = '';
+  if (e.isShop) {
+    name = '商店'; sub = '中立 · 木材和卷轴';
+    c1 = stat('armor-fortified', '护甲', INVULN);
+    const d = Math.round(Math.hypot(G.builder.x - SHOP.x, G.builder.y - SHOP.y));
+    c2 = `<div class="st"><div><span>守卫者距离：</span><b>${d}</b><br>${shopNear() ? '<b style="color:#6fd17a">可以购买</b>' : `<b style="color:#ff8f86">要在 ${RULE.shopReach} 范围内</b>`}</div></div>`;
+    extra = '<div class="tip">买木材、魔力卷轴、知识之书、天赋卷轴。复制 / 收购卷轴要对队友使用，单人模式用不了。</div>';
+    hp = '无敌的';
+  } else if (e.isRabbit) {
+    name = '兔子'; sub = '成就商店 · 中立';
+    c1 = `<div class="st"><div><span>剩余时间：</span><b>${Math.ceil(e.until - G.t)} 秒</b><br><span>当局成就：</span><b style="color:#ff9ad5">${G.ach}</b></div></div>`;
+    const d = Math.round(Math.hypot(G.builder.x - e.x, G.builder.y - e.y));
+    c2 = `<div class="st"><div><span>守卫者距离：</span><b>${d}</b><br>${rabbitNear() ? '<b style="color:#6fd17a">可以购买</b>' : `<b style="color:#ff8f86">要在 ${RULE.rabbitReach} 范围内</b>`}</div></div>`;
+    extra = '<div class="tip">用当局成就购买道具（开局 5 点，每次 Perfect +1）。兔子到时间就会消失。</div>';
+    hp = '15 / 15';
+  } else if (e.isBuilder) {
+    name = '循环圈守卫者'; sub = '不死族';
+    c1 = stat('attack-melee', '攻击力', '1 - 1') + stat('armor-small', '护甲', INVULN);
+    c2 = `<div class="st"><div><span>移动速度：</span><b>500</b><br><span>状态：</span><b>${e.order ? (e.order.kind === 'build' ? '前往建造 ' + (e.order.fam === 'hero' ? G.heroChoice : e.order.fam) : '移动中') : '待命'}</b></div></div>`;
+    hp = '500000 / 500000'; mp = '10 / 10';
+  } else if (e.isHero) {
+    const st = heroStats(e), hd = D.heroes[e.heroName];
+    name = hd.name; sub = `等级 ${e.level} 英雄 · ${hd.title}`;
+    c1 = stat(ATK_ICON[hd.atk] || 'attack-hero', '攻击力', fmt(st.dmg)) + stat('armor-hero', '护甲', INVULN);
+    const at = (k, cn) => `<span class="${k === HERO_PRIMARY ? 'pri' : ''}">${cn}：${e.stat[k]}</span>`;
+    c2 = `<div class="attr"><img src="${ui('heroattributes-' + HERO_PRIMARY)}">${at('str', '力量')}${at('agi', '敏捷')}${at('int', '智力')}</div>`;
+    const sk = e.learned.map(i => { const im = img('icon:skill:' + e.heroName + ':' + i); return im ? `<img src="${im.src}" title="${hd.skills[i].name}">` : ''; }).join('');
+    extra = `<div class="buffs">状态：${sk || '<b style="color:#999;font-weight:400">还没有学习技能</b>'}</div>
+      <div class="tip">攻击间隔 ${st.cd.toFixed(2)}s · 射程 ${st.range} · 成长属性 ${statCN(e.growth)} · 击杀 ${e.kills}</div>`;
+    hp = '无敌的'; mp = `${Math.floor(e.mana)} / ${e.maxMana()}`;
+  } else if (e.fam) {
+    if (e.cat === 'summon') { name = '炎魔'; sub = `召唤物 · 剩余 ${Math.ceil(e.until - G.t)} 秒`; }
+    else {
+      const lv = curLevel(e), st = towerStats(e);
+      name = lv.name; sub = `${CAT_CN[e.cat]}${e.branch ? ' · ' + e.branch + '分支' : ''} · 等级 ${e.lv + 1}/${e.levels.length}`;
+      if (e.cat === 'aura') { const ab = auraAb(e) || {}; c1 = stat('armor-fortified', '护甲', INVULN); c2 = `<div class="st"><div><span>光环：</span><b>${auraText(e.fam, ab)}${e.talent ? '（基础天赋）' : ''}</b><br><span>范围：</span><b>${ab.area}</b></div></div>`; }
+      else {
+        c1 = stat(ATK_ICON[lv.atk] || 'attack-melee', '攻击力', fmt(st.dmg) + (e.buffDmg ? ` <em>+${Math.round(e.buffDmg * 100)}%</em>` : '')) + stat('armor-fortified', '护甲', INVULN);
+        c2 = `<div class="st"><div><span>攻击间隔：</span><b>${st.cd}s</b>${e.buffAS ? ` <em>攻速+${Math.round(e.buffAS * 100)}%</em>` : ''}<br><span>射程：</span><b>${st.range}</b><br>
+          <span>击杀 / 伤害：</span><b>${e.kills} / ${fmt(e.dealt || 0)}</b><br><span>已投入：</span><b class="gold">${e.spent} 金</b></div></div>`;
+      }
+      extra = `<div class="tip">${(lv.tip || '').replace(/\n/g, ' ')}</div>`;
+    }
+    hp = '无敌的'; mp = '';
+  } else {
+    const ar = effArmor(e);
+    name = e.name + (e.boss ? ' <em style="color:#ff5a4f;font-style:normal">BOSS</em>' : '') + (e.elite ? ' <em style="color:#ff4fd8;font-style:normal">精英</em>' : '');
+    sub = `怪物 · ${ARMOR_CN[e.type]}护甲 → 克制：${ATK_CN[COUNTER[ARMOR_CN[e.type]]] || '—'}`;
+    c1 = stat(ARMOR_ICON[e.type] || 'armor-unarmored', '护甲', `${Math.round(ar)}（减伤 ${Math.round((1 - armorMult(ar)) * 100)}%）`);
+    c2 = `<div class="st"><div><span>移动速度：</span><b>${e.speed}</b><br><span>赏金：</span><b class="gold">${Math.round(e.bounty)}</b></div></div>`;
+    if (e.elite) extra = `<div class="tip">光环：${e.elite.aura.name} ${e.elite.lvl} 级：${e.elite.aura.desc[e.elite.lvl - 1]}</div>`;
+    hp = `${fmt(e.hp)} / ${fmt(e.maxHp)}`;
+  }
+  $('info').innerHTML = `<div class="nm">${name}</div><div class="sub">${sub}</div><div class="card"><div class="c">${c1}</div><div class="c">${c2}</div></div>${extra}`;
+  $('hpt').textContent = hp; $('mpt').textContent = mp;
+  setPortrait(e);
+}
+// 头像窗：有原版头像动画（assets/w3portraits.js）就逐帧画，没有就用图标 / 精灵缩略图
+const PORTRAITS = window.W3_PORTRAITS || {}, PIMG = {};
+let PORT = null;
+function portraitKey(e) {
+  const k = spriteKey(e); if (!k) return null;
+  return PORTRAITS[k] ? k : PORTRAITS[k.replace(/:1$/, '')] ? k.replace(/:1$/, '') : null;
+}
+function setPortrait(e) {
+  const k = e && portraitKey(e), fb = $('portrait').querySelector('.fb');
+  if (k) { if (!PORT || PORT.key !== k) PORT = { key: k, m: PORTRAITS[k] }; fb.innerHTML = ''; return; }
+  PORT = null;
+  const html = e ? portrait(e, e.isHero ? e.heroName : e.fam || e.name || '守', e.isHero ? '#6b4a12' : '#2a3a4e') : '';
+  if (fb.dataset.h !== html) { fb.innerHTML = html; fb.dataset.h = html; }
+}
+function drawPortrait() {
+  const cv = $('pcv'); if (!cv) return;
+  const g = cv.getContext('2d'), r = cv.getBoundingClientRect();
+  if (!PORT || !r.width) { if (cv.width) { cv.width = 0; } return; }
+  const W = Math.round(r.width * DPR), H = Math.round(r.height * DPR);
+  if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  const m = PORT.m; let im = PIMG[m.src];
+  if (!im) { im = new Image(); im.src = 'assets/' + m.src; PIMG[m.src] = im; }
+  if (!(im.complete && im.naturalWidth)) { g.clearRect(0, 0, W, H); return; }       // 新头像还在加载：先清掉上一个
+  const src = m.tint ? tinted(im, m.tint) : im, f = Math.floor(performance.now() / 1000 * m.fps) % m.frames;
+  g.clearRect(0, 0, W, H);
+  const k = Math.max(W / m.w, H / m.h), dw = m.w * k, dh = m.h * k;      // 铺满窗口（cover）
+  g.drawImage(src, f * m.w, 0, m.w, m.h, (W - dw) / 2, (H - dh) / 2, dw, dh);
 }
 function auraText(fam, ab) {
   const v = Math.abs(ab.A || 0);
@@ -1558,6 +1859,26 @@ function buildCmds() {
   const e = G.selected, out = [];
   const back = cmd('Esc', '↩', '返回', '返回上一级', () => { G.menu = 'main'; G.placing = null; G.pending = null; uiDirty(); }, { ico: 'back' });
   if (!e) return out;
+  // 商店 / 兔子的道具按钮
+  const itemCmd = (it, why, buy) => {
+    const cost = [it.ach && `<b style="color:#ff9ad5">${it.ach} 成就</b>`, it.gold && `<span class="gold">${it.gold} 金</span>`, it.wood && `<span class="wood">${it.wood} 木材</span>`].filter(Boolean).join(' + ');
+    const cdOf = it.cd || it.firstAt ? { cdOf: () => [itemCdLeft(it), G.t < (it.firstAt || 0) ? it.firstAt : it.cd] } : {};
+    return cmd(it.key, it.name.slice(0, 2), it.name, `<b>${it.name}</b><br>需要 ${cost}${it.cd ? ` · 冷却 ${it.cd} 秒` : ''}<br>${it.tip}${why ? `<br><b style="color:#ff5a4f">${why}</b>` : ''}`,
+      buy, { disabled: !!why, ico: 'item-' + it.id, active: G.pending === 'item:' + it.id, cost: it.gold, ...cdOf });
+  };
+  const comeHere = (near, x, y, what) => cmd('F', '✦', '守卫者过来', `守卫者全图闪烁到${what}旁边（闪烁冷却 1 秒）`, () => { blinkTo(x + 150, y - 100); uiDirty(); }, { disabled: near, ico: 'blink' });
+  if (e.isShop) {
+    for (const it of SHOP_ITEMS) out.push(itemCmd(it, shopBlock(it), () => buyShop(it)));
+    while (out.length < 8) out.push(null);
+    out.push(comeHere(shopNear(), SHOP.x, SHOP.y, '商店'));
+    return out;
+  }
+  if (e.isRabbit) {
+    for (const it of RABBIT_SHOP) out.push(itemCmd(it, rabbitBlock(it), () => buyRabbit(it)));
+    while (out.length < 8) out.push(null);
+    out.push(comeHere(rabbitNear(), e.x, e.y, '兔子'));
+    return out;
+  }
   if (e.isBuilder) {
     if (G.menu === 'build') {
       const keys = ['Q', 'W', 'E', 'R', 'A', 'S', 'D'];
@@ -1574,16 +1895,16 @@ function buildCmds() {
     if (G.menu === 'wood') {
       out.push(cmd('Q', '人', '购买人口', '用 <b>12 木材</b>购买 1 个人口', () => { if (G.wood < RULE.foodPrice) return msg('木材不足'); G.wood -= RULE.foodPrice; G.foodCap++; msg('用 12 木材兑换了 1 个人口'); uiDirty(); }, { disabled: G.wood < 12, ico: 'buyfood' }));
       out.push(cmd('W', '金', '兑换金币', '<b>1 木材</b>兑换 300 金币', () => { if (G.wood < 1) return msg('木材不足'); G.wood--; G.gold += RULE.woodToGold; uiDirty(); }, { disabled: G.wood < 1, ico: 'wood2gold' }));
-      out.push(cmd('E', '木', '购买木材', '<b>500 金币</b>购买 1 个木材（原图商店"1个小材"）', () => { if (G.gold < RULE.goldToWood) return msg('金币不足'); G.gold -= RULE.goldToWood; G.wood++; uiDirty(); }, { disabled: G.gold < 500, ico: 'gold2wood' }));
       while (out.length < 11) out.push(null); out.push(back); return out;
     }
     out.push(cmd('M', '➜', '移动', '移动守卫者。也可以选中守卫者后直接右键 / 点击地面', () => { G.pending = 'move'; G.placing = null; uiDirty(); }, { active: G.pending === 'move', ico: 'move' }));
     out.push(cmd('S', '■', '停止', '停止当前命令（包括排队的命令）', () => { e.order = null; e.queue = []; G.pending = null; G.placing = null; uiDirty(); }, { ico: 'stop' }));
     out.push(cmd('F', '✦', '闪烁', '全图闪烁：瞬间移动到目标点，冷却 1 秒', () => { G.pending = 'blink'; G.placing = null; uiDirty(); }, { active: G.pending === 'blink', ico: 'blink' }));
-    out.push(null);
+    out.push(cmd('T', '兔', '兔子卷轴', `——需要 <b style="color:#ff9ad5">${RULE.rabbitScrollAch} 点当局成就</b>（当前 ${G.ach}）<br>额外召唤一次兔子，每局只能额外召唤 1 次${G.rabbitScroll ? '<br><b style="color:#ff5a4f">本局已经召唤过了</b>' : G.rabbit ? '<br><b style="color:#ff5a4f">兔子已经在场上了</b>' : ''}`,
+      rabbitScroll, { disabled: G.rabbitScroll || !!G.rabbit || G.ach < RULE.rabbitScrollAch, ico: 'item-I00S' }));
     out.push(cmd('B', '建', '建造', '打开建造栏（当前随机给出的 6 个塔 + 英雄塔）', () => { G.menu = 'build'; uiDirty(); }, { ico: 'build' }));
     out.push(cmd('R', '🎲', '随机建造', `重新随机建造栏：1 主塔、1 原始塔、1 光环塔、2 辅助塔、1 另类塔<br>${G.rerolls === 0 ? '首次免费' : '需要 1 木材'}`, () => rerollBuild(false), { disabled: G.rerolls > 0 && G.wood < 1, ico: 'reroll' }));
-    out.push(cmd('U', '木', '使用木材', '购买人口（12 木）、兑换金币（1 木 → 300 金）、购买木材（500 金）', () => { G.menu = 'wood'; uiDirty(); }, { ico: 'woodmenu' }));
+    out.push(cmd('U', '木', '使用木材', '购买人口（12 木）、兑换金币（1 木 → 300 金）。买木材去地图中央的商店', () => { G.menu = 'wood'; uiDirty(); }, { ico: 'woodmenu' }));
     return out;
   }
   if (e.isHero) {
@@ -1600,12 +1921,12 @@ function buildCmds() {
     // 第一行：已学的技能（Q W E R 对应技能位置）。主动技能按热键 / 左键施放，右键切换自动施放；被动技能只显示
     hd.skills.slice(0, 4).forEach((sk, i) => {
       if (!h.learned.includes(i)) return out.push(null);
-      const kit = HERO_KITS[h.heroName][i], key = ['Q', 'W', 'E', 'R'][i], ico = 'skill-' + h.heroName + '-' + i, desc = sk.desc.replace(/\n/g, '<br>');
+      const kit = HERO_KITS[h.heroName][i], key = ['Q', 'W', 'E', 'R'][i], ico = 'skill-' + h.heroName + '-' + i, iconKey = 'icon:skill:' + h.heroName + ':' + i, desc = sk.desc.replace(/\n/g, '<br>');
       if (kit.cast) {
         const auto = h.auto[i] !== false;
         out.push(cmd(key, sk.name.slice(0, 2), sk.name, `<b>${sk.name}</b> <span class="atk atk-magic">主动</span><br>冷却 ${kit.cd} 秒 · 按 <b>${key}</b> 或左键施放（对射程内最近的敌人）<br>右键：自动施放 <b style="color:${auto ? '#6fd17a' : '#ff8f86'}">${auto ? '开' : '关'}</b><br>${desc}`,
-          () => castSkill(h, i), { ico, auto, cdOf: () => [skillCdLeft(h, i), kit.cd], rfn: () => { h.auto[i] = !auto; msg(`${sk.name}：自动施放${auto ? '关闭' : '开启'}`); uiDirty(); } }));
-      } else out.push(cmd(key, sk.name.slice(0, 2), sk.name, `<b>${sk.name}</b> <span class="atk atk-normal">被动</span><br>${desc}`, () => {}, { ico, passive: true }));
+          () => castSkill(h, i), { ico, iconKey, auto, cdOf: () => [skillCdLeft(h, i), kit.cd], rfn: () => { h.auto[i] = !auto; msg(`${sk.name}：自动施放${auto ? '关闭' : '开启'}`); uiDirty(); } }));
+      } else out.push(cmd(key, sk.name.slice(0, 2), sk.name, `<b>${sk.name}</b> <span class="atk atk-normal">被动</span><br>${desc}`, () => {}, { ico, iconKey, passive: true }));
     });
     // 第二行：成长属性
     for (const [k, st, nm] of [['A', 'str', '力量'], ['S', 'agi', '敏捷'], ['D', 'int', '智力']])
@@ -1676,6 +1997,8 @@ function showTip(c) { const t = $('tip'); if (!c) { t.classList.add('hidden'); r
 function hitTest(x, y) {
   const r0 = Math.max(120, 16 * DPR / S);
   const b = G.builder; if (dist2(x, y, b.x, b.y) < (r0 * 0.9) ** 2) return b;
+  const rb = G.rabbit; if (rb && dist2(x, y, rb.x, rb.y) < r0 ** 2) return rb;
+  if (dist2(x, y, SHOP.x, SHOP.y) < (r0 * 1.2) ** 2 && !G.pending) return SHOP;
   let best = null, bd = r0 * r0;
   for (const t of G.towers) { const d = dist2(x, y, t.x, t.y); if (d < bd) { bd = d; best = t; } }
   if (best) return best;
@@ -1693,6 +2016,12 @@ function groundClick(x, y, shift) {
   }
   if (G.pending === 'move') { orderMove(x, y, shift); G.pending = null; uiDirty(); return; }
   if (G.pending === 'blink') { blinkTo(x, y); G.pending = null; uiDirty(); return; }
+  if (G.pending && G.pending.startsWith('item:')) {          // 对目标使用商店道具（天赋卷轴）
+    const it = SHOP_ITEMS.find(i => 'item:' + i.id === G.pending), t = hitTest(x, y);
+    G.pending = null;
+    if (it && t && t.fam) buyShop(it, t); else msg(it ? it.pick.replace(/（.*）/, '') : '');
+    uiDirty(); return;
+  }
   const hit = hitTest(x, y);
   if (hit) return select(hit);
   if (G.selected === G.builder) orderMove(x, y, shift);   // 选中守卫者时点击空地 = 移动（方便触屏）
@@ -1805,7 +2134,9 @@ function showHelp() {
     <table><tr><th>攻击＼护甲</th><th>抗性</th><th>魔法</th><th>物理</th><th>神圣</th></tr>${rows}</table>
     <p>护甲减伤 = 护甲×0.02 /（1 + 护甲×0.02）。腐蚀塔、减防光环可以把护甲打成负数，负护甲会增伤。</p>
     <p><b>精英怪</b>：每只怪 1/55 概率成为精英（粉色外圈），带一种 900 范围的光环。击杀得 1~3 木材；由英雄塔击杀时，英雄所选属性 +1。</p>
-    <p><b>资源</b>：起手 2000 金、5 木；12 木 = 1 人口；1 木 = 300 金；500 金 = 1 木。回收塔返还 100% 金币。</p>
+    <p><b>资源</b>：起手 2000 金、5 木；12 木 = 1 人口；1 木 = 300 金。回收塔返还 100% 金币。</p>
+    <p><b>商店</b>：地图中央，守卫者走到 ${RULE.shopReach} 范围内选中商店购买：1 个木材（500 金，冷却 30 秒）、10 个木材（5000 金，冷却 300 秒）、魔力卷轴（英雄塔 +120 魔法）、知识之书（英雄塔随机属性 +10）、天赋卷轴（15 木，MAX 光环塔激活基础天赋，开局 1200 秒后开放）。复制 / 收购卷轴要对队友使用，单人用不了。</p>
+    <p><b>兔子</b>：每个 BOSS 波（10/20/30/40 波、最终波）开始 ${RULE.rabbitDelay} 秒后，地图随机位置出现一只兔子（小地图粉点），${RULE.rabbitLife} 秒后消失。守卫者走到它 ${RULE.rabbitReach} 范围内，选中兔子就能用<b>当局成就</b>买道具：4 种塔类之球（重新随机建造栏的某一类塔）、5 个木材、魔法药水、知识药水。当局成就开局 ${RULE.startAch} 点，每次 Perfect +${RULE.achPerPerfect}；守卫者的<b>兔子卷轴</b>（${RULE.rabbitScrollAch} 成就）可以额外召唤一次兔子。</p>
     <p><b>英雄塔</b>：升级要 等级×100 金 + 200 魔法（英雄每击杀 +2 魔法）。学技能：第 1 个免费；第 2/3/4 个分别要 18/36/54 木材，且力量 ≥ 80/160/240。</p>
     <p style="color:#7f9483;font-size:11px">命令图标的图形来自 <a href="https://game-icons.net" target="_blank" style="color:#9fc4a6">game-icons.net</a>（Lorc、Delapouite 等，CC BY 3.0）。</p>
     <div class="row"><button class="primary" id="m-close">继续游戏</button></div>`);
@@ -1827,7 +2158,7 @@ function frame(now) {
     const pan = 1400 / G.cam.zoom * el;
     if (keys.has('ArrowLeft')) G.cam.x -= pan; if (keys.has('ArrowRight')) G.cam.x += pan;
     if (keys.has('ArrowUp')) G.cam.y += pan; if (keys.has('ArrowDown')) G.cam.y -= pan;
-    draw(); renderTop(); updateCursor(); updateCooldowns();
+    draw(); renderTop(); updateCursor(); updateCooldowns(); drawPortrait();
     uiTick += el;
     if (dirty || uiTick > 0.5) { uiTick = 0; renderInfo(); if (dirty) renderCmds(); else refreshCmdState(); dirty = false; }
   }
@@ -1844,5 +2175,5 @@ newGame('solo');
 showStart();
 requestAnimationFrame(frame);
 window.__G = () => G;   // 调试用
-window.__dbg = { get G() { return G; }, NODES, EDGES, kill, spawnMonster, FXS, buildTower, upgradeTower, learnSkill, heroLevelUp, step, canPlace, newGame, monstersAlive, towerStats, rerollBuild, orderBuild, orderMove, castSkill };
+window.__dbg = { get G() { return G; }, NODES, EDGES, kill, spawnMonster, FXS, buildTower, upgradeTower, learnSkill, heroLevelUp, step, canPlace, newGame, monstersAlive, towerStats, rerollBuild, orderBuild, orderMove, castSkill, spawnRabbit, buyRabbit, RABBIT_SHOP, SHOP, SHOP_ITEMS, buyShop };
 })();

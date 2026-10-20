@@ -6,6 +6,7 @@
   - 塔：1 级塔单位的图标；英雄：英雄单位的图标；英雄技能：技能的图标
   - 头像：每个怪物 / 每级塔 / 英雄 / 守卫者自己的图标
   - 通用命令（移动、停止、建造、回收……）：原图里同名技能的图标
+另外导出控制台贴图（暗夜精灵）和信息卡图标到 h5/assets/ui/。
 """
 import json, os, re, sys
 
@@ -18,6 +19,9 @@ OUT = os.path.join(ROOT, 'h5', 'assets', 'icons', 'war3')
 A = json.load(open(os.path.join(ROOT, 'analysis', 'raw', 'abilities_all.json'), encoding='utf8'))
 H = json.load(open(os.path.join(ROOT, 'analysis', 'data', 'heroes.json'), encoding='utf8'))
 H = {h['id']: h for h in (H if isinstance(H, list) else H.values())}
+ITEMS = json.load(open(os.path.join(ROOT, 'analysis', 'raw', 'items_all.json'), encoding='utf8'))
+# 兔子（成就商店 nshe）卖的道具 + 兔子卷轴 + 地图中央商店（u00L）卖的道具：命令面板图标 ico:item-<物品 ID>
+SHOP_ITEMS = ['I00K', 'I00M', 'I00N', 'I00L', 'I01I', 'I01U', 'I02A', 'I00S'] + U['u00L']['Sellitems'].split(',')
 
 # 游戏里的通用命令（ico 名）→ 原图里对应技能的图标
 GENERIC = {
@@ -26,6 +30,7 @@ GENERIC = {
     'blink': A['A00D']['Art'], 'reroll': A['A03C']['Art'], 'woodmenu': A['A05N']['Art'], 'buyfood': A['A05K']['Art'],
     'wood2gold': A['A05L']['Art'], 'gold2wood': 'ReplaceableTextures/CommandButtons/BTNBundleOfLumber', 'learn': A['A05X']['Art'],
     'sell': A['A04B']['Art'], 'switchdmg': A['A06V']['Art'],
+    'str': A['A05Y']['Art'], 'agi': A['A060']['Art'], 'int': A['A05Z']['Art'], 'upgrade': A['A0B6']['Art'],   # 英雄的力量 / 敏捷 / 智力、升级
     'branch-pierce': A['A03H']['Art'], 'branch-magic': A['A04E']['Art'], 'branch-normal': A['A04G']['Art'], 'branch-chaos': A['A04H']['Art'],
 }
 
@@ -43,7 +48,30 @@ def png_for(art):
     return 'icons/war3/' + name
 
 
+UI = os.path.join(ROOT, 'h5', 'assets', 'ui')
+CONSOLE = 'UI/Console/NightElf/NightElfUITile0{}.blp'      # 截图里的藤蔓控制台（暗夜精灵）
+TOP_H, CON_Y = 100, 170                                     # 拼好的 1600×512 贴图：上 100 行是顶栏，170 行以下是底部控制台
+
+
+def ui():
+    """控制台贴图（4 张拼成 1600×512，切成顶栏 + 底栏）、信息卡图标（攻击 / 护甲类型、英雄属性）"""
+    import numpy as np
+    from PIL import Image
+    os.makedirs(UI, exist_ok=True)
+    tiles = [blp.decode_blp(open(INDEX[CONSOLE.format(i).lower()], 'rb').read()) for i in range(1, 5)]
+    full = np.concatenate(tiles, 1)
+    Image.fromarray(full[:TOP_H]).save(os.path.join(UI, 'top.png'))
+    Image.fromarray(full[CON_Y:]).save(os.path.join(UI, 'console.png'))
+    n = 0
+    for k, src in INDEX.items():
+        b = os.path.basename(k)
+        if b.startswith('infocard-') and k.endswith('.blp') and 'neutral' not in b:
+            blp.write_png(os.path.join(UI, b[:-4] + '.png'), blp.decode_blp(open(src, 'rb').read())); n += 1
+    print(f'控制台贴图 + {n} 个信息卡图标 → h5/assets/ui/')
+
+
 def main():
+    ui()
     os.makedirs(OUT, exist_ok=True)
     reg, miss = {}, []
 
@@ -64,6 +92,10 @@ def main():
     for uid in D['units']:
         put('portrait:unit:' + uid, U.get(uid, {}).get('Art'))
     put('portrait:builder', U[BUILDER_ID].get('Art'))
+    put('portrait:rabbit', U['nshe'].get('Art'))
+    put('portrait:shop', U['u00L'].get('Art'))
+    for iid in SHOP_ITEMS:
+        put('ico:item-' + iid, ITEMS[iid].get('Art'))
     for k, art in GENERIC.items():
         put('ico:' + k, art)
 

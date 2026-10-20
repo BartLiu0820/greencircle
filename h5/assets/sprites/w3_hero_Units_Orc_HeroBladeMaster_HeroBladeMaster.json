@@ -3,7 +3,7 @@
  "src": "sprites/w3_hero_Units_Orc_HeroBladeMaster_HeroBladeMaster.png",
  "frameW": 240,
  "frameH": 240,
- "cols": 8,
+ "cols": 10,
  "rows": 24,
  "anchor": [
   0.5,
@@ -15,8 +15,8 @@
   "idle": {
    "row": 0,
    "dirs": 8,
-   "frames": 6,
-   "fps": 8,
+   "frames": 10,
+   "fps": 8.57,
    "loop": true
   },
   "attack": {
