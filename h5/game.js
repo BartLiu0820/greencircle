@@ -110,6 +110,7 @@ function newGame(mode) {
   FXS.clear();
   rerollBuild(true);
   if (MODES[mode].hero) G.heroChoice = MODES[mode].hero;
+  SFX.startMusic();
 }
 
 // ---------------------------------------------------------------- 建造栏 (随机 6 选：1 主塔、1 原始、1 光环、2 辅助、1 另类)
@@ -160,6 +161,7 @@ function kill(m, src) {
     else msg(`击杀精英怪：木材 +${w}`);
   }
   if (m.onDeath) m.onDeath(src);
+  SFX.ent('unit:' + m.uid, 'death', { x: m.x, y: m.y });
   const a = (metaOf(m) || {}).actions?.death;       // 按登记判断，不等精灵图加载（3D 模型画尸体时精灵图可能从没请求过）
   if (a) { addFx({ kind: 'corpse', ent: { uid: m.uid, face: m.face, elite: m.elite, boss: m.boss }, x: m.x, y: m.y, t0: G.t, life: a.frames / a.fps + 1.2 }); }
   else addFx({ kind: 'death', x: m.x, y: m.y, r: m.r, life: 0.35, color: ARMOR_COLOR[m.type] });
@@ -327,10 +329,12 @@ function upgradeTower(t, branchKey) {
   G.gold -= next.gold; t.spent += next.gold;
   if (branchKey) { t.levels = [t.levels[0]].concat(f.branches[branchKey]); t.branch = branchKey; }
   t.lv++;
+  SFX.ui('upgrade');
   uiDirty();
 }
 function sellTower(t) {
   G.gold += t.spent;                      // ConstructionRefundRate = UpgradeRefundRate = 1.0
+  SFX.ui('sell');
   if (t.isHero) G.hero = null;
   G.towers = G.towers.filter(x => x !== t);
   G.zones = G.zones.filter(z => z.owner !== t);
@@ -358,7 +362,7 @@ function builderUpdate(dt) {
   if (d <= reach) {
     if (o.kind === 'build') {
       if (!canPlace(o.x, o.y)) msg('目标位置已被占用');
-      else { const t = buildTower(o.fam, o.x, o.y); if (t) { addFx({ kind: 'ring', x: t.x, y: t.y, r: 160, life: 0.5, color: '#ffd257' }); b.buildT = G.t; b.face = Math.atan2(o.y - b.y, o.x - b.x); } }
+      else { const t = buildTower(o.fam, o.x, o.y); if (t) { addFx({ kind: 'ring', x: t.x, y: t.y, r: 160, life: 0.5, color: '#ffd257' }); SFX.ui('construct', { x: t.x, y: t.y }); b.buildT = G.t; b.face = Math.atan2(o.y - b.y, o.x - b.x); } }
       uiDirty();
     }
     b.order = (b.queue && b.queue.shift()) || null; return;     // Shift 排队的下一个命令
@@ -369,7 +373,7 @@ function builderUpdate(dt) {
 function blinkTo(x, y) {
   const b = G.builder;
   if (b.blinkCd > 0) return msg('闪烁冷却中');
-  addFx({ kind: 'ring', x: b.x, y: b.y, r: 120, life: 0.4, color: '#c48bff' });
+  addFx({ kind: 'ring', x: b.x, y: b.y, r: 120, life: 0.4, color: '#c48bff' }); SFX.ui('blink', { x: b.x, y: b.y });
   b.x = clamp(x, -WORLD, WORLD); b.y = clamp(y, -WORLD, WORLD); b.order = null; b.queue = []; b.blinkCd = 1;
   addFx({ kind: 'ring', x: b.x, y: b.y, r: 120, life: 0.4, color: '#c48bff' });
 }
@@ -401,6 +405,7 @@ const missileOf = t => MISSILE[t.isHero ? 'hero:' + t.heroName : t.fam] || BY_AT
 // 原版投射物（assets/w3missiles.js）：有就用原图的模型、速度、弧度，命中效果沿用上面的风格
 const W3M = window.W3_MISSILE_OF || {};
 const w3opt = t => { const o = W3M[t.isHero ? 'hero:' + t.heroName : 'tower:' + t.fam]; return o ? { w3: o.missile, speed: o.speed, arc: o.arc } : {}; };
+const sndKey = t => t.isHero ? 'hero:' + t.heroName : 'tower:' + t.fam;      // 音效登记（assets/w3sounds.js）的 key
 const muzzle = (t, style) => ({ x: t.x, y: t.y, z: (MUZZLE[style] || 150) + (t.isHero ? 30 : 0) });
 function shot(t, m) { t.face = Math.atan2(m.y - t.y, m.x - t.x); }
 
@@ -456,8 +461,9 @@ function attack(t, target, st) {
   };
   const land = (m, primary) => (hit, x, y) => {
     if (hit) { hurt(hit, dmg, st.atk, t); onHitEffects(t, lv, hit, st); }
-    if (primary) area(hit, x, y);
+    if (primary) { area(hit, x, y); SFX.ent(sndKey(t), 'hit', { x, y }); }
   };
+  SFX.ent(sndKey(t), 'launch', { x: t.x, y: t.y });
   if (t.fam === '弹跳塔') {                     // 月刃依次弹到下一个目标
     const hop = (i, src) => { if (i >= targets.length) return;
       FXS.launch(style, src, targets[i], (hit, x, y) => { land(targets[i], i === 0)(hit, x, y); hop(i + 1, { x, y, z: 50 }); }, w3opt(t)); };
@@ -548,18 +554,18 @@ const HERO_KITS = {
         const hx = x + rnd(-60, 60), hy = y + rnd(-60, 60);
         FXS.fall(hx, hy, { z: 800, dur: 0.3, color: '#bfefff', core: '#ffffff', size: 22, rock: 'rgba(220,245,255,.9)', onEnd: () => {
           for (const m of inRange(x, y, 150)) { hurt(m, h.stat.str * X, 'normal', h, { ignoreArmor: h.stat.str > 400 }); m.armorDown = 160; m.armorDownUntil = G.t + 4; }
-          FXS.snow(hx, hy, 20, 1.2); FXS.nova(hx, hy, 170, '#bfefff', 0.3);
+          FXS.snow(hx, hy, 20, 1.2); FXS.nova(hx, hy, 170, '#bfefff', 0.3); SFX.spell('iceFall', { x: hx, y: hy });
         } });
       });
     } },
     { init(h) { h.stat.str += 20; h.stat.agi += 30; h.stat.int += 40; }, critChance: 0.2, critMul: 40 },
     { cd: 6, cast(h, tg) {
       const a = h.stat.agi, X = a > 400 ? 90 : a > 300 ? 240 : a > 200 ? 120 : a > 100 ? 60 : 15, x = tg.x, y = tg.y;
-      for (let i = 0; i < 5; i++) later(i * 0.3, () => { for (const m of inRange(x, y, 300)) { hurt(m, a * X, 'chaos', h, { ignoreArmor: a > 400 }); slowM(m, 0.3, 2.5); } FXS.flash(x, y, 40, '#c48bff', 160); FXS.nova(x, y, 300, '#c48bff', 0.35); FXS.snow(x, y, 30, 0.8); });
+      for (let i = 0; i < 5; i++) later(i * 0.3, () => { for (const m of inRange(x, y, 300)) { hurt(m, a * X, 'chaos', h, { ignoreArmor: a > 400 }); slowM(m, 0.3, 2.5); } FXS.flash(x, y, 40, '#c48bff', 160); FXS.nova(x, y, 300, '#c48bff', 0.35); FXS.snow(x, y, 30, 0.8); SFX.spell('frostPulse', { x, y }); });
     } },
     { cd: 4, cast(h) {
       for (const m of inRange(h.x, h.y, 900)) { stun(m, 0.5); hurt(m, lerpStat(50, 36000, h.stat.int, 320), 'magic', h); slowM(m, 0.45, 4); FXS.snow(m.x, m.y, 40, 0.5); }
-      FXS.nova(h.x, h.y, 900, '#7ab8ff', 0.6); addFx({ kind: 'ring', x: h.x, y: h.y, r: 900, life: 0.5, color: '#bfefff' });
+      FXS.nova(h.x, h.y, 900, '#7ab8ff', 0.6); SFX.spell('frostNova', { x: h.x, y: h.y }); addFx({ kind: 'ring', x: h.x, y: h.y, r: 900, life: 0.5, color: '#bfefff' });
     } },
   ],
   火魂: [
@@ -568,7 +574,7 @@ const HERO_KITS = {
       const ms = inRange(h.x, h.y, heroStats(h).range); if (!ms.length) return false;
       const tg = pick(ms), a = h.stat.agi, X = a < 100 ? 10 : a < 200 ? 30 : a < 300 ? 60 : a < 400 ? 120 : a < 500 ? 250 : 420;
       const fx0 = tg.x, fy0 = tg.y;
-      FXS.fall(fx0, fy0, { z: 500, dur: 0.22, color: '#ff8a3c', core: '#ffe08a', size: 16, onEnd: () => { aoe(h, { x: fx0, y: fy0 }, 200, a * X, 'pierce', false, '#ff8a3c'); FXS.explosion(fx0, fy0, 0.5, '#ff8a3c'); } });
+      FXS.fall(fx0, fy0, { z: 500, dur: 0.22, color: '#ff8a3c', core: '#ffe08a', size: 16, onEnd: () => { aoe(h, { x: fx0, y: fy0 }, 200, a * X, 'pierce', false, '#ff8a3c'); FXS.explosion(fx0, fy0, 0.5, '#ff8a3c'); SFX.spell('fireFall', { x: fx0, y: fy0 }); } });
     } },
     { cd: 4, cast(h) {
       const ms = inRange(h.x, h.y, heroStats(h).range); if (!ms.length) return false;
@@ -576,7 +582,7 @@ const HERO_KITS = {
       const mx0 = tg.x, my0 = tg.y;
       FXS.fall(mx0, my0, { z: 1100, dx: -500, dy: 260, dur: 0.45, color: '#ff6a2a', core: '#fff0b0', size: 40, rock: '#3a2014', onEnd: () => {
         aoe(h, { x: mx0, y: my0 }, 350, lerpStat(50, 30000, h.stat.int, 280), 'magic', true, '#ff5a4f');
-        FXS.explosion(mx0, my0, 1.3, '#ff5a4f'); FXS.nova(mx0, my0, 380, '#ff7a3a', 0.45); FXS.splat(mx0, my0, '#2a1a10'); FXS.debris(mx0, my0, '#5a3a20');
+        FXS.explosion(mx0, my0, 1.3, '#ff5a4f'); SFX.spell('meteor', { x: mx0, y: my0 }); FXS.nova(mx0, my0, 380, '#ff7a3a', 0.45); FXS.splat(mx0, my0, '#2a1a10'); FXS.debris(mx0, my0, '#5a3a20');
       } });
     } },
     { cd: 10, needsTarget: false, cast(h) {
@@ -585,7 +591,7 @@ const HERO_KITS = {
       const x = h.x + Math.cos(ang) * 250, y = h.y + Math.sin(ang) * 250;
       G.towers.push({ id: G.nextId++, fam: '炎魔', cat: 'summon', summonOf: h, owner: h, x, y, lv: 0, cdLeft: 0, until: G.t + 30, food: 0, spent: 0,
         levels: [{ dmg: lerpStat(20, 10000, h.stat.str, 180), cd: 1, range: 600, atk: 'chaos', targets: 1, abils: [] }], buffAS: 0, buffDmg: 0, eliteAS: 0, eliteWeak: 0 });
-      FXS.explosion(x, y, 0.6, '#ff5a2a');
+      FXS.explosion(x, y, 0.6, '#ff5a2a'); SFX.spell('summon', { x, y });
     } },
   ],
 };
@@ -626,15 +632,18 @@ function castSkill(h, i, auto) {
   if (!tg && s.needsTarget !== false) return auto ? null : msg('射程内没有敌人');
   if (s.cast(h, tg) === false) return;
   h.cds['s' + i] = G.t + s.cd; h.spellT = G.t;
+  if (!auto) SFX.ack(sndKey(h), 'yesAttack');
   if (tg) h.face = Math.atan2(tg.y - h.y, tg.x - h.x);
   if (!auto) addFx({ kind: 'text', x: h.x, y: h.y + 60, text: D.heroes[h.heroName].skills[i].name, life: 0.8, color: '#9fe3ff' });
 }
 function heroAttack(h, tg, st) {
   let dmg = st.dmg;
-  for (const i of h.learned) { const s = HERO_KITS[h.heroName][i]; if (s.critChance && Math.random() < s.critChance) { dmg *= s.critMul; addFx({ kind: 'text', x: tg.x, y: tg.y, text: s.critMul + '倍', life: 0.7, color: '#ffd257' }); break; } }
+  for (const i of h.learned) { const s = HERO_KITS[h.heroName][i]; if (s.critChance && Math.random() < s.critChance) { dmg *= s.critMul; SFX.spell('crit', { x: tg.x, y: tg.y }); addFx({ kind: 'text', x: tg.x, y: tg.y, text: s.critMul + '倍', life: 0.7, color: '#ffd257' }); break; } }
   shot(h, tg);
   const style = missileOf(h);
-  FXS.launch(style, muzzle(h, style), tg, hit => {
+  SFX.ent(sndKey(h), 'launch', { x: h.x, y: h.y });
+  FXS.launch(style, muzzle(h, style), tg, (hit, x, y) => {
+    SFX.ent(sndKey(h), 'hit', { x, y });
     if (!hit) return;
     hurt(hit, dmg, st.atk, h);
     for (const i of h.learned) { const s = HERO_KITS[h.heroName][i]; if (s.onAttack) s.onAttack(h, hit); }
@@ -645,6 +654,7 @@ function aoe(h, c, r, dmg, atk, ignoreArmor, color) {
   addFx({ kind: 'ring', x: c.x, y: c.y, r, life: 0.25, color: color || ATK_COLOR[atk] });
 }
 function zone(owner, x, y, r, dur, dps, atk, endFn, style) {
+  if (style === 'bladestorm') SFX.spell('bladestorm', { x, y });
   G.zones.push({ owner, x, y, r, t0: G.t, until: G.t + dur, dps, atk, endFn, style, fxT: 0 });
 }
 function later(s, fn) { G.timeouts.push({ at: G.t + s, fn }); }
@@ -670,6 +680,7 @@ function heroLevelUp(h) {
   G.gold -= gold; h.mana -= mana; h.spent += gold;
   if (max) h.stat[h.growth] += 3;
   else { h.level++; h.stat.str += 1; h.stat.agi += 1; h.stat.int += 1; h.stat[h.growth] += 2; }
+  SFX.ui('levelup', { x: h.x, y: h.y });
   uiDirty();
 }
 
@@ -745,6 +756,7 @@ function startWave() {
   G.bossRule = null;
   let dur = G.interval;
   const n = G.wave;
+  SFX.stinger(n);                                  // 原图每波开始放一段音乐（war3map.j 的 PlaySoundBJ）
   if (n <= 47) {
     const variant = pick(D.waves[String(n)]);
     const hint = pick(variant.hints);
@@ -853,6 +865,7 @@ function spawnRabbit(by) {
   let x, y;
   do { x = rnd(-lim, lim); y = rnd(-lim, lim); } while (dist2(x, y, NODES.I[0], NODES.I[1]) < 700 * 700);   // 不刷进出怪口的围栏里
   G.rabbit = { isRabbit: true, id: G.nextId++, x, y, hx: x, hy: y, t0: G.t, until: G.t + RULE.rabbitLife, face: rnd(0, TAU), next: G.t + 1 };
+  SFX.ui('hint');
   msg(by ? `${by}召唤了一次兔子，大家快找呀！` : `兔子：${pick(RABBIT_TALK)}`);
   msg(`兔子出现了（小地图上闪烁的粉点），${RULE.rabbitLife} 秒内让守卫者走到它旁边，用当局成就买道具`);
   uiDirty();
@@ -891,6 +904,7 @@ function itemBlock(it) {
 function payItem(it) {
   G.ach -= it.ach || 0; G.gold -= it.gold || 0; G.wood -= it.wood || 0;
   G.buys[it.id] = (G.buys[it.id] || 0) + 1; G.itemCd[it.id] = G.t + (it.cd || 0);
+  SFX.ui('item');
   uiDirty();
 }
 function rabbitBlock(it) {
@@ -1024,21 +1038,21 @@ function step(dt) {
   G.fx = G.fx.filter(f => f.life > 0);
 }
 function gameOver(reason) {
-  G.phase = 'over';
+  G.phase = 'over'; SFX.end('defeat');
   showModal(`<h2>大家很厉害！很遗憾，还是失败了！</h2><p>${reason}</p>
     <p>到达第 <b>${G.wave}</b> 波 · 击杀 ${G.kills} · Perfect ${G.perfect} · 得分 ${G.score}</p>
     <div class="row"><button class="primary" id="m-restart">再来一局</button></div>`);
   document.getElementById('m-restart').onclick = () => { hideModal(); showStart(); };
 }
 function demoEnd() {
-  G.phase = 'win';
+  G.phase = 'win'; SFX.end('victory');
   showModal(`<h2>演示结束</h2><p>撑过了前 ${G.wave} 波。击杀 ${G.kills} · Perfect ${G.perfect} · 剩余 ${Math.floor(G.gold)} 金</p>
     <div class="row"><button class="primary" id="m-again">再演示一次</button><button id="m-restart">回到开始菜单</button></div>`);
   document.getElementById('m-again').onclick = () => { hideModal(); newGame('demo'); resize(); clampCam(); uiDirty(); };
   document.getElementById('m-restart').onclick = () => { hideModal(); showStart(); };
 }
 function victory() {
-  G.phase = 'win';
+  G.phase = 'win'; SFX.end('victory');
   showModal(`<h2>通关！</h2><p>你杀死了最终 BOSS。击杀 ${G.kills} · Perfect ${G.perfect} · 得分 ${G.score}</p>
     <p>${G.perfect >= 10 ? '原版中 Perfect ≥ 10 会开启无尽关卡（本复刻暂未实现）。' : 'Perfect 未达到 10，原版中不能开启无尽关卡。'}</p>
     <div class="row"><button class="primary" id="m-restart">再来一局</button></div>`);
@@ -1246,6 +1260,8 @@ function clampCam() {
   c.y = hh >= lim ? 0 : clamp(c.y, -lim + hh, lim - hh);
 }
 const sx = x => W / 2 + (x - G.cam.x) * S, sy = y => H / 2 - (y - G.cam.y) * S;
+// 画面外的声音按离画面边缘的距离变小，超出半屏就听不见
+SFX.setListener((x, y) => { const dx = Math.max(0, Math.abs(sx(x) - W / 2) - W / 2), dy = Math.max(0, Math.abs(sy(y) - H / 2) - H / 2); return clamp(1 - Math.hypot(dx, dy) / (0.5 * Math.max(W, H)), 0, 1); });
 const wx = px => (px * DPR - W / 2) / S + G.cam.x, wy = py => G.cam.y - (py * DPR - H / 2) / S;
 function centerOn(e) { G.cam.x = e.x; G.cam.y = e.y; clampCam(); }
 
@@ -1675,7 +1691,11 @@ function addFx(f) { if (f.kind === 'ring') return FXS.ring(f.x, f.y, f.r, f.colo
 const $ = id => document.getElementById(id);
 let dirty = true;
 function uiDirty() { dirty = true; }
+// 提示语音：和 WC3 一样资源不足 / 不能建造时有语音，其余失败提示只响一声
+const MSG_SND = [[/^金币不足/, 'noGold'], [/^木材不足/, 'noLumber'], [/^人口不足/, 'noFood'], [/不能建造|已被占用/, 'cantBuild'],
+  [/冷却中|射程内没有敌人|只能|限制|最多|太远|召唤失败|已经在场上|已经学习|需要力量|魔法值不足/, 'error']];
 function msg(text) {
+  const snd = MSG_SND.find(([re]) => re.test(text)); if (snd) SFX.ui(snd[1]);
   const d = document.createElement('div'); d.textContent = text; $('msgs').appendChild(d);
   setTimeout(() => d.remove(), 6000);
   while ($('msgs').children.length > 6) $('msgs').firstChild.remove();
@@ -1696,6 +1716,8 @@ function renderTop() {
   $('btn-start').classList.toggle('hidden', G.phase !== 'prep');
   $('btn-pause').textContent = G.paused ? '继续(P)' : '暂停(P)';
   $('btn-speed').textContent = '速度 ' + G.speed + 'x';
+  const snd = SFX.pref.sfx ? (SFX.pref.music ? 0 : 1) : 2;
+  if ($('btn-snd').dataset.v !== String(snd)) { $('btn-snd').dataset.v = snd; $('btn-snd').textContent = ['♪', '♩', '×'][snd]; $('btn-snd').title = ['声音：全开（点击关闭音乐）', '声音：只有音效（点击静音）', '声音：静音（点击全开）'][snd]; }
   $('q-builder').classList.toggle('on', G.selected === G.builder);
   quickThumb($('q-builder'), 'builder');
   if (G.hero) quickThumb($('q-hero'), 'hero:' + G.hero.heroName);
@@ -1973,7 +1995,7 @@ function renderCmds() {
         + (c.cdOf ? '<span class="cdov"></span><span class="cdtx"></span>' : '') + (c.passive ? '<span class="tag">被动</span>' : '') + (c.learned ? '<span class="tag ok">已学</span>' : '');
       b.oncontextmenu = ev => { ev.preventDefault(); if (c.rfn) { c.rfn(); showTip(null); } };
       b.disabled = !!c.disabled;
-      b.onclick = () => { showTip(c); if (!c.disabled) c.fn(); };
+      b.onclick = () => { showTip(c); SFX.ui('click'); if (!c.disabled) c.fn(); };
       b.onmouseenter = () => showTip(c); b.onmouseleave = () => showTip(null);
     }
     grid.appendChild(b);
@@ -2006,12 +2028,14 @@ function hitTest(x, y) {
   for (const m of G.monsters) { const d = dist2(x, y, m.x, m.y); if (d < bd) { bd = d; best = m; } }
   return best;
 }
-function select(e) { G.selected = e; G.menu = 'main'; G.placing = null; G.pending = null; showTip(null); uiDirty(); }
+// 选中单位的语音（敌方怪物没有）
+const voiceKey = e => !e ? null : e.isBuilder ? 'builder' : e.isShop ? 'shop' : e.isRabbit ? 'rabbit' : e.isHero ? 'hero:' + e.heroName : e.fam && e.cat !== 'summon' ? 'tower:' + e.fam : null;
+function select(e) { const k = voiceKey(e); if (k) SFX.select(k); G.selected = e; G.menu = 'main'; G.placing = null; G.pending = null; showTip(null); uiDirty(); }
 function groundClick(x, y, shift) {
   if (G.placing) {
     const gx = snap(x), gy = snap(y);
     if (!canPlace(gx, gy, true)) return msg('这里不能建造（不能挡路或重叠）');
-    if (orderBuild(G.placing, gx, gy, shift)) { if (!shift) { G.placing = null; G.menu = 'main'; } uiDirty(); }   // 按住 Shift 可连续排队建造
+    if (orderBuild(G.placing, gx, gy, shift)) { SFX.ui('place', { x: gx, y: gy }); if (!shift) { G.placing = null; G.menu = 'main'; } uiDirty(); }   // 按住 Shift 可连续排队建造
     return;
   }
   if (G.pending === 'move') { orderMove(x, y, shift); G.pending = null; uiDirty(); return; }
@@ -2092,11 +2116,15 @@ window.addEventListener('keydown', e => {
   const k = e.key.toUpperCase();
   if (dirty) { renderCmds(); dirty = false; }          // 连按热键（如 B → W）时先刷新命令面板
   const c = CMDS.find(c => c && c.key === k);
-  if (c && !c.disabled) { c.fn(); showTip(c); }
+  if (c && !c.disabled) { SFX.ui('click'); c.fn(); showTip(c); }
 });
 window.addEventListener('keyup', e => keys.delete(e.key));
 $('btn-start').onclick = () => { if (G.phase === 'prep') G.timer = 0.01; };
 $('btn-pause').onclick = () => { G.paused = !G.paused; };
+$('btn-snd').onclick = () => {                              // 全开 → 只有音效 → 静音 → 全开
+  const p = SFX.pref;
+  if (p.sfx && p.music) SFX.toggle('music'); else if (p.sfx) SFX.toggle('sfx'); else { SFX.toggle('sfx'); SFX.toggle('music'); }
+};
 $('btn-speed').onclick = () => { G.speed = G.speed === 1 ? 2 : G.speed === 2 ? 4 : 1; };
 $('btn-help').onclick = showHelp;
 $('btn-zin').onclick = () => { G.cam.zoom *= 1.3; clampCam(); };

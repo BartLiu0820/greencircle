@@ -18,5 +18,7 @@ art/war3_raw/*
 !art/war3_raw/batch_report.tsv
 # 游戏里实时 3D 渲染用的原版模型和贴图（tools/war3_models.py 导出）；没有时游戏退回精灵图
 h5/assets/w3/
+# 原版音效（tools/war3_sounds.py 导出，约 49 MB）；没有时游戏静音
+h5/assets/sounds/
 art/models/war3/
 h5/assets/portraits/*.png

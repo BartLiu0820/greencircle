@@ -221,9 +221,9 @@ html, body, button, button:disabled, #minimap, #cv { cursor: url(assets/cursors/
     background: url(assets/ui/console.png) 0 0 / 100% 100% no-repeat; border: 0; pointer-events: none; }
   #console > * { position: absolute; pointer-events: auto; }
   #mmwrap { left: calc(100% * 18 / 1600); top: calc(100% * 46 / 342); width: calc(100% * 279 / 1600); height: calc(100% * 282 / 342); border: 0; }
-  .zbtn { left: calc(100% * 293 / 279); top: calc(100% * 10 / 282); width: calc(100% * 42 / 279); height: calc(100% * 80 / 282); right: auto;
+  .zbtn { left: calc(100% * 293 / 279); top: calc(100% * 10 / 282); width: calc(100% * 42 / 279); height: calc(100% * 120 / 282); right: auto;
     display: flex; flex-direction: column; justify-content: space-between; gap: 0; }
-  .zbtn button { width: 100%; height: 45%; padding: 0; background: none; border: 0; border-radius: 0; color: #ffd257; font-size: 18px; font-weight: 700; }
+  .zbtn button { width: 100%; height: 31%; padding: 0; background: none; border: 0; border-radius: 0; color: #ffd257; font-size: 18px; font-weight: 700; }
   .zbtn button:hover { background: rgba(255, 210, 87, .12); }
   #portrait { display: block; left: calc(100% * 435 / 1600); top: calc(100% * 112 / 342); width: calc(100% * 144 / 1600); height: calc(100% * 168 / 342); background: #000; overflow: hidden; }
   #portrait canvas, #portrait img { width: 100%; height: 100%; display: block; object-fit: cover; }

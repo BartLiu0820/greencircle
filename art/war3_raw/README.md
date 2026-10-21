@@ -19,6 +19,8 @@ python3 tools/war3_missiles.py
 python3 tools/war3_terrain.py
 # 7. 实时 3D 渲染用的模型和贴图（第 2 步登记过的模型 + 引用的贴图 + 队伍颜色，约 36 MB）→ h5/assets/w3/
 python3 tools/war3_models.py
+# 8. 音效和音乐（直接从压缩包里读，不用先解压；约 49 MB）→ h5/assets/w3sounds.js、h5/assets/sounds/
+python3 tools/war3_sounds.py
 ```
 
 ## 和原图的对应
@@ -42,6 +44,12 @@ python3 tools/war3_models.py
   在我们的路线上重新铺（`terrain.js`），过渡用魔兽图集的四角遮罩，叠放顺序同 w3e 的地块表。
 - **树墙**：原图 `war3map.doo` 里出怪口围栏的 5 种树墙。乡村树墙（VTlt）和城市树墙（YTct）的贴图不在包里，用洛丹伦夏季树代替。
   原图地图边缘没有树，我们在建造区外围了一圈，挡住空地。
+
+- **音效**（`tools/war3_sounds.py`，`h5/sound.js` 播放）：选中 / 命令语音按单位数据的 `unitSound`；攻击出手 / 命中声用投射物（`Missileart`）同目录的
+  `*Launch*` / `*Hit*`，没有的按游戏里的弹道样式补一个原版音效；怪物死亡用模型同目录的 `*Death*`；每波开始的音乐片段和音高照搬脚本里每波触发器的
+  `PlaySoundBJ`；背景音乐是暗夜精灵的 3 首（原图 `SetMapMusic("Music")`，玩家 1 固定暗夜精灵），提示语音（金币不足等）也用暗夜精灵的。
+  包里没有 `AnimSounds.slk`，模型动画里的声音事件对不上号，所以是按文件名推断的。扫射塔没有攻击声（原图是技能射线）。
+  `h5/assets/sounds/` 不入库，没有时游戏静音；小地图旁的 ♪ 按钮切换 全开 / 只有音效 / 静音。
 
 ## 原版包里没有、继续用 Hive 版的
 地精修补匠（`ndtr`）、修补匠机器人（`n08V`、`ncg3`、地精塔）、4 辆车（`nerw`、`nfod`、`nfor`、`nfot`）、火焰领主（火魂）。

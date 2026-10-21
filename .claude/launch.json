@@ -4,8 +4,83 @@
     {
       "name": "h5",
       "runtimeExecutable": "/bin/sh",
-      "runtimeArgs": ["-c", "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/e2155dd2-6793-46d5-b670-50d99afe86bd/scratchpad/h5srv && exec python3 -m http.server 8765"],
+      "runtimeArgs": [
+        "-c",
+        "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/5b68ccfb-c2cf-473f-b886-fee457c4ddad/scratchpad/h5srv && exec python3 -m http.server 8765"
+      ],
       "port": 8765
+    },
+    {
+      "name": "h5-local",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/5bba277f-4edb-477c-bf1e-5fdbe9a55525/scratchpad/h5srv && exec python3 -m http.server 8766"
+      ],
+      "port": 8766
+    },
+    {
+      "name": "h5-dev",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/62dbff02-cddb-4c87-95f2-2f540458cdbd/scratchpad/h5srv && exec python3 -m http.server 8779"
+      ],
+      "port": 8779
+    },
+    {
+      "name": "w3d",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/fee64b29-ed9a-46bb-aaa3-75a2ed24537c/scratchpad/w3dsrv && exec python3 -m http.server 8777"
+      ],
+      "port": 8777
+    },
+    {
+      "name": "h5-proj",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/b0b14123-bc6e-4c5a-952a-88054988bfe5/scratchpad/h5srv && exec python3 -m http.server 8781"
+      ],
+      "port": 8781
+    },
+    {
+      "name": "h5-here",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/6ebc7ab9-89df-4ace-bdec-28289b4e3830/scratchpad/h5srv && exec python3 -m http.server 8790"
+      ],
+      "port": 8790
+    },
+    {
+      "name": "h5-rabbit",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/635a660b-096e-4ad7-9415-dec1c0795d0c/scratchpad/h5srv && exec python3 -m http.server 8791"
+      ],
+      "port": 8791
+    },
+    {
+      "name": "h5-main",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/bc5bbf54-035d-45a1-9fb0-9a12c7bdcdfb/scratchpad/h5srv && exec python3 -m http.server 8795"
+      ],
+      "port": 8795
+    },
+    {
+      "name": "h5-sound",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/c4485119-916c-4ff2-9e29-288550aac890/scratchpad/h5srv && exec python3 -m http.server 8796"
+      ],
+      "port": 8796
     }
   ]
 }

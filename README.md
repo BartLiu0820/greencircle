@@ -24,7 +24,7 @@
 | `art/incoming/` + `tools/process_incoming.py` | AI 生成的模型放进收件目录，一条命令完成自动修整 → 生成变体 → 验收 → 出图 → 登记 |
 | `tools/blender/` | `prep_model.py`（AI 初稿自动修整）、`check_model.py`（自动验收）、`render_sprites.py`（Blender 批量出图）、`make_reference_scene.py`（标准塔座 + 比例参考）、`batch1.csv`（第 1 批 76 个模型清单）、`make_batch1.py`、`make_test_model.py` |
 | `tools/register_sprites.py` | 把出好的精灵表登记给游戏（`--webp` 压缩） |
-| `art/war3_raw/README.md` + `tools/war3_*.py` | 魔兽争霸 3 原版资源（`war3-assets.zip`）：怪物 / 塔 / 英雄 / 守卫者用原图模型（`war3_batch.py`），图标和头像用原图图标（`war3_icons.py`），塔和英雄的投射物用原图投射物（`war3_missiles.py`） |
+| `art/war3_raw/README.md` + `tools/war3_*.py` | 魔兽争霸 3 原版资源（`war3-assets.zip`）：怪物 / 塔 / 英雄 / 守卫者用原图模型（`war3_batch.py`），图标和头像用原图图标（`war3_icons.py`），塔和英雄的投射物用原图投射物（`war3_missiles.py`），音效和音乐用原图音效（`war3_sounds.py`，`h5/sound.js` 播放） |
 | `h5/sprite_viewer.html` | 精灵预览页：逐个检查 8 方向和每个动作 |
 | `tools/gen_data.py` | 从地图提取的数据生成 `h5/data.js` |
 | `analysis/详细玩法拆解.md` | 中文规则拆解（开局、资源、波次、精英、BOSS、塔、英雄） |
