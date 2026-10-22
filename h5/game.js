@@ -160,6 +160,7 @@ function typeMult(atk, m) {
 // 光环、原始战力等只加塔的"基础攻击"（在 attack() 里乘进攻击伤害），这里不再放大技能、持续伤害和区域伤害
 function hurt(m, amount, atk, src, opt = {}) {
   if (m.dead || !(amount > 0)) return 0;   // 同时挡掉 NaN
+  if (m.magicImmune && atk === 'magic') return 0;          // 魔法免疫（ACm3）：魔法攻击打不动
   let dmg = amount * typeMult(atk, m);
   if (!opt.ignoreArmor && !(m.ignoreArmorUntil > G.t)) dmg *= armorMult(effArmor(m));   // 灵魂锁链：目标护甲被无视
   m.hp -= dmg;
@@ -449,12 +450,14 @@ const fodLeft = () => Math.max(0, G.builder.fodAt - G.t);
 function fodBlock() { return fodLeft() > 0 ? '死亡之指冷却中' : G.builder.mana < FOD.mana ? '魔法值不足' : null; }
 function orderFinger(m, queue) {
   if (!m || !m.uid || m.dead) return msg('只能对敌人使用');
+  if (m.magicImmune) return msg('目标魔法免疫');
   const why = fodBlock(); if (why) return msg(why);
   giveOrder({ kind: 'fod', target: m, x: m.x, y: m.y, reach: FOD.range }, queue);
 }
 function castFinger(m) {
   const b = G.builder, why = fodBlock();
   if (why) return msg(why);
+  if (m.magicImmune) return msg('目标魔法免疫，死亡之指没有放出');
   b.mana -= FOD.mana; b.fodAt = G.t + FOD.cd; b.spellT = G.t; b.face = Math.atan2(m.y - b.y, m.x - b.x);
   FXS.beam(b.x, b.y, 120, m.x, m.y, 60, '#c48bff', 1.6, 0.45);
   if (!(U3 && U3.burst(FOD.mdx, m.x, m.y))) FXS.explosion(m.x, m.y, 0.7, '#c48bff');
@@ -1679,7 +1682,16 @@ const BOSS_WAVES = {
       else { G.wood += 5; msg('出怪结束：多个玩家杀死同样最多飞艇，全体玩家获得 5 木材奖励'); }
     });
   },
-  yO() { G.waveNote = '　坦克 + 嚣张的大游艇 + 疯狂的直升机，之后出维修工'; },
+  // 40 波：坦克 + 大游艇 + 直升机，之后出维修工；91 秒时坦克、大游艇、直升机还有活着的就失败（维修工不算）
+  yO() {
+    const must = ['nerw', 'nfor', 'nfot', 'nfod', 'ndrj', 'n06Y'];
+    G.waveNote = '　<b style="color:#ff5a4f">90 秒内杀死全部坦克、嚣张的大游艇和疯狂的直升机，否则游戏失败</b>（维修工不算）';
+    later(91, () => {
+      const left = G.monsters.filter(m => !m.dead && must.includes(m.uid));
+      if (left.length) return gameOver(`90 秒内没有杀死全部坦克、大游艇和直升机（还剩 ${left.length} 个）`);
+      msg('BOSS 波通关，20 秒后下波开始');
+    });
+  },
 };
 // 最终 BOSS 波（原图 yo）：倒计时 300 秒。先出熊猫（第 34 波定下的那种），20 秒后出 1 条龙（四色等概率，一半概率护甲改成 200），
 // 每条龙进场带 4 只狗头人；59 秒出魔王（单人带 +22 护甲的物品）并开始刷耐瑟龙，同时出巨龙，之后每 55 秒补魔龙、速龙。
@@ -1710,6 +1722,16 @@ function startFinal() {
     if (u) u.armor += 22;                                       // A0EO 能提高护甲的物品（AIde，+22）
     msg('魔王：翻滚吧！');
     G.final.check = true;
+  });
+  // 魔王的魔法免疫（Bau，5 秒一次）：从这里第 28.3 秒开始，单数次去掉、双数次加上；魔王 59.3 秒才出场，出场时没有免疫，68.3 秒起开始有
+  G.final.immune = false;
+  for (let k = 1; 28.3 + 5 * k < 300; k++) later(28.3 + 5 * k, () => {
+    G.final.immune = k % 2 === 0;
+    for (const m of G.monsters) if (m.uid === 'Udea' && !m.dead) {
+      m.magicImmune = G.final.immune;
+      addFx({ kind: 'text', x: m.x, y: m.y + 80, text: m.magicImmune ? '魔法免疫' : '免疫消失', life: 1, color: m.magicImmune ? '#7ab8ff' : '#cccccc' });
+      if (G.selected === m) uiDirty();
+    }
   });
   [[59.3, 'njga'], [114.3, 'n07W'], [169.3, 'n07V']].forEach(([t, id]) => later(t, () => { startSpawner('少'); spawnMonster(id, { boss: true }); }));
 }
@@ -2782,7 +2804,8 @@ function renderInfo() {
     left = portrait(e, e.name, ARMOR_COLOR[e.type]) + bar('hp', e.hp, e.maxHp, `${fmt(e.hp)} / ${fmt(e.maxHp)}`);
     mid = `<div class="nm">${e.name}${e.boss ? ' <em>BOSS</em>' : ''}${e.elite ? ' <em style="color:#ff4fd8">精英</em>' : ''}</div><div class="sub">怪物 · <span style="color:${ARMOR_COLOR[e.type]}">${ARMOR_CN[e.type]}护甲</span> → 克制：${ATK_CN[COUNTER[ARMOR_CN[e.type]]] || '—'}</div>
       <div class="kv"><span>护甲</span><b>${Math.round(ar)}（减伤 ${Math.round((1 - armorMult(ar)) * 100)}%）</b><span>移动速度</span><b>${e.speed}</b><span>赏金</span><b class="gold">${Math.round(e.bounty)}</b>
-      ${e.elite ? `<span>光环</span><b>${e.elite.aura.name} ${e.elite.lvl} 级：${e.elite.aura.desc[e.elite.lvl - 1]}</b>` : ''}</div>`;
+      ${e.elite ? `<span>光环</span><b>${e.elite.aura.name} ${e.elite.lvl} 级：${e.elite.aura.desc[e.elite.lvl - 1]}</b>` : ''}
+      ${e.uid === 'Udea' ? `<span>魔法免疫</span><b style="color:${e.magicImmune ? '#7ab8ff' : '#999'}">${e.magicImmune ? '有（魔法攻击无效，每 5 秒切换）' : '无（每 5 秒切换）'}</b>` : ''}</div>`;
   }
   if (innerWidth <= 820) { box.innerHTML = `<div class="col-l">${left}</div><div class="col-m">${mid}</div>`; return; }
   renderCard(e);
@@ -3310,5 +3333,5 @@ newGame('solo');
 showStart();
 requestAnimationFrame(frame);
 window.__G = () => G;   // 调试用
-window.__dbg = { get G() { return G; }, NODES, EDGES, kill, spawnMonster, FXS, buildTower, upgradeTower, learnSkill, heroLevelUp, step, canPlace, newGame, monstersAlive, towerStats, rerollBuild, orderBuild, orderMove, castSkill, spawnRabbit, buyRabbit, RABBIT_SHOP, SHOP, SHOP_ITEMS, buyShop, orderFinger, KITS, towerAS, towerAtk, effArmor, applyAuras, sellTower, select, hurt, buildCmds, newTower, attack };
+window.__dbg = { get G() { return G; }, NODES, EDGES, kill, hurt, spawnMonster, FXS, buildTower, upgradeTower, learnSkill, heroLevelUp, step, canPlace, newGame, monstersAlive, towerStats, rerollBuild, orderBuild, orderMove, castSkill, spawnRabbit, buyRabbit, RABBIT_SHOP, SHOP, SHOP_ITEMS, buyShop, orderFinger, KITS, towerAS, towerAtk, effArmor, applyAuras, sellTower, select, hurt, buildCmds, newTower, attack };
 })();
