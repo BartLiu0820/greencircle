@@ -363,34 +363,36 @@ function create() {
 
   // ------------------------------ 绘制
   F.draw = (g, v) => {
-    const S = v.S, X = x => v.W / 2 + (x - v.cx) * S, Y = (y, z = 0) => v.H / 2 - (y - v.cy) * S - z * ZK * S;
-    const onScreen = (x, y) => Math.abs(x - v.cx) * S < v.W / 2 + 200 && Math.abs(y - v.cy) * S < v.H / 2 + 300;
+    // 3D 镜头时 v.sx / v.sy 是透视投影（game.js），屏幕 x 还和 y、z 有关；大小统一按镜头注视点处的比例 S 算
+    const S = v.S, X = v.sx ? (x, y, z = 0) => v.sx(x, y, z) : x => v.W / 2 + (x - v.cx) * S;
+    const Y = v.sy ? (y, z = 0) => v.sy(y, z) : (y, z = 0) => v.H / 2 - (y - v.cy) * S - z * ZK * S;
+    const onScreen = v.vis ? (x, y) => v.vis(x, y, 250) : (x, y) => Math.abs(x - v.cx) * S < v.W / 2 + 200 && Math.abs(y - v.cy) * S < v.H / 2 + 300;
     // 地面类：溅射斑、冲击波
     for (const f of fxs) {
       const a = f.life / f.max;
       if (f.k === 'splat') {
         g.globalAlpha = Math.min(1, a * 1.5) * 0.7; g.fillStyle = f.color;
         let s = f.seed; const rr = () => ((s = (s * 9301 + 49297) % 233280) / 233280);
-        g.beginPath(); g.ellipse(X(f.x), Y(f.y), 60 * S, 34 * S, 0, 0, TAU); g.fill();
-        for (let i = 0; i < 6; i++) { const an = rr() * TAU, d = (50 + rr() * 40) * S; g.beginPath(); g.ellipse(X(f.x) + Math.cos(an) * d, Y(f.y) + Math.sin(an) * d * 0.55, (8 + rr() * 10) * S, (5 + rr() * 6) * S, 0, 0, TAU); g.fill(); }
+        g.beginPath(); g.ellipse(X(f.x, f.y), Y(f.y), 60 * S, 34 * S, 0, 0, TAU); g.fill();
+        for (let i = 0; i < 6; i++) { const an = rr() * TAU, d = (50 + rr() * 40) * S; g.beginPath(); g.ellipse(X(f.x, f.y) + Math.cos(an) * d, Y(f.y) + Math.sin(an) * d * 0.55, (8 + rr() * 10) * S, (5 + rr() * 6) * S, 0, 0, TAU); g.fill(); }
         g.globalAlpha = 1;
       } else if (f.k === 'nova') {
-        const k = 1 - a, r = f.r * (0.25 + 0.75 * Math.sqrt(k)) * S, x = X(f.x), y = Y(f.y);
+        const k = 1 - a, r = f.r * (0.25 + 0.75 * Math.sqrt(k)) * S, x = X(f.x, f.y), y = Y(f.y);
         const gr = g.createRadialGradient(x, y, r * 0.2, x, y, r);
         gr.addColorStop(0, f.color + '00'); gr.addColorStop(0.75, f.color + '44'); gr.addColorStop(0.95, f.color + 'cc'); gr.addColorStop(1, f.color + '00');
         g.globalAlpha = Math.min(1, a * 1.6); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill(); g.globalAlpha = 1;
       } else if (f.k === 'ring') {
         const r = f.r * (1 - a * 0.65) * S;
         g.globalAlpha = a; g.strokeStyle = f.color; g.lineWidth = Math.max(1.5, f.w * S * 4 * a + 1);
-        g.beginPath(); g.ellipse(X(f.x), Y(f.y), r, r * 0.62, 0, 0, TAU); g.stroke(); g.globalAlpha = 1;
+        g.beginPath(); g.ellipse(X(f.x, f.y), Y(f.y), r, r * 0.62, 0, 0, TAU); g.stroke(); g.globalAlpha = 1;
       }
     }
     // 弹体的地面阴影（抛物线类才明显）
     g.fillStyle = 'rgba(0,0,0,.28)';
-    for (const p of P) if ((p.st.arc || p.st.ball) && onScreen(p.rx, p.ry)) { g.beginPath(); g.ellipse(X(p.rx), Y(p.ry), 12 * S * p.scale * SIZE + 1, 6 * S * p.scale * SIZE + 0.5, 0, 0, TAU); g.fill(); }
+    for (const p of P) if ((p.st.arc || p.st.ball) && onScreen(p.rx, p.ry)) { g.beginPath(); g.ellipse(X(p.rx, p.ry), Y(p.ry), 12 * S * p.scale * SIZE + 1, 6 * S * p.scale * SIZE + 0.5, 0, 0, TAU); g.fill(); }
     // 非发光粒子（烟、水滴、冰屑）
     for (const q of parts) if (!q.add && onScreen(q.x, q.y)) {
-      const a = Math.max(0, q.life / q.max), sx = X(q.x), sy = Y(q.y, q.z), s = q.size * S * PSIZE;
+      const a = Math.max(0, q.life / q.max), sx = X(q.x, q.y, q.z), sy = Y(q.y, q.z), s = q.size * S * PSIZE;
       if (q.kind === 'smoke') { g.globalAlpha = a * 0.45; g.drawImage(tint(SMOKE, q.color), sx - s, sy - s, s * 2, s * 2); }
       else if (q.kind === 'shard') { g.globalAlpha = a; g.fillStyle = q.color; g.save(); g.translate(sx, sy); g.rotate(q.t * (q.spin || 0)); g.fillRect(-s / 2, -s / 5, s, s / 2.5); g.restore(); }
       else if (q.kind === 'bubble') { g.globalAlpha = a; g.strokeStyle = q.color; g.lineWidth = 1; g.beginPath(); g.arc(sx, sy, s, 0, TAU); g.stroke(); }
@@ -400,16 +402,16 @@ function create() {
     // 弹体
     for (const p of P) {
       if (!onScreen(p.rx, p.ry)) continue;
-      const st = p.st, sx = X(p.rx), sy = Y(p.ry, p.z), k = S * p.scale * SIZE;
+      const st = p.st, sx = X(p.rx, p.ry, p.z), sy = Y(p.ry, p.z), k = S * p.scale * SIZE;
       const ang = Math.atan2(-Math.sin(p.ang) - Math.sin(p.pitch || 0) * 0.6, Math.cos(p.ang));   // 屏幕上的朝向（y 翻转 + 抛物线俯仰）
       if (st.w3) { drawW3Body(g, p, st.w3, sx, sy, ang, S); continue; }
       if (st.tracer && p.hist.length) {             // 子弹：亮色曳光
         const [hx, hy, hz] = p.hist[0]; g.globalCompositeOperation = 'lighter';
         g.strokeStyle = st.tracer; g.lineWidth = Math.max(1.5, 4 * k); g.lineCap = 'round';
-        g.beginPath(); g.moveTo(X(hx), Y(hy, hz)); g.lineTo(sx, sy); g.stroke(); g.globalCompositeOperation = 'source-over'; continue;
+        g.beginPath(); g.moveTo(X(hx, hy, hz), Y(hy, hz)); g.lineTo(sx, sy); g.stroke(); g.globalCompositeOperation = 'source-over'; continue;
       }
       if (st.afterimage) {                          // 剑气残影
-        p.hist.forEach(([hx, hy, hz], i) => { g.globalAlpha = (i + 1) / (p.hist.length + 1) * 0.35; g.save(); g.translate(X(hx), Y(hy, hz)); g.rotate(ang); SHAPES[st.shape](g, k * 1.4, st.col); g.restore(); });
+        p.hist.forEach(([hx, hy, hz], i) => { g.globalAlpha = (i + 1) / (p.hist.length + 1) * 0.35; g.save(); g.translate(X(hx, hy, hz), Y(hy, hz)); g.rotate(ang); SHAPES[st.shape](g, k * 1.4, st.col); g.restore(); });
         g.globalAlpha = 1;
       }
       if (st.core) { g.globalCompositeOperation = 'lighter'; const r = st.core[1] * k * (1 + 0.12 * Math.sin(p.t * 30)); g.drawImage(glow(st.core[0]), sx - r * 1.6, sy - r * 1.6, r * 3.2, r * 3.2); g.globalCompositeOperation = 'source-over'; }
@@ -427,12 +429,12 @@ function create() {
     g.globalCompositeOperation = 'lighter';
     for (const q of parts) if (q.add && onScreen(q.x, q.y)) {
       const a = Math.max(0, q.life / q.max), s = q.size * S * PSIZE * (q.kind === 'spark' ? 1 : 0.6 + 0.4 * a);
-      g.globalAlpha = a; g.drawImage(glow(q.color), X(q.x) - s, Y(q.y, q.z) - s, s * 2, s * 2);
+      g.globalAlpha = a; g.drawImage(glow(q.color), X(q.x, q.y, q.z) - s, Y(q.y, q.z) - s, s * 2, s * 2);
     }
     // 闪光、闪电、光柱、刀光
     for (const f of fxs) {
       const a = f.life / f.max;
-      if (f.k === 'flash') { const r = f.r * S * (1.4 - a * 0.4); g.globalAlpha = a; g.drawImage(glow(f.color), X(f.x) - r, Y(f.y, f.z) - r, r * 2, r * 2); }
+      if (f.k === 'flash') { const r = f.r * S * (1.4 - a * 0.4); g.globalAlpha = a; g.drawImage(glow(f.color), X(f.x, f.y, f.z) - r, Y(f.y, f.z) - r, r * 2, r * 2); }
       else if (f.k === 'bolt') {
         if (!f.pts) {                                 // 锯齿折线，每 0.04 秒重新生成一次（闪烁感）
           const n = 7, pts = [];
@@ -441,21 +443,21 @@ function create() {
         }
         for (const [w, c, al] of [[10, f.color, 0.35], [4, f.color, 0.9], [1.6, '#ffffff', 1]]) {
           g.globalAlpha = a * al; g.strokeStyle = c; g.lineWidth = Math.max(1, w * S * 2 * f.w); g.lineJoin = 'round'; g.beginPath();
-          f.pts.forEach(([x, y, z], i) => g[i ? 'lineTo' : 'moveTo'](X(x), Y(y, z))); g.stroke();
+          f.pts.forEach(([x, y, z], i) => g[i ? 'lineTo' : 'moveTo'](X(x, y, z), Y(y, z))); g.stroke();
         }
       } else if (f.k === 'beam') {
         for (const [w, c, al] of [[16, f.color, 0.35], [6, f.color, 0.8], [2, '#ffffff', 1]]) {
           g.globalAlpha = a * al; g.strokeStyle = c; g.lineWidth = Math.max(1, w * S * 1.5 * f.w); g.lineCap = 'round';
-          g.beginPath(); g.moveTo(X(f.x1), Y(f.y1, f.z1)); g.lineTo(X(f.x2), Y(f.y2, f.z2)); g.stroke();
+          g.beginPath(); g.moveTo(X(f.x1, f.y1, f.z1), Y(f.y1, f.z1)); g.lineTo(X(f.x2, f.y2, f.z2), Y(f.y2, f.z2)); g.stroke();
         }
       } else if (f.k === 'pillar') {                  // 从天而降的光柱
-        const x = X(f.x), y = Y(f.y), w = 46 * S * (0.5 + a * 0.5), h = 900 * S;
+        const x = X(f.x, f.y), y = Y(f.y), w = 46 * S * (0.5 + a * 0.5), h = 900 * S;
         const gr = g.createLinearGradient(0, y - h, 0, y); gr.addColorStop(0, f.color + '00'); gr.addColorStop(0.7, f.color + 'aa'); gr.addColorStop(1, '#ffffff');
         g.globalAlpha = a; g.fillStyle = gr; g.fillRect(x - w / 2, y - h, w, h);
         g.drawImage(glow(f.color), x - w * 2, y - w * 1.2, w * 4, w * 2.4);
       } else if (f.k === 'fall') {
-        const k = Math.max(0, a), z = f.z0 * k, x = X(f.x + f.dx * k), y = Y(f.y + f.dy * k, z);
-        const tx = X(f.x + f.dx * Math.min(1, k + 0.35)), ty = Y(f.y + f.dy * Math.min(1, k + 0.35), f.z0 * Math.min(1, k + 0.35));
+        const k = Math.max(0, a), z = f.z0 * k, x = X(f.x + f.dx * k, f.y + f.dy * k, z), y = Y(f.y + f.dy * k, z);
+        const tx = X(f.x + f.dx * Math.min(1, k + 0.35), f.y + f.dy * Math.min(1, k + 0.35), f.z0 * Math.min(1, k + 0.35)), ty = Y(f.y + f.dy * Math.min(1, k + 0.35), f.z0 * Math.min(1, k + 0.35));
         const r = f.size * S * SIZE;
         g.globalAlpha = 0.9; g.strokeStyle = f.color; g.lineCap = 'round';
         for (const [w, al] of [[2.2, 0.25], [1.1, 0.6]]) { g.globalAlpha = al; g.lineWidth = r * w; g.beginPath(); g.moveTo(tx, ty); g.lineTo(x, y); g.stroke(); }
@@ -464,9 +466,9 @@ function create() {
         g.drawImage(glow(f.core), x - r * 0.8, y - r * 0.8, r * 1.6, r * 1.6);
         // 地面上的落点阴影
         g.globalCompositeOperation = 'source-over'; g.globalAlpha = 0.35 * (1 - k); g.fillStyle = '#000';
-        g.beginPath(); g.ellipse(X(f.x), Y(f.y), r * (1.2 - 0.6 * k), r * (0.6 - 0.3 * k), 0, 0, TAU); g.fill(); g.globalCompositeOperation = 'lighter';
+        g.beginPath(); g.ellipse(X(f.x, f.y), Y(f.y), r * (1.2 - 0.6 * k), r * (0.6 - 0.3 * k), 0, 0, TAU); g.fill(); g.globalCompositeOperation = 'lighter';
       } else if (f.k === 'slash') {
-        const x = X(f.x), y = Y(f.y, f.z), r = 60 * S;
+        const x = X(f.x, f.y, f.z), y = Y(f.y, f.z), r = 60 * S;
         g.globalAlpha = a; g.strokeStyle = f.color; g.lineWidth = Math.max(1.5, 7 * S * a); g.lineCap = 'round';
         g.beginPath(); g.arc(x, y, r, f.a, f.a + 2.2); g.stroke();
         g.beginPath(); g.arc(x, y, r * 0.8, f.a + Math.PI, f.a + Math.PI + 2); g.stroke();
@@ -494,8 +496,8 @@ function create() {
       const p0 = h[i - 1], p1 = h[i];
       g.globalAlpha = Math.min(1, a * r.alpha) * cm;
       g.beginPath();
-      g.moveTo(X(p0.x), Y(p0.y, p0.z + r.above * k)); g.lineTo(X(p1.x), Y(p1.y, p1.z + r.above * k));
-      g.lineTo(X(p1.x), Y(p1.y, p1.z - r.below * k)); g.lineTo(X(p0.x), Y(p0.y, p0.z - r.below * k));
+      g.moveTo(X(p0.x, p0.y, p0.z + r.above * k), Y(p0.y, p0.z + r.above * k)); g.lineTo(X(p1.x, p1.y, p1.z + r.above * k), Y(p1.y, p1.z + r.above * k));
+      g.lineTo(X(p1.x, p1.y, p1.z - r.below * k), Y(p1.y, p1.z - r.below * k)); g.lineTo(X(p0.x, p0.y, p0.z - r.below * k), Y(p0.y, p0.z - r.below * k));
       g.closePath(); g.fill();
     }
   }
@@ -511,7 +513,7 @@ function create() {
       const tex = e.filter === 1 ? addSafe(w3tint(im, col)) : w3tint(im, col), cw = im.naturalWidth / e.cols, chh = im.naturalHeight / e.rows;
       g.globalCompositeOperation = e.filter === 1 ? 'lighter' : e.filter === 2 || e.filter === 3 ? 'multiply' : 'source-over';
       g.globalAlpha = Math.min(1, alpha);
-      const sx = X(x), sy = Y(y, z);
+      const sx = X(x, y, z), sy = Y(y, z);
       if (e.headOrTail !== 1) { const n = w3cell(e, f, false); g.drawImage(tex, (n % e.cols) * cw, Math.floor(n / e.cols) * chh, cw, chh, sx - size / 2, sy - size / 2, size, size); }
       if (e.headOrTail >= 1) {               // 尾巴：沿速度方向拉长
         const vx = q.owner ? q.lvx : q.vx, vy = q.owner ? q.lvy : q.vy, vz = q.owner ? q.lvz : q.vz;

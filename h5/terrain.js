@@ -9,6 +9,8 @@
  * 用法：const T = Terrain.create({ world, roadSegs, roadHalf, spawn, center });
  *       每帧 T.drawGround(ctx, view, t)；T.drawTrees(ctx, view)（在单位之前画）；T.drawOverlay(ctx, view)（最后画）
  *       view = { W, H, S, cx, cy }：画布像素尺寸、每世界单位的像素数、镜头中心（世界坐标，y 朝上）
+ *       3D 镜头时 view 还带 sx(x, y, z) / sy(y, z) / k(y)（透视投影、y 处每世界单位的像素数）：地块和树由 units3d.js 画
+ *       （T.glSource()、T.trees），这里只画法阵、出怪口这些叠在地面上的东西
  */
 window.Terrain = (() => {
 'use strict';
@@ -145,10 +147,20 @@ function create({ world, roadSegs, roadHalf, spawn, center = [0, 0] }) {
 
   // ------------------------------------------------ 每帧绘制
   const worldTf = (ctx, v) => ctx.setTransform(v.S, 0, 0, -v.S, v.W / 2 - v.cx * v.S, v.H / 2 + v.cy * v.S);
-  const visible = (v, x, y, pad) => Math.abs(x - v.cx) * v.S < v.W / 2 + pad * v.S && Math.abs(y - v.cy) * v.S < v.H / 2 + pad * v.S;
-  const px = (v, x) => v.W / 2 + (x - v.cx) * v.S, py = (v, y) => v.H / 2 - (y - v.cy) * v.S;
+  const kOf = (v, y) => v.k ? v.k(y) : v.S;
+  const px = (v, x, y) => v.sx ? v.sx(x, y) : v.W / 2 + (x - v.cx) * v.S, py = (v, y) => v.sy ? v.sy(y) : v.H / 2 - (y - v.cy) * v.S;
+  const visible = (v, x, y, pad) => { if (v.vis) return v.vis(x, y, pad); const k = kOf(v, y); return Math.abs(px(v, x, y) - v.W / 2) < v.W / 2 + pad * k && Math.abs(py(v, y) - v.H / 2) < v.H / 2 + pad * k; };
 
   function drawGround(ctx, v, t) {
+    if (v.sx) {                                  // 3D 镜头：地块由 units3d.js 贴；法阵按中心处的局部比例画（压扁成透视里的样子）
+      if (center && visible(v, center[0], center[1], 400)) {
+        const k = v.k(center[1]);
+        ctx.save(); ctx.setTransform(k, 0, 0, -k * v.q(center[1]), px(v, center[0], center[1]), py(v, center[1])); ctx.translate(-center[0], -center[1]);
+        drawEmblem(ctx, center, t); ctx.restore();
+      }
+      if (spawn) drawPortal(ctx, v, spawn, t);
+      return;
+    }
     ctx.save();
     ctx.fillStyle = '#1d3314'; ctx.fillRect(0, 0, v.W, v.H);
     ctx.imageSmoothingEnabled = true;
@@ -206,7 +218,7 @@ function create({ world, roadSegs, roadHalf, spawn, center = [0, 0] }) {
   const embers = Array.from({ length: 28 }, () => ({ a: R() * 7, r: R(), sp: 0.4 + R() * 0.8, ph: R() }));
   function drawPortal(ctx, v, [x, y], t) {
     if (!visible(v, x, y, 400)) return;
-    const X = px(v, x), Y = py(v, y), S = v.S, r = 170 * S, pulse = 0.6 + 0.4 * Math.sin(t * 2.4);
+    const X = px(v, x, y), Y = py(v, y), S = kOf(v, y), r = 170 * S, pulse = 0.6 + 0.4 * Math.sin(t * 2.4);
     const gr = ctx.createRadialGradient(X, Y, 0, X, Y, r);
     gr.addColorStop(0, `rgba(255,70,40,${0.28 + 0.12 * pulse})`); gr.addColorStop(0.6, 'rgba(160,30,20,.12)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(X, Y, r, 0, 7); ctx.fill();
@@ -223,12 +235,12 @@ function create({ world, roadSegs, roadHalf, spawn, center = [0, 0] }) {
     const vis = trees.filter(o => visible(v, o.x, o.y, 260));
     ctx.fillStyle = 'rgba(0,0,0,.3)';
     for (const o of vis) {
-      const w = o.t.w * o.t.upp * o.s * v.S;
-      ctx.beginPath(); ctx.ellipse(px(v, o.x) + w * 0.12, py(v, o.y), w * 0.36, w * 0.14, 0, 0, 7); ctx.fill();
+      const w = o.t.w * o.t.upp * o.s * kOf(v, o.y);
+      ctx.beginPath(); ctx.ellipse(px(v, o.x, o.y) + w * 0.12, py(v, o.y), w * 0.36, w * 0.14, 0, 0, 7); ctx.fill();
     }
     for (const o of vis) {
-      const { x: sx, y: sy, w, h, ax, ay, upp } = o.t, k = upp * o.s * v.S, dw = w * k, dh = h * k;
-      const X = px(v, o.x), Y = py(v, o.y);
+      const { x: sx, y: sy, w, h, ax, ay, upp } = o.t, k = upp * o.s * kOf(v, o.y), dw = w * k, dh = h * k;
+      const X = px(v, o.x, o.y), Y = py(v, o.y);
       if (o.flip) { ctx.save(); ctx.translate(X, Y); ctx.scale(-1, 1); ctx.drawImage(img.trees, sx, sy, w, h, -dw * ax, -dh * ay, dw, dh); ctx.restore(); }
       else ctx.drawImage(img.trees, sx, sy, w, h, X - dw * ax, Y - dh * ay, dw, dh);
     }
@@ -248,7 +260,10 @@ function create({ world, roadSegs, roadHalf, spawn, center = [0, 0] }) {
   }
   // 小地图用：低清整图和它覆盖的世界范围（-L..L），贴图没加载完时是 null
   const groundImage = () => ready ? { img: low, L } : null;
-  return { drawGround, drawTrees, drawOverlay, groundImage };
+  // units3d.js 贴地面用：块的范围、按块取高清图、低清整图和外圈压暗
+  const nc = Math.ceil(N / CH);
+  const glSource = { get ready() { return ready && !!low; }, L, span: CH * T, cmin: -nc, cmax: nc - 1, chunk, get low() { return low; }, shade };
+  return { drawGround, drawTrees, drawOverlay, groundImage, glSource: () => glSource, trees };
 }
 return { create };
 })();

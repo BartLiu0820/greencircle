@@ -1,5 +1,6 @@
 """游戏里实时 3D 渲染用的魔兽原版模型：把精灵表登记过的模型（h5/assets/sprites.js 里的 aliasOf）连同它们引用的贴图、
-粒子发射器生成的子模型、16 种队伍颜色 / 光晕贴图，从 art/war3_raw 拷到 h5/assets/w3/。
+粒子发射器生成的子模型、16 种队伍颜色 / 光晕贴图，还有地图边上树墙的树模型和它们的可替换贴图（tools/war3_terrain.py 的 TREES），
+从 art/war3_raw 拷到 h5/assets/w3/。
 
 路径统一成小写、正斜杠（MDX 里写的是 Windows 路径、大小写不一），浏览器里按同样规则换算（h5/units3d.js 的 solver）。
 同路径 tft 覆盖 roc，和 war3_batch.py 一致。资源版权归暴雪，h5/assets/w3/ 不入库（见 .gitignore）；没有这个目录时游戏退回精灵图。
@@ -63,6 +64,9 @@ def main():
     sheets = json.loads(src[src.index('{'):src.rindex('}') + 1])
     models = sorted({':'.join(m['aliasOf'].split(':')[2:]) + '.mdx' for m in sheets.values() if m.get('war3') and m.get('aliasOf') and not m.get('glow')})
     todo = [norm(m) for m in models]
+    from war3_terrain import TREES                     # 树墙：模型的贴图是可替换贴图（编号 31 / 32 / 36），MDX 里没写路径，单独拷
+    for mdl, tex, vs in TREES.values():
+        todo += [norm(mdl.split('/', 1)[1] + f'{v}.mdx') for v in vs] + [norm(tex.split('/', 1)[1] + '.blp')]
     for i in range(16):
         todo += [f'replaceabletextures/teamcolor/teamcolor{i:02d}.blp', f'replaceabletextures/teamglow/teamglow{i:02d}.blp']
     if os.path.isdir(OUT): shutil.rmtree(OUT)

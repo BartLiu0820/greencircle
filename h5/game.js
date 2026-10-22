@@ -1149,7 +1149,10 @@ function model3d(key, m, x, y, face, anim, scaleMul = 1, alpha = 1, ent = key) {
   return U3.put(key, m, x, y, face ?? -Math.PI / 2, anim, G.t, { scale: scaleMul, alpha, team: ent.uid ? 11 : 0 });
 }
 // 精灵图画出来的顶部再往下 30%（放血条），3D 模型按同样的框算
-function sheetTop(m, y, scaleMul = 1) { const h = m.frameH * m.unitsPerPixel * S * scaleMul; return sy(y) - h * m.anchor[1] + h * 0.3; }
+function sheetTop(m, y, scaleMul = 1) {
+  const h = m.frameH * m.unitsPerPixel * scaleMul * (m.anchor[1] - 0.3);           // 精灵图里锚点以上的高度（50° 俯视下的屏幕长度）
+  return CAM ? sy(y, h * 1.25) : sy(y) - h * S;                                      // 3D：换成离地高度（÷cos50° 再扣掉身体前后的厚度）
+}
 // 方向：0=朝南(屏幕下) 1=西南 2=西 3=西北 4=北 5=东北 6=东 7=东南
 function dirIndex(angle, dirs) {
   if (dirs <= 1 || angle == null) return 0;
@@ -1174,8 +1177,8 @@ function frameRect(m, name, t0, face, hold) {
 function drawSheet(sh, e, x, y, anim, scaleMul = 1, alpha = 1) {
   const { m, im } = sh, [name, t0, hold] = anim;
   const [fx, fy, fw, fh] = frameRect(m, name, t0, e.face, hold);
-  const w = fw * m.unitsPerPixel * S * scaleMul, h = fh * m.unitsPerPixel * S * scaleMul;
-  const px = sx(x) - w * m.anchor[0], py = sy(y) - h * m.anchor[1];
+  const k = kAt(y), w = fw * m.unitsPerPixel * k * scaleMul, h = fh * m.unitsPerPixel * k * scaleMul;
+  const px = sx(x, y) - w * m.anchor[0], py = sy(y) - h * m.anchor[1];
   ctx.globalAlpha = alpha;
   ctx.drawImage(im, fx, fy, fw, fh, px, py, w, h);
   const gl = m.war3 && !m.glow && sheetByKey('glow:' + m.key);    // 模型自带的叠加发光层（光效表，tools/war3_batch.py），用 lighter 叠上去
@@ -1183,7 +1186,7 @@ function drawSheet(sh, e, x, y, anim, scaleMul = 1, alpha = 1) {
   ctx.globalAlpha = 1;
   return py + h * 0.3;
 }
-function shadow(x, y, r) { ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(sx(x), sy(y), r, r * 0.45, 0, 0, 7); ctx.fill(); }
+function shadow(x, y, r) { ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(sx(x, y), sy(y), r, r * (CAM ? CAM.s * 0.75 : 0.45), 0, 0, 7); ctx.fill(); }
 // 用精灵表第一帧做头像/图标（CSS 背景裁切）
 function sheetThumb(sh, px) {
   if (!sh) return null;
@@ -1254,28 +1257,91 @@ function resize() {
   if (G) clampCam();
 }
 function clampCam() {
-  const c = G.cam; c.zoom = clamp(c.zoom, 1, 6); S = BASE * c.zoom;
+  const c = G.cam; c.zoom = clamp(c.zoom, ZMIN, ZMAX); S = BASE * c.zoom;
   const hw = W / 2 / S, hh = H / 2 / S, lim = WORLD + 150;
   c.x = hw >= lim ? 0 : clamp(c.x, -lim + hw, lim - hw);
   c.y = hh >= lim ? 0 : clamp(c.y, -lim + hh, lim - hh);
+  camera();
 }
-const sx = x => W / 2 + (x - G.cam.x) * S, sy = y => H / 2 - (y - G.cam.y) * S;
-// 画面外的声音按离画面边缘的距离变小，超出半屏就听不见
-SFX.setListener((x, y) => { const dx = Math.max(0, Math.abs(sx(x) - W / 2) - W / 2), dy = Math.max(0, Math.abs(sy(y) - H / 2) - H / 2); return clamp(1 - Math.hypot(dx, dy) / (0.5 * Math.max(W, H)), 0, 1); });
-const wx = px => (px * DPR - W / 2) / S + G.cam.x, wy = py => G.cam.y - (py * DPR - H / 2) / S;
-function centerOn(e) { G.cam.x = e.x; G.cam.y = e.y; clampCam(); }
+// ---------------------------------------------------------------- 3D 镜头（有 WebGL 时）：和魔兽一样的透视相机，镜头朝北
+// 魔兽的默认镜头：距离 1650、俯角 56°（Angle of Attack 304°）、视野 70°（4:3 画面的水平视野，换成竖直约 55°）。
+// 这里滚轮拉远时俯角变大、接近俯视（方便看全图），拉到最近正好是魔兽的标准镜头；镜头注视点 = G.cam.x / y，
+// 注视点处每世界单位的像素数 = S（和原来的平面画法一样，所以缩放档位、平移速度都不用改）。
+// 没有 WebGL（U3 为空）时退回原来的正上方平面：sx / sy 就是线性换算，k(y) = S。
+const ZMIN = 1, ZMAX = 6, FOVY = 2 * Math.atan(Math.tan(35 * Math.PI / 180) * 0.75);
+const PITCH_FAR = 82, PITCH_NEAR = 56;
+const camPitch = zoom => (PITCH_FAR - (PITCH_FAR - PITCH_NEAR) * Math.pow(Math.log(zoom / ZMIN) / Math.log(ZMAX / ZMIN), 1.4)) * Math.PI / 180;
+let CAM = null;                                       // { ex, ey, ez, c, s, F, d }：眼睛位置、俯角的 cos / sin、焦距（像素）、到注视点的距离
+function camera() {
+  if (!U3 || !G) { CAM = null; return; }
+  const ph = camPitch(G.cam.zoom), F = H / 2 / Math.tan(FOVY / 2), d = F / S, c = Math.cos(ph), s = Math.sin(ph);
+  CAM = { ex: G.cam.x, ey: G.cam.y - d * c, ez: d * s, c, s, F, d, pitch: ph };
+}
+// 世界 → 屏幕（设备像素）。镜头不转向，所以屏幕 y 只和 (y, z) 有关；x 还和 y、z 有关（越远越往中间收）
+const camZ = (y, z) => (y - CAM.ey) * CAM.c - (z - CAM.ez) * CAM.s;          // 沿视线的深度
+const sx = (x, y = G.cam.y, z = 0) => CAM ? W / 2 + (x - G.cam.x) * CAM.F / camZ(y, z) : W / 2 + (x - G.cam.x) * S;
+const sy = (y, z = 0) => CAM ? H / 2 - ((y - CAM.ey) * CAM.s + (z - CAM.ez) * CAM.c) * CAM.F / camZ(y, z) : H / 2 - (y - G.cam.y) * S - z * 0.64 * S;
+const kAt = (y, z = 0) => CAM ? CAM.F / camZ(y, z) : S;                      // y 处每世界单位的像素数（横向）
+// 地面上南北方向在屏幕上的压缩比（俯视 = 1）。2D 时用各处原来的压扁系数 c2d
+const qAt = (y, c2d) => { if (!CAM) return c2d; const zc = camZ(y, 0), yc = (y - CAM.ey) * CAM.s - CAM.ez * CAM.c; return (CAM.s * zc - CAM.c * yc) / zc; };
+// 屏幕（CSS 像素）→ 地面：视线和 z = 0 的交点。wy 只和屏幕 y 有关，wx 两个都要
+function groundAt(px, py) {
+  if (!CAM) return [(px * DPR - W / 2) / S + G.cam.x, G.cam.y - (py * DPR - H / 2) / S];
+  const a = (px * DPR - W / 2) / CAM.F, b = -(py * DPR - H / 2) / CAM.F;
+  const dy = CAM.c + b * CAM.s, dz = -CAM.s + b * CAM.c, t = CAM.ez / Math.max(1e-3, -dz);   // 视线方向 = 前 + a·右 + b·上
+  return [G.cam.x + a * t, CAM.ey + dy * t];
+}
+const wx = (px, py) => groundAt(px, py)[0], wy = py => groundAt(W / 2 / DPR, py)[1];
+// 地面上的圆 / 多边形（世界坐标）投影成屏幕路径：3D 时每条边按透视算，2D 时就是原样
+function gpath(pts) {
+  const y0 = CAM ? CAM.ey + CAM.d * 0.1 : -Infinity;          // 跑到镜头背后的点压回镜头前面，不然投影会翻过来
+  ctx.beginPath(); pts.forEach(([x, y], i) => { y = Math.max(y, y0); ctx[i ? 'lineTo' : 'moveTo'](sx(x, y), sy(y)); }); ctx.closePath();
+}
+// (x, y) 附近 pad 世界单位内有没有东西在画面里（3D 时镜头背后的一律不算）。画面外的单位不画，免得投影出错
+function onScr(x, y, pad = 300) {
+  if (CAM && camZ(y, 0) < CAM.d * 0.1) return false;
+  const k = kAt(y), X = sx(x, y), Y = sy(y);
+  return X > -pad * k && X < W + pad * k && Y > -pad * k * 1.5 && Y < H + pad * k;
+}
+function gcircle(x, y, r, n = 56) {
+  if (!CAM) { ctx.beginPath(); ctx.arc(sx(x), sy(y), r * S, 0, 7); return; }
+  gpath(Array.from({ length: n }, (_, i) => [x + r * Math.cos(i * 2 * Math.PI / n), y + r * Math.sin(i * 2 * Math.PI / n)]));
+}
+const grect = (x, y, hw, hh = hw) => gpath([[x - hw, y - hh], [x + hw, y - hh], [x + hw, y + hh], [x - hw, y + hh]]);
+// 看得见的地面范围（世界坐标的框）：屏幕四角打到地面上的点
+function footprint() {
+  const w = W / DPR, h = H / DPR, P = [groundAt(0, 0), groundAt(w, 0), groundAt(0, h), groundAt(w, h)];
+  return [Math.min(...P.map(p => p[0])), Math.min(...P.map(p => p[1])), Math.max(...P.map(p => p[0])), Math.max(...P.map(p => p[1]))];
+}
+function centerOn(e) { zoomTo = null; G.cam.x = e.x; G.cam.y = e.y; clampCam(); }
 
 // ================================================================ 渲染
 let mouse = null, HOV = null;
 const TER = window.Terrain.create({ world: WORLD, roadSegs: ROAD_SEGS, roadHalf: ROAD_HALF, spawn: NODES.I, center: [0, 0] });
+// 3D 时树墙用原版树模型（tools/war3_terrain.py 的 TREES：哪种树用哪个模型的第几个变体，费伍德树是灰谷树换贴图）
+const TREE_MDX = {
+  ATtr: ['doodads/terrain/ashentree/ashentree', [0, 3, 6]], CTtr: ['doodads/terrain/ashentree/ashentree', [1, 4], ['ashentree.blp', 'felwoodtree.blp']],
+  VTlt: ['doodads/terrain/lordaerontree/lordaerontree', [0, 1, 2, 3]], ZTtw: ['doodads/terrain/ruinstree/ruinstree', [0, 2, 4]],
+};
+const TREES3D = !!(U3 && TER.trees.length);
+if (TREES3D) {
+  const list = window.W3_TERRAIN.trees.list;
+  for (const o of TER.trees) {
+    const [mdl, vs, retex] = TREE_MDX[o.t.id], v = vs[list.filter(t => t.id === o.t.id).indexOf(o.t)] ?? vs[0];
+    U3.doodad(`${mdl}${v}.mdx`, o.x, o.y, (o.flip ? Math.PI : 0) + (o.x * 7 + o.y * 13) % 1.2 - 0.6, o.s, retex);
+  }
+}
 function draw() {
   clampCam();
   const view = { W, H, S, cx: G.cam.x, cy: G.cam.y }, now = performance.now() / 1000;
+  if (CAM) Object.assign(view, { sx, sy, k: kAt, q: y => qAt(y, 1), footprint, camY: CAM.ey, vis: onScr,
+    cam: { eye: [CAM.ex, CAM.ey, CAM.ez], target: [G.cam.x, G.cam.y, 0], fovy: FOVY, near: Math.max(20, CAM.d * 0.05), far: CAM.d * 8 + 6000 } });
   ctx = gctx; octx.clearRect(0, 0, W, H);
-  if (U3) U3.frame(view);
+  if (CAM) gctx.clearRect(0, 0, W, H);            // 3D：地面画布是透明的贴地层，地块在 GL 里画
+  if (U3) U3.frame(view, TER.glSource());
   TER.drawGround(ctx, view, now);                 // 原版地块铺的地面、中央法阵、出怪口（terrain.js）
   label('出怪口', NODES.I[0], NODES.I[1] + 300, '#ffb0a8', 12);
-  for (const z of G.zones) if (z.style !== 'bladestorm') { ctx.fillStyle = 'rgba(122,184,255,.18)'; ctx.beginPath(); ctx.arc(sx(z.x), sy(z.y), z.r * S, 0, 7); ctx.fill(); }
+  for (const z of G.zones) if (z.style !== 'bladestorm') { ctx.fillStyle = 'rgba(122,184,255,.18)'; gcircle(z.x, z.y, z.r); ctx.fill(); }
   for (const z of G.zones) if (z.style === 'bladestorm') drawBladestormGround(z);
   for (const t of G.towers) if (t.cat === 'aura') drawAuraGround(t, now);          // 光环塔：地面光环（在单位下面）
   for (const t of G.towers) if (t.cat !== 'aura' && t.cat !== 'summon' && !t.isHero) drawTierGround(t, now);   // 塔的等级光圈
@@ -1286,16 +1352,16 @@ function draw() {
   const b = G.builder;
   if (b.order) {
     ctx.strokeStyle = b.order.kind === 'build' ? 'rgba(255,210,87,.7)' : 'rgba(111,209,122,.7)'; ctx.lineWidth = 1.5 * DPR; ctx.setLineDash([5 * DPR, 5 * DPR]);
-    ctx.beginPath(); ctx.moveTo(sx(b.x), sy(b.y)); ctx.lineTo(sx(b.order.x), sy(b.order.y)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(sx(b.x, b.y), sy(b.y)); ctx.lineTo(sx(b.order.x, b.order.y), sy(b.order.y)); ctx.stroke(); ctx.setLineDash([]);
     if (b.order.kind === 'build') { ctx.strokeStyle = 'rgba(255,210,87,.8)'; footRect(b.order.x, b.order.y); ctx.stroke(); }
   }
   if (b.queue && b.queue.length) {
     let px = b.order ? b.order.x : b.x, py = b.order ? b.order.y : b.y;
-    ctx.strokeStyle = 'rgba(255,210,87,.45)'; ctx.setLineDash([4 * DPR, 6 * DPR]); ctx.beginPath(); ctx.moveTo(sx(px), sy(py));
-    for (const q of b.queue) { ctx.lineTo(sx(q.x), sy(q.y)); if (q.kind === 'build') { ctx.stroke(); footRect(q.x, q.y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(sx(q.x), sy(q.y)); } }
+    ctx.strokeStyle = 'rgba(255,210,87,.45)'; ctx.setLineDash([4 * DPR, 6 * DPR]); ctx.beginPath(); ctx.moveTo(sx(px, py), sy(py));
+    for (const q of b.queue) { ctx.lineTo(sx(q.x, q.y), sy(q.y)); if (q.kind === 'build') { ctx.stroke(); footRect(q.x, q.y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(sx(q.x, q.y), sy(q.y)); } }
     ctx.stroke(); ctx.setLineDash([]);
   }
-  TER.drawTrees(ctx, view);
+  if (!TREES3D) TER.drawTrees(ctx, view);
   HOV = hovered();
   drawShop();
   for (const t of G.towers) drawTower(t);
@@ -1306,17 +1372,17 @@ function draw() {
   ctx = octx;                                     // 往下是界面层（盖在 3D 模型上面）
   for (const f of G.fx) {
     ctx.globalAlpha = f.kind === 'corpse' ? 1 : clamp(f.life * 4, 0, 1);
-    if (f.kind === 'line') { ctx.strokeStyle = f.color; ctx.lineWidth = (f.w || 1.5) * DPR; ctx.beginPath(); ctx.moveTo(sx(f.x1), sy(f.y1)); ctx.lineTo(sx(f.x2), sy(f.y2)); ctx.stroke(); }
-    if (f.kind === 'ring') { ctx.strokeStyle = f.color; ctx.lineWidth = 2 * DPR; ctx.beginPath(); ctx.arc(sx(f.x), sy(f.y), f.r * S, 0, 7); ctx.stroke(); }
+    if (f.kind === 'line') { ctx.strokeStyle = f.color; ctx.lineWidth = (f.w || 1.5) * DPR; ctx.beginPath(); ctx.moveTo(sx(f.x1, f.y1), sy(f.y1)); ctx.lineTo(sx(f.x2, f.y2), sy(f.y2)); ctx.stroke(); }
+    if (f.kind === 'ring') { ctx.strokeStyle = f.color; ctx.lineWidth = 2 * DPR; gcircle(f.x, f.y, f.r); ctx.stroke(); }
     if (f.kind === 'mark') {
-      const k = clamp(f.life / 0.6, 0, 1), px = sx(f.x), py = sy(f.y), d = (8 + 26 * k) * DPR, a = 6 * DPR;
+      const k = clamp(f.life / 0.6, 0, 1), px = sx(f.x, f.y), py = sy(f.y), d = (8 + 26 * k) * DPR, a = 6 * DPR, q = qAt(f.y, 0.55);
       ctx.fillStyle = f.color; ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.lineWidth = 1 * DPR;
       for (let i = 0; i < 4; i++) {
-        const ang = i * Math.PI / 2 + Math.PI / 4, ux = Math.cos(ang), uy = Math.sin(ang) * 0.55;
+        const ang = i * Math.PI / 2 + Math.PI / 4, ux = Math.cos(ang), uy = Math.sin(ang) * q;
         const tx = px + ux * d, ty = py + uy * d;           // 箭头尖朝向中心
         ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx + ux * a * 1.6 - uy * a, ty + uy * a * 1.6 + ux * a * 0.55); ctx.lineTo(tx + ux * a * 1.6 + uy * a, ty + uy * a * 1.6 - ux * a * 0.55); ctx.closePath(); ctx.fill(); ctx.stroke();
       }
-      ctx.strokeStyle = f.color; ctx.lineWidth = 1.5 * DPR; ctx.beginPath(); ctx.ellipse(px, py, d * 0.8, d * 0.44, 0, 0, 7); ctx.stroke();
+      ctx.strokeStyle = f.color; ctx.lineWidth = 1.5 * DPR; ctx.beginPath(); ctx.ellipse(px, py, d * 0.8, d * 0.8 * q, 0, 0, 7); ctx.stroke();
     }
     if (f.kind === 'corpse') {
       const m3 = metaOf(f.ent), a = m3 && m3.actions.death;
@@ -1325,25 +1391,25 @@ function draw() {
         if (!model3d(f, m3, f.x, f.y, f.ent.face, anim, k, al, f.ent)) { const sh = sheetOf(f.ent); if (sh) drawSheet(sh, f.ent, f.x, f.y, anim, k, al); }
       }
     }
-    if (f.kind === 'death') { ctx.fillStyle = f.color; ctx.beginPath(); ctx.arc(sx(f.x), sy(f.y), f.r * S * (1.6 - f.life), 0, 7); ctx.fill(); }
+    if (f.kind === 'death') { ctx.fillStyle = f.color; gcircle(f.x, f.y, f.r * (1.6 - f.life), 24); ctx.fill(); }
     if (f.kind === 'text') label(f.text, f.x, f.y + 120 + (0.7 - f.life) * 300, f.color, 12);
     ctx.globalAlpha = 1;
   }
   FXS.draw(ctx, view);
-  // 建造预览
+  // 建造预览（贴地的范围圈、格子画在地面层，3D 时在模型下面）
   if (G.placing && mouse) {
-    const x = snap(wx(mouse.x)), y = snap(wy(mouse.y)), ok = canPlace(x, y, true);
+    ctx = gctx;
+    const x = snap(wx(mouse.x, mouse.y)), y = snap(wy(mouse.y)), ok = canPlace(x, y, true);
     const fam = G.placing;
     const range = fam === 'hero' ? D.heroes[G.heroChoice].range : (D.towers[fam].cat === 'aura' ? (D.towers[fam].levels[0].abils[0] || {}).area || 900 : D.towers[fam].levels[0].range);
     const col = ok ? '#6fd17a' : '#ff5a4f';
     rangeCircle(x, y, range, col, 0.08);
     drawBuildGrid(x, y);
     // 占地 3×3 格：每格单独标绿 / 红（和魔兽一样，一眼看出是哪一格挡住了）
-    const cpx = CELL * S;
     for (const [cx, cy] of footCells(x, y)) {
       const good = cellBuildable(cx, cy) && !cellTaken(cx, cy, true);
       ctx.fillStyle = good ? 'rgba(111,209,122,.38)' : 'rgba(255,90,79,.45)';
-      ctx.fillRect(sx(cx) - cpx / 2 + 1, sy(cy) - cpx / 2 + 1, cpx - 2, cpx - 2);
+      grect(cx, cy, CELL / 2 - 1 / kAt(cy)); ctx.fill();
     }
     ctx.save(); ctx.shadowColor = col; ctx.shadowBlur = 10 * DPR; ctx.strokeStyle = col; ctx.lineWidth = 2 * DPR;
     footRect(x, y); ctx.stroke(); ctx.restore();
@@ -1353,8 +1419,9 @@ function draw() {
       const gsh = fam === 'hero' ? sheetByKey('hero:' + G.heroChoice) : towerSheet(fam, 1);
       if (gsh) drawSheet(gsh, { face: -Math.PI / 2 }, x, y, ganim, 1, ok ? 0.6 : 0.35);
     }
+    ctx = octx;
   }
-  if (G.pending && mouse) { label(G.pending === 'blink' ? '闪烁到这里' : G.pending.startsWith('item:') ? '对这里的光环塔使用' : '移动到这里', wx(mouse.x), wy(mouse.y) + 90, '#c8f5c8', 12); }
+  if (G.pending && mouse) { label(G.pending === 'blink' ? '闪烁到这里' : G.pending.startsWith('item:') ? '对这里的光环塔使用' : '移动到这里', wx(mouse.x, mouse.y), wy(mouse.y) + 90, '#c8f5c8', 12); }
   TER.drawOverlay(ctx, view);
   ctx = gctx;
   if (U3) { U3.render(G.t - (draw.lastT ?? G.t), gctx.canvas); draw.lastT = G.t; }
@@ -1362,11 +1429,11 @@ function draw() {
 }
 const snap = v => Math.round(v / CELL) * CELL;
 // 塔的占地方框（世界坐标 → 屏幕路径）
-function footRect(x, y) { ctx.beginPath(); ctx.rect(sx(x) - FOOT_HALF * S, sy(y) - FOOT_HALF * S, FOOT_HALF * 2 * S, FOOT_HALF * 2 * S); }
+function footRect(x, y) { grect(x, y, FOOT_HALF); }
 // 建造时在光标附近显示可建造的格子（只画能建的格，越远越淡）
 function drawBuildGrid(x, y) {
-  const R = 9, cpx = CELL * S;
-  if (cpx < 5 * DPR) return;
+  const R = 9;
+  if (CELL * kAt(y) < 5 * DPR) return;
   ctx.save(); ctx.lineWidth = 1 * DPR;
   for (let i = -R; i <= R; i++) for (let j = -R; j <= R; j++) {
     const d = Math.hypot(i, j) / R; if (d > 1) continue;
@@ -1374,30 +1441,33 @@ function drawBuildGrid(x, y) {
     if (!cellBuildable(cx, cy)) continue;
     const taken = cellTaken(cx, cy, true);
     ctx.strokeStyle = taken ? `rgba(255,120,100,${0.35 * (1 - d)})` : `rgba(190,255,190,${0.45 * (1 - d)})`;
-    ctx.strokeRect(sx(cx) - cpx / 2 + 0.5, sy(cy) - cpx / 2 + 0.5, cpx - 1, cpx - 1);
+    grect(cx, cy, CELL / 2 - 0.5 / kAt(cy)); ctx.stroke();
   }
   ctx.restore();
 }
 function rangeCircle(x, y, r, c, fill = 0.07) {
-  ctx.beginPath(); ctx.arc(sx(x), sy(y), r * S, 0, 7);
+  gcircle(x, y, r, 96);
   ctx.globalAlpha = fill; ctx.fillStyle = c; ctx.fill(); ctx.globalAlpha = 1;
   ctx.strokeStyle = c; ctx.lineWidth = 1.5 * DPR; ctx.stroke();
 }
 function label(text, x, y, color, size) {
+  if (!onScr(x, y, 100)) return;
   ctx.font = `${size * DPR}px -apple-system,"PingFang SC",sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.lineWidth = 3 * DPR; ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.strokeText(text, sx(x), sy(y)); ctx.fillStyle = color; ctx.fillText(text, sx(x), sy(y));
+  ctx.lineWidth = 3 * DPR; ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.strokeText(text, sx(x, y), sy(y)); ctx.fillStyle = color; ctx.fillText(text, sx(x, y), sy(y));
 }
 function selRing(x, y, r, color, alpha = 1) {
   ctx.save(); ctx.globalAlpha = alpha; ctx.shadowColor = color; ctx.shadowBlur = 8 * DPR;
-  ctx.strokeStyle = color; ctx.lineWidth = 2.2 * DPR; ctx.beginPath(); ctx.ellipse(x, y + r * 0.35, r * 1.15, r * 0.55, 0, 0, 7); ctx.stroke();
+  const q = CAM ? CAM.s : 0.55 / 1.15, dy = CAM ? 0 : r * 0.35;              // 3D：圈就在脚下，按俯角压扁
+  ctx.strokeStyle = color; ctx.lineWidth = 2.2 * DPR; ctx.beginPath(); ctx.ellipse(x, y + dy, r * 1.15, r * 1.15 * q, 0, 0, 7); ctx.stroke();
   ctx.shadowBlur = 0; ctx.globalAlpha = alpha * 0.18; ctx.fillStyle = color; ctx.fill(); ctx.restore();
 }
 // ---------------------------------------------------------------- 剑刃风暴：剑魂
 // 原图：在被攻击的目标处召唤剑魂（n05F，1.5 倍的剑圣，带"幽灵"所以半透明）施放旋风斩，持续 5 秒；
 // 风暴镜像召唤的小剑魂（n05E）是 0.6 倍。精灵图是原版剑圣模型的旋风斩动作（tools/war3_batch.py 的 fx:bladestorm）
 function bsFade(z) { return clamp(Math.min((G.t - z.t0) / 0.25, (z.until - G.t) / 0.3), 0, 1); }
-function drawBladestormGround(z) { shadow(z.x, z.y, z.r * 0.18 * S * (z.r >= 300 ? 1 : 0.5)); }
+function drawBladestormGround(z) { if (onScr(z.x, z.y, 400)) shadow(z.x, z.y, z.r * 0.18 * kAt(z.y) * (z.r >= 300 ? 1 : 0.5)); }
 function drawBladestormSpirit(z) {
+  if (!onScr(z.x, z.y, 400)) return;
   const k = z.r >= 300 ? 1 : 0.6 / 1.5, fade = bsFade(z);
   if (model3d(z, SHEETS['fx:bladestorm'], z.x, z.y, -Math.PI / 2, ['spin', z.t0], k, 0.62 * fade)) return;
   const sh = sheetByKey('fx:bladestorm'); if (!sh) return;
@@ -1423,30 +1493,34 @@ function tintedSheet(sh, color, amount) {           // 精灵表叠一层颜色�
 }
 const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
 function drawTierGround(t, now) {                    // 底座下的光圈：档位越高越亮、越多层
+  if (!onScr(t.x, t.y, 300)) return;
+  const K = kAt(t.y);
   const tier = towerTier(t); if (!tier) return;
-  const col = TIER[tier].color, px = sx(t.x), py = sy(t.y), R = (FOOT_HALF + 10) * S, pulse = 0.75 + 0.25 * Math.sin(now * 2.4 + t.id);
+  const col = TIER[tier].color, px = sx(t.x, t.y), py = sy(t.y), R = (FOOT_HALF + 10) * K, pulse = 0.75 + 0.25 * Math.sin(now * 2.4 + t.id);
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   const g = ctx.createRadialGradient(px, py, R * 0.2, px, py, R);
   g.addColorStop(0, hexA(col, 0.32 * pulse)); g.addColorStop(0.7, hexA(col, 0.12 * pulse)); g.addColorStop(1, hexA(col, 0));
-  ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(px, py, R, R * 0.62, 0, 0, 7); ctx.fill();
-  ctx.strokeStyle = hexA(col, 0.55 * pulse); ctx.lineWidth = Math.max(1, 3 * S * 4);
+  const sq = qAt(t.y, 0.62);
+  ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(px, py, R, R * sq, 0, 0, 7); ctx.fill();
+  ctx.strokeStyle = hexA(col, 0.55 * pulse); ctx.lineWidth = Math.max(1, 3 * K * 4);
   for (let k = 0; k < Math.min(tier, 3); k++) {      // 1~3 圈旋转的虚线符文环
     const r = R * (0.62 + k * 0.16); ctx.setLineDash([r * 0.18, r * 0.12]); ctx.lineDashOffset = (k % 2 ? 1 : -1) * now * 30 * DPR;
-    ctx.beginPath(); ctx.ellipse(px, py, r, r * 0.62, 0, 0, 7); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(px, py, r, r * sq, 0, 0, 7); ctx.stroke();
   }
   ctx.setLineDash([]); ctx.restore();
 }
 function drawTierTop(t, tier, now) {                 // 3 档起：往上飘的光点；满级：头顶光晕 + 光芒
-  const col = TIER[tier].color, px = sx(t.x), py = sy(t.y), k = S * 4;
+  const K = kAt(t.y);
+  const col = TIER[tier].color, px = sx(t.x, t.y), py = sy(t.y), k = K * 4;
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   const n = tier === 4 ? 10 : 5;
   for (let i = 0; i < n; i++) {
     const ph = (now * 0.45 + i / n + t.id * 0.13) % 1, a = i * 2.39 + t.id;
-    const ox = Math.cos(a) * 70 * S, oy = -ph * 200 * S, r = Math.max(1.2, (5 - ph * 3) * k * 0.35);
-    ctx.fillStyle = hexA(col, (1 - ph) * 0.9); ctx.beginPath(); ctx.arc(px + ox, py + oy - 20 * S, r, 0, 7); ctx.fill();
+    const ox = Math.cos(a) * 70 * K, oy = -ph * 200 * K, r = Math.max(1.2, (5 - ph * 3) * k * 0.35);
+    ctx.fillStyle = hexA(col, (1 - ph) * 0.9); ctx.beginPath(); ctx.arc(px + ox, py + oy - 20 * K, r, 0, 7); ctx.fill();
   }
   if (tier === 4) {
-    const hy = py - 230 * S, hr = 60 * S;
+    const hy = py - 230 * K, hr = 60 * K;
     const g = ctx.createRadialGradient(px, hy, 0, px, hy, hr * 1.6);
     g.addColorStop(0, 'rgba(255,240,200,.75)'); g.addColorStop(0.35, hexA(col, 0.45)); g.addColorStop(1, hexA(col, 0));
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, hy, hr * 1.6, 0, 7); ctx.fill();
@@ -1473,30 +1547,33 @@ function auraGlyph(kind, g, r) {
   g.stroke();
 }
 function drawAuraGround(t, now) {
-  const L = AURA_LOOK[t.fam] || AURA_LOOK.攻击光环, lvl = auraLevel(t), px = sx(t.x), py = sy(t.y);
-  const R = (FOOT_HALF + 20) * S * (1 + lvl * 0.25), pulse = 0.8 + 0.2 * Math.sin(now * 2 + t.id), sq = 0.62;
+  if (!onScr(t.x, t.y, ((curLevel(t).abils || [])[0] || {}).area || 900)) return;
+  const K = kAt(t.y);
+  const L = AURA_LOOK[t.fam] || AURA_LOOK.攻击光环, lvl = auraLevel(t), px = sx(t.x, t.y), py = sy(t.y);
+  const R = (FOOT_HALF + 20) * K * (1 + lvl * 0.25), pulse = 0.8 + 0.2 * Math.sin(now * 2 + t.id), sq = qAt(t.y, 0.62);
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   // 作用范围：每 3 秒一圈很淡的波纹扩散到范围边缘
   const area = ((curLevel(t).abils || [])[0] || {}).area || 900, ph = (now / 3 + t.id * 0.17) % 1;
-  ctx.strokeStyle = hexA(L.c1, 0.22 * (1 - ph)); ctx.lineWidth = Math.max(1, 6 * S * (1 - ph) + 1);
-  ctx.beginPath(); ctx.ellipse(px, py, area * S * ph, area * S * ph * sq, 0, 0, 7); ctx.stroke();
+  ctx.strokeStyle = hexA(L.c1, 0.22 * (1 - ph)); ctx.lineWidth = Math.max(1, 6 * K * (1 - ph) + 1);
+  if (CAM) gcircle(t.x, t.y, area * ph, 72); else { ctx.beginPath(); ctx.ellipse(px, py, area * K * ph, area * K * ph * sq, 0, 0, 7); }
+  ctx.stroke();
   // 底光
   const g = ctx.createRadialGradient(px, py, 0, px, py, R * 1.15);
   g.addColorStop(0, hexA(L.c2, 0.35 * pulse)); g.addColorStop(0.5, hexA(L.c1, 0.22 * pulse)); g.addColorStop(1, hexA(L.c1, 0));
   ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(px, py, R * 1.15, R * 1.15 * sq, 0, 0, 7); ctx.fill();
   // 外圈 + 内圈（等级越高圈越多）
-  ctx.strokeStyle = hexA(L.c1, 0.85 * pulse); ctx.lineWidth = Math.max(1.2, 9 * S);
+  ctx.strokeStyle = hexA(L.c1, 0.85 * pulse); ctx.lineWidth = Math.max(1.2, 9 * K);
   ctx.beginPath(); ctx.ellipse(px, py, R, R * sq, 0, 0, 7); ctx.stroke();
   const rings = 1 + Math.round(lvl * 2);
   for (let k = 1; k <= rings; k++) {
-    const r = R * (1 - k * 0.2); ctx.lineWidth = Math.max(1, 5 * S); ctx.strokeStyle = hexA(k % 2 ? L.c2 : L.c1, 0.6 * pulse);
+    const r = R * (1 - k * 0.2); ctx.lineWidth = Math.max(1, 5 * K); ctx.strokeStyle = hexA(k % 2 ? L.c2 : L.c1, 0.6 * pulse);
     ctx.setLineDash([r * 0.22, r * 0.1]); ctx.lineDashOffset = (k % 2 ? -1 : 1) * now * 40 * DPR;
     ctx.beginPath(); ctx.ellipse(px, py, r, r * sq, 0, 0, 7); ctx.stroke();
   }
   ctx.setLineDash([]);
   // 符文：沿圈旋转（压扁成地面透视）
-  const n = 6 + Math.round(lvl * 4), gr = 16 * S * (1 + lvl * 0.3);
-  ctx.strokeStyle = hexA(L.c2, 0.95); ctx.lineWidth = Math.max(1, 4 * S); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const n = 6 + Math.round(lvl * 4), gr = 16 * K * (1 + lvl * 0.3);
+  ctx.strokeStyle = hexA(L.c2, 0.95); ctx.lineWidth = Math.max(1, 4 * K); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   for (let i = 0; i < n; i++) {
     const a = now * (t.fam === '减速光环' ? 0.25 : 0.6) + i * Math.PI * 2 / n, rr = R * 0.86;
     ctx.save(); ctx.translate(px + Math.cos(a) * rr, py + Math.sin(a) * rr * sq); ctx.scale(1, sq); ctx.rotate(a + Math.PI / 2);
@@ -1506,32 +1583,34 @@ function drawAuraGround(t, now) {
   const motes = 8 + Math.round(lvl * 14);
   for (let i = 0; i < motes; i++) {
     const ph2 = (now * 0.35 + i / motes + t.id * 0.11) % 1, a = i * 2.399 + t.id, rr = R * (0.2 + (i * 0.37 % 1) * 0.75);
-    const mx = px + Math.cos(a) * rr, my = py + Math.sin(a) * rr * sq - ph2 * 160 * S;
-    ctx.fillStyle = hexA(i % 3 ? L.c1 : L.c2, (1 - ph2) * 0.85); ctx.beginPath(); ctx.arc(mx, my, Math.max(1, (4 - ph2 * 2.5) * S * 2.2), 0, 7); ctx.fill();
+    const mx = px + Math.cos(a) * rr, my = py + Math.sin(a) * rr * sq - ph2 * 160 * K;
+    ctx.fillStyle = hexA(i % 3 ? L.c1 : L.c2, (1 - ph2) * 0.85); ctx.beginPath(); ctx.arc(mx, my, Math.max(1, (4 - ph2 * 2.5) * K * 2.2), 0, 7); ctx.fill();
   }
   ctx.restore();
 }
 function drawAuraCore(t, now) {                       // 光环中心浮着的核心（方便点选；满级多一圈光芒）
-  const L = AURA_LOOK[t.fam] || AURA_LOOK.攻击光环, lvl = auraLevel(t), px = sx(t.x), py = sy(t.y) - (70 + 12 * Math.sin(now * 2 + t.id)) * S;
-  const r = (22 + lvl * 14) * S;
+  const K = kAt(t.y);
+  const L = AURA_LOOK[t.fam] || AURA_LOOK.攻击光环, lvl = auraLevel(t), px = sx(t.x, t.y), py = sy(t.y) - (70 + 12 * Math.sin(now * 2 + t.id)) * K;
+  const r = (22 + lvl * 14) * K;
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   const g = ctx.createRadialGradient(px, py, 0, px, py, r * 2.4);
   g.addColorStop(0, 'rgba(255,255,255,.95)'); g.addColorStop(0.25, hexA(L.c2, 0.85)); g.addColorStop(0.6, hexA(L.c1, 0.35)); g.addColorStop(1, hexA(L.c1, 0));
   ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, r * 2.4, 0, 7); ctx.fill();
   ctx.translate(px, py); ctx.rotate(now * 1.2);                     // 旋转的菱形晶核
   ctx.fillStyle = hexA(L.c2, 0.9); ctx.beginPath(); ctx.moveTo(0, -r); ctx.lineTo(r * 0.6, 0); ctx.lineTo(0, r); ctx.lineTo(-r * 0.6, 0); ctx.closePath(); ctx.fill();
-  if (lvl >= 0.99) { ctx.strokeStyle = 'rgba(255,240,200,.7)'; ctx.lineWidth = Math.max(1, 2 * S * 3); for (let i = 0; i < 6; i++) { ctx.rotate(Math.PI / 3); ctx.beginPath(); ctx.moveTo(0, r * 1.2); ctx.lineTo(0, r * 2.2); ctx.stroke(); } }
+  if (lvl >= 0.99) { ctx.strokeStyle = 'rgba(255,240,200,.7)'; ctx.lineWidth = Math.max(1, 2 * K * 3); for (let i = 0; i < 6; i++) { ctx.rotate(Math.PI / 3); ctx.beginPath(); ctx.moveTo(0, r * 1.2); ctx.lineTo(0, r * 2.2); ctx.stroke(); } }
   ctx.restore();
 }
 
 function footRing(t, alpha) {
-  const x = sx(t.x), y = sy(t.y), r = FOOT_HALF * S * 0.98;
+  const K = kAt(t.y);
+  const x = sx(t.x, t.y), y = sy(t.y), r = FOOT_HALF * K * 0.98;
   ctx.save(); ctx.globalAlpha = alpha; ctx.shadowColor = '#3cff3c'; ctx.shadowBlur = 8 * DPR;
-  ctx.strokeStyle = '#3cff3c'; ctx.lineWidth = 2.2 * DPR; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.stroke();
+  ctx.strokeStyle = '#3cff3c'; ctx.lineWidth = 2.2 * DPR; if (CAM) gcircle(t.x, t.y, FOOT_HALF * 0.98); else { ctx.beginPath(); ctx.arc(x, y, r, 0, 7); } ctx.stroke();
   ctx.shadowBlur = 0; ctx.globalAlpha = alpha * 0.15; ctx.fillStyle = '#3cff3c'; ctx.fill(); ctx.restore();
 }
 // 鼠标悬停的单位：细一点、半透明的圈
-const hovered = () => mouse && !G.placing && !G.pending ? hitTest(wx(mouse.x), wy(mouse.y)) : null;
+const hovered = () => mouse && !G.placing && !G.pending ? hitTest(mouse.x, mouse.y) : null;
 function drawSprite(im, x, y, size) { const w = size, h = size * im.naturalHeight / im.naturalWidth; ctx.drawImage(im, x - w / 2, y - h * 0.75, w, h); }
 // 塔模型体型不一（毒塔、图腾塔出图比别的塔大一大圈）：按 idle 帧可见包围盒统一到差不多的大小，只缩大的、略放小的
 const TOWER_MAX_W = 240, TOWER_MAX_H = 300, TOWER_MIN_W = 124;
@@ -1541,7 +1620,9 @@ function towerFit(m) {
   return Math.min(TOWER_MAX_W / w, TOWER_MAX_H / h, Math.max(1, TOWER_MIN_W / w));
 }
 function drawTower(t) {
-  const x = sx(t.x), y = sy(t.y), s = Math.max((t.cat === 'summon' ? 90 : 150) * S, (t.cat === 'summon' ? 9 : 14) * DPR);
+  if (!onScr(t.x, t.y)) return;
+  const K = kAt(t.y);
+  const x = sx(t.x, t.y), y = sy(t.y), s = Math.max((t.cat === 'summon' ? 90 : 150) * K, (t.cat === 'summon' ? 9 : 14) * DPR);
   const atk = t.cat === 'aura' ? 'aura' : (t.isHero ? heroStats(t).atk : curLevel(t).atk);
   if (t.cat === 'summon') { if (t === G.selected) selRing(x, y, s * 0.6, '#3cff3c'); else if (t === HOV) selRing(x, y, s * 0.6, '#3cff3c', 0.45); }
   else if (t === G.selected) footRing(t, 1); else if (t === HOV) footRing(t, 0.45);
@@ -1567,7 +1648,9 @@ function drawTower(t) {
   if (tier >= 3) onTop(() => drawTierTop(t, tier, performance.now() / 1000));
 }
 function drawMonster(m) {
-  const x = sx(m.x), y = sy(m.y), r = Math.max(2.5 * DPR, m.r * S);
+  if (!onScr(m.x, m.y)) return;
+  const K = kAt(m.y);
+  const x = sx(m.x, m.y), y = sy(m.y), r = Math.max(2.5 * DPR, m.r * K);
   if (m === G.selected) selRing(x, y, r, '#ff3c3c'); else if (m === HOV) selRing(x, y, r, '#ff3c3c', 0.5);
   const m3 = metaOf(m), k3 = m.elite ? 1.3 : 1;
   const in3d = m3 && model3d(m, m3, m.x, m.y, m.face, pickAnim(m, m3), k3);
@@ -1575,14 +1658,14 @@ function drawMonster(m) {
   let barY = y - r - 7 * DPR;
   if (in3d) {
     shadow(m.x, m.y, r * 0.9 * k3);
-    if (m.elite) { ctx.strokeStyle = 'rgba(255,79,216,.8)'; ctx.lineWidth = 2 * DPR; ctx.beginPath(); ctx.ellipse(x, y, r * 1.3, r * 0.6, 0, 0, 7); ctx.stroke(); }
-    if (m.boss) { ctx.strokeStyle = 'rgba(255,43,43,.8)'; ctx.lineWidth = 2.5 * DPR; ctx.beginPath(); ctx.ellipse(x, y, r * 1.2, r * 0.55, 0, 0, 7); ctx.stroke(); }
+    if (m.elite) { ctx.strokeStyle = 'rgba(255,79,216,.8)'; ctx.lineWidth = 2 * DPR; ctx.beginPath(); ctx.ellipse(x, y, r * 1.3, r * 1.3 * qAt(m.y, 0.46), 0, 0, 7); ctx.stroke(); }
+    if (m.boss) { ctx.strokeStyle = 'rgba(255,43,43,.8)'; ctx.lineWidth = 2.5 * DPR; ctx.beginPath(); ctx.ellipse(x, y, r * 1.2, r * 1.2 * qAt(m.y, 0.46), 0, 0, 7); ctx.stroke(); }
     barY = Math.min(barY, sheetTop(m3, m.y, k3) - 4 * DPR);
   } else if (sh) {
     const k = m.elite ? 1.3 : 1;                                   // 精英怪放大 130%
     shadow(m.x, m.y, r * 0.9 * k);
-    if (m.elite) { ctx.strokeStyle = 'rgba(255,79,216,.8)'; ctx.lineWidth = 2 * DPR; ctx.beginPath(); ctx.ellipse(x, y, r * 1.3, r * 0.6, 0, 0, 7); ctx.stroke(); }
-    if (m.boss) { ctx.strokeStyle = 'rgba(255,43,43,.8)'; ctx.lineWidth = 2.5 * DPR; ctx.beginPath(); ctx.ellipse(x, y, r * 1.2, r * 0.55, 0, 0, 7); ctx.stroke(); }
+    if (m.elite) { ctx.strokeStyle = 'rgba(255,79,216,.8)'; ctx.lineWidth = 2 * DPR; ctx.beginPath(); ctx.ellipse(x, y, r * 1.3, r * 1.3 * qAt(m.y, 0.46), 0, 0, 7); ctx.stroke(); }
+    if (m.boss) { ctx.strokeStyle = 'rgba(255,43,43,.8)'; ctx.lineWidth = 2.5 * DPR; ctx.beginPath(); ctx.ellipse(x, y, r * 1.2, r * 1.2 * qAt(m.y, 0.46), 0, 0, 7); ctx.stroke(); }
     barY = Math.min(barY, drawSheet(sh, m, m.x, m.y, pickAnim(m, sh.m), k) - 4 * DPR);
   } else if (im) drawSprite(im, x, y, r * 2.6);
   else {
@@ -1598,7 +1681,9 @@ function drawMonster(m) {
   });
 }
 function drawBuilder(b) {
-  const x = sx(b.x), y = sy(b.y), r = Math.max(9 * DPR, 70 * S);
+  if (!onScr(b.x, b.y)) return;
+  const K = kAt(b.y);
+  const x = sx(b.x, b.y), y = sy(b.y), r = Math.max(9 * DPR, 70 * K);
   if (b === G.selected) selRing(x, y, r, '#3cff3c'); else if (b === HOV) selRing(x, y, r, '#3cff3c', 0.45);
   const m3 = metaOf(b);
   if (m3 && model3d(b, m3, b.x, b.y, b.face, pickAnim(b, m3))) { shadow(b.x, b.y, r * 0.9); return; }
@@ -1614,7 +1699,9 @@ function drawBuilder(b) {
 }
 // 商店：原版"摇滚阿尔萨斯"模型（tools/war3_batch.py 的 shop），没有图时画个占位
 function drawShop() {
-  const x = sx(SHOP.x), y = sy(SHOP.y), r = Math.max(10 * DPR, 90 * S);
+  if (!onScr(SHOP.x, SHOP.y)) return;
+  const K = kAt(SHOP.y);
+  const x = sx(SHOP.x, SHOP.y), y = sy(SHOP.y), r = Math.max(10 * DPR, 90 * K);
   if (G.selected === SHOP) selRing(x, y, r, '#ffd257'); else if (HOV === SHOP) selRing(x, y, r, '#ffd257', 0.45);
   const m3 = metaOf(SHOP);
   if (m3 && model3d(SHOP, m3, SHOP.x, SHOP.y, -Math.PI / 2, pickAnim(SHOP, m3))) shadow(SHOP.x, SHOP.y, r * 0.9);
@@ -1626,13 +1713,15 @@ function drawShop() {
 }
 // 兔子：原版复活节兔子模型不在资源包里，程序画一只白兔子（蹦跳 + 地上一圈粉色光，方便找到）
 function drawRabbit(r) {
-  const x = sx(r.x), y = sy(r.y), k = Math.max(7 * DPR, 48 * S), age = G.t - r.t0, left = r.until - G.t;
+  if (!onScr(r.x, r.y)) return;
+  const K = kAt(r.y);
+  const x = sx(r.x, r.y), y = sy(r.y), k = Math.max(7 * DPR, 48 * K), age = G.t - r.t0, left = r.until - G.t;
   const hop = r.moving ? Math.abs(Math.sin(age * 9)) : Math.max(0, Math.sin(age * 3)) ** 8;
   const lift = hop * k * 0.7, dir = Math.cos(r.face) >= 0 ? 1 : -1;
   const pulse = 0.6 + 0.4 * Math.sin(age * 4), blink = left < 10 && Math.sin(age * 12) < 0;     // 快消失时闪烁
   if (r === G.selected) selRing(x, y, k * 1.2, '#ffd257'); else if (r === HOV) selRing(x, y, k * 1.2, '#ffd257', 0.45);
   ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = `rgba(255,120,200,${0.55 * pulse})`; ctx.lineWidth = 2.5 * DPR;
-  ctx.beginPath(); ctx.ellipse(x, y, k * (2 + pulse * 0.6), k * (1 + pulse * 0.3), 0, 0, 7); ctx.stroke(); ctx.restore();
+  ctx.beginPath(); ctx.ellipse(x, y, k * (2 + pulse * 0.6), k * (2 + pulse * 0.6) * qAt(r.y, 0.5), 0, 0, 7); ctx.stroke(); ctx.restore();
   ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(x, y, k * (1.1 - hop * 0.3), k * 0.45, 0, 0, 7); ctx.fill();
   ctx.save(); ctx.globalAlpha = blink ? 0.45 : 1; ctx.translate(x, y - lift); ctx.scale(dir, 1);
   ctx.strokeStyle = 'rgba(80,60,70,.55)'; ctx.lineWidth = 1 * DPR;
@@ -1648,7 +1737,7 @@ function drawRabbit(r) {
   ctx.fillStyle = '#ff8fb8'; ctx.beginPath(); ctx.arc(k * 1.03, -k * 1.45, k * 0.07, 0, 7); ctx.fill();         // 鼻子
   ctx.fillStyle = '#ffb3cf'; ctx.beginPath(); ctx.ellipse(k * 0.3, -k * 0.12, k * 0.24, k * 0.12, 0, 0, 7); ctx.fill();   // 脚
   ctx.restore();
-  onTop(() => label(`兔子 ${Math.ceil(left)}秒`, r.x, r.y + 48 * 3.4 + lift / S, '#ff9ad5', 12));
+  onTop(() => label(`兔子 ${Math.ceil(left)}秒`, r.x, r.y + 48 * 3.4 + lift / K, '#ff9ad5', 12));
 }
 function drawMinimap() {
   const w = mm.width, h = mm.height, k = Math.min(w, h) / (WORLD * 2 + 300);
@@ -1681,9 +1770,11 @@ function drawMinimap() {
     mctx.strokeStyle = `rgba(255,154,213,${1 - ph})`; mctx.lineWidth = 1.5 * DPR;
     mctx.beginPath(); mctx.arc(mx(r.x), my(r.y), (4 + ph * 14) * DPR, 0, 7); mctx.stroke();
   }
-  const hw = W / 2 / S, hh = H / 2 / S;
-  mctx.strokeStyle = '#fff'; mctx.lineWidth = 1 * DPR;
-  mctx.strokeRect(mx(G.cam.x - hw), my(G.cam.y + hh), hw * 2 * k, hh * 2 * k);
+  // 镜头范围：屏幕四角打到地面上的点（3D 时是上宽下窄的梯形，同魔兽的小地图）
+  const cw = W / DPR, ch = H / DPR;
+  mctx.strokeStyle = '#fff'; mctx.lineWidth = 1 * DPR; mctx.beginPath();
+  [[0, 0], [cw, 0], [cw, ch], [0, ch]].forEach(([a, b], i) => { const [x, y] = groundAt(a, b); mctx[i ? 'lineTo' : 'moveTo'](mx(x), my(y)); });
+  mctx.closePath(); mctx.stroke();
 }
 function addFx(f) { if (f.kind === 'ring') return FXS.ring(f.x, f.y, f.r, f.color, f.life, 4); if (G.fx.length < 400) G.fx.push(f); }   // 冲击波统一交给 fx.js 画
 
@@ -2016,16 +2107,23 @@ function updateCooldowns() {
 function showTip(c) { const t = $('tip'); if (!c) { t.classList.add('hidden'); return; } t.innerHTML = `<div class="tn">${c.name} <span class="hk2">(${c.key})</span></div><div>${c.tip}</div>`; t.classList.remove('hidden'); }
 
 // ================================================================ 输入
-function hitTest(x, y) {
-  const r0 = Math.max(120, 16 * DPR / S);
-  const b = G.builder; if (dist2(x, y, b.x, b.y) < (r0 * 0.9) ** 2) return b;
-  const rb = G.rabbit; if (rb && dist2(x, y, rb.x, rb.y) < r0 ** 2) return rb;
-  if (dist2(x, y, SHOP.x, SHOP.y) < (r0 * 1.2) ** 2 && !G.pending) return SHOP;
-  let best = null, bd = r0 * r0;
-  for (const t of G.towers) { const d = dist2(x, y, t.x, t.y); if (d < bd) { bd = d; best = t; } }
+// 鼠标点选（CSS 像素）：按屏幕上的距离找单位。3D 时单位是立着的，点在身体上也算 —— 量点到"脚 → 头顶"这条竖线的距离
+// （和魔兽一样点模型本身选中，而不是只认脚下的地面）
+function hitTest(px, py) {
+  const X = px * DPR, Y = py * DPR;
+  const d2 = (e, h) => {
+    const x0 = sx(e.x, e.y), y0 = sy(e.y), x1 = CAM ? sx(e.x, e.y, h) : x0, y1 = CAM ? sy(e.y, h) : y0;
+    const vx = x1 - x0, vy = y1 - y0, L = vx * vx + vy * vy, t = L ? clamp(((X - x0) * vx + (Y - y0) * vy) / L, 0, 1) : 0;
+    return (X - x0 - vx * t) ** 2 + (Y - y0 - vy * t) ** 2;
+  };
+  const rpx = (e, rw, min) => Math.max(rw * kAt(e.y), min * DPR) ** 2;
+  const b = G.builder; if (d2(b, 150) < rpx(b, 108, 14)) return b;
+  const rb = G.rabbit; if (rb && d2(rb, 90) < rpx(rb, 120, 16)) return rb;
+  if (!G.pending && d2(SHOP, 220) < rpx(SHOP, 144, 19)) return SHOP;
+  let best = null, bd = Infinity;
+  for (const t of G.towers) { const d = d2(t, t.cat === 'aura' ? 80 : 200); if (d < rpx(t, 120, 16) && d < bd) { bd = d; best = t; } }
   if (best) return best;
-  bd = Math.max(90, 12 * DPR / S) ** 2;
-  for (const m of G.monsters) { const d = dist2(x, y, m.x, m.y); if (d < bd) { bd = d; best = m; } }
+  for (const m of G.monsters) { const d = d2(m, 110 * (m.elite ? 1.3 : 1)); if (d < rpx(m, 90, 12) && d < bd) { bd = d; best = m; } }
   return best;
 }
 // 选中单位的语音（敌方怪物没有）
@@ -2041,12 +2139,12 @@ function groundClick(x, y, shift) {
   if (G.pending === 'move') { orderMove(x, y, shift); G.pending = null; uiDirty(); return; }
   if (G.pending === 'blink') { blinkTo(x, y); G.pending = null; uiDirty(); return; }
   if (G.pending && G.pending.startsWith('item:')) {          // 对目标使用商店道具（天赋卷轴）
-    const it = SHOP_ITEMS.find(i => 'item:' + i.id === G.pending), t = hitTest(x, y);
+    const it = SHOP_ITEMS.find(i => 'item:' + i.id === G.pending), t = mouse && hitTest(mouse.x, mouse.y);
     G.pending = null;
     if (it && t && t.fam) buyShop(it, t); else msg(it ? it.pick.replace(/（.*）/, '') : '');
     uiDirty(); return;
   }
-  const hit = hitTest(x, y);
+  const hit = mouse && hitTest(mouse.x, mouse.y);
   if (hit) return select(hit);
   if (G.selected === G.builder) orderMove(x, y, shift);   // 选中守卫者时点击空地 = 移动（方便触屏）
   else select(null);
@@ -2054,21 +2152,25 @@ function groundClick(x, y, shift) {
 let drag = null;
 cv.addEventListener('pointerdown', e => {
   cv.setPointerCapture(e.pointerId);
-  drag = { x: e.clientX, y: e.clientY, cx: G.cam.x, cy: G.cam.y, moved: false, button: e.button };
+  const r = cv.getBoundingClientRect();
+  drag = { x: e.clientX, y: e.clientY, g: groundAt(e.clientX - r.left, e.clientY - r.top), moved: false, button: e.button };
 });
 cv.addEventListener('pointermove', e => {
   const r = cv.getBoundingClientRect(); mouse = { x: e.clientX - r.left, y: e.clientY - r.top };
   if (drag && drag.button === 0) {
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
     if (!drag.moved && Math.hypot(dx, dy) > 8) drag.moved = true;
-    if (drag.moved) { G.cam.x = drag.cx - dx * DPR / S; G.cam.y = drag.cy + dy * DPR / S; clampCam(); }
+    if (drag.moved) {                                        // 按下时点住的那块地一直跟着鼠标走
+      zoomTo = null;
+      const [gx, gy] = groundAt(mouse.x, mouse.y); G.cam.x += drag.g[0] - gx; G.cam.y += drag.g[1] - gy; clampCam();
+    }
   }
 });
 cv.addEventListener('pointerup', e => {
   const d = drag; drag = null;
   if (!G || !d || d.moved || G.phase === 'over' || G.phase === 'win') return;
   const r = cv.getBoundingClientRect(); mouse = { x: e.clientX - r.left, y: e.clientY - r.top };
-  const x = wx(mouse.x), y = wy(mouse.y);
+  const x = wx(mouse.x, mouse.y), y = wy(mouse.y);
   if (d.button === 2) {                                      // 右键：守卫者移动 / 取消
     if (G.placing || G.pending) { G.placing = null; G.pending = null; uiDirty(); return; }
     if (G.selected === G.builder) orderMove(x, y, e.shiftKey);
@@ -2084,21 +2186,31 @@ function updateCursor() {
   if (drag && drag.moved) c = 'cur-pan';
   else if (G.placing) c = 'cur-build';
   else if (G.pending) c = 'cur-target';
-  else if (mouse) { const h = hitTest(wx(mouse.x), wy(mouse.y)); c = !h ? '' : h.uid ? 'cur-enemy' : 'cur-friend'; }
+  else if (mouse) { const h = hitTest(mouse.x, mouse.y); c = !h ? '' : h.uid ? 'cur-enemy' : 'cur-friend'; }
   if (c !== curCls) { curCls = c; cv.className = c; }
 }
 cv.addEventListener('contextmenu', e => e.preventDefault());
 cv.addEventListener('wheel', e => {
   e.preventDefault();
   const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
-  const bx = wx(px), by = wy(py);
-  G.cam.zoom *= e.deltaY < 0 ? 1.15 : 1 / 1.15; clampCam();
-  G.cam.x += bx - wx(px); G.cam.y += by - wy(py); clampCam();
+  // 触控板的连续滚动量小、鼠标滚轮一格约 100：按滚动量换算倍数，镜头平滑地拉过去（见 zoomStep），鼠标下的那块地不动
+  const z0 = zoomTo ? zoomTo.z : G.cam.zoom, f = Math.exp(-clamp(e.deltaY * (e.deltaMode === 1 ? 33 : 1), -300, 300) * 0.0014);
+  zoomTo = { z: clamp(z0 * f, ZMIN, ZMAX), px, py, g: groundAt(px, py) };
 }, { passive: false });
+// 滚轮缩放的缓动：每帧往目标走一段，同时把鼠标下的地面点拉回鼠标下
+let zoomTo = null;
+function zoomStep(dt) {
+  if (!zoomTo) return;
+  const c = G.cam, k = 1 - Math.exp(-dt * 14);
+  c.zoom = Math.abs(zoomTo.z - c.zoom) < 0.002 ? zoomTo.z : c.zoom + (zoomTo.z - c.zoom) * k; clampCam();
+  const [gx, gy] = groundAt(zoomTo.px, zoomTo.py); c.x += zoomTo.g[0] - gx; c.y += zoomTo.g[1] - gy; clampCam();
+  if (c.zoom === zoomTo.z) zoomTo = null;
+}
 // 小地图：点击/拖动移动镜头
 let mmDown = false;
 const mmMove = e => {
   const r = mm.getBoundingClientRect(), k = Math.min(mm.width, mm.height) / (WORLD * 2 + 300);
+  zoomTo = null;
   G.cam.x = ((e.clientX - r.left) * DPR - mm.width / 2) / k; G.cam.y = (mm.height / 2 - (e.clientY - r.top) * DPR) / k; clampCam();
 };
 mm.addEventListener('pointerdown', e => { mmDown = true; mm.setPointerCapture(e.pointerId); mmMove(e); });
@@ -2127,8 +2239,9 @@ $('btn-snd').onclick = () => {                              // 全开 → 只有
 };
 $('btn-speed').onclick = () => { G.speed = G.speed === 1 ? 2 : G.speed === 2 ? 4 : 1; };
 $('btn-help').onclick = showHelp;
-$('btn-zin').onclick = () => { G.cam.zoom *= 1.3; clampCam(); };
-$('btn-zout').onclick = () => { G.cam.zoom /= 1.3; clampCam(); };
+const zoomBtn = f => { const z0 = zoomTo ? zoomTo.z : G.cam.zoom, w = W / DPR / 2, h = H / DPR / 2; zoomTo = { z: clamp(z0 * f, ZMIN, ZMAX), px: w, py: h, g: groundAt(w, h) }; };
+$('btn-zin').onclick = () => zoomBtn(1.3);
+$('btn-zout').onclick = () => zoomBtn(1 / 1.3);
 $('q-builder').onclick = () => { select(G.builder); centerOn(G.builder); };
 $('q-hero').onclick = () => { if (G.hero) { select(G.hero); centerOn(G.hero); } };
 window.addEventListener('resize', resize);
@@ -2183,6 +2296,7 @@ function frame(now) {
   }
   if (G) {
     // 方向键平移镜头
+    zoomStep(el);
     const pan = 1400 / G.cam.zoom * el;
     if (keys.has('ArrowLeft')) G.cam.x -= pan; if (keys.has('ArrowRight')) G.cam.x += pan;
     if (keys.has('ArrowUp')) G.cam.y += pan; if (keys.has('ArrowDown')) G.cam.y -= pan;
