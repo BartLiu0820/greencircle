@@ -152,15 +152,43 @@ function create(canvas, sheets) {
     return true;
   }
 
+  // 精灵表里没有登记、直接按 MDX 路径画的模型（光环塔：原图单位的模型就是光环特效），一直循环第一个 Stand
+  function putModel(e, mdx, x, y, scale) {
+    const md = modelOf(mdx); if (typeof md === 'string') return false;
+    let L = live.get(e);
+    if (L && L.mdx !== mdx) { L.inst.detach(); L = null; }
+    if (!L) {
+      const inst = md.model.addInstance();
+      inst.setSequence(md.seq.idle ?? 0); inst.setSequenceLoopMode(2);
+      scene.addInstance(inst);
+      L = { inst, mdx }; live.set(e, L);
+    }
+    seen.add(e);
+    L.inst.setLocation([x, y, 0]); L.inst.setUniformScale(scale);
+    return true;
+  }
+  // 一次性的法术特效（命中）：放完第一个序列就删。模型还没载好时返回 false（调用方用 2D 特效）
+  const shots = [];
+  function burst(mdx, x, y, scale = 1) {
+    const md = modelOf(mdx); if (typeof md === 'string') return false;
+    const inst = md.model.addInstance(), sq = md.model.sequences[0];
+    inst.setLocation([x, y, 0]); inst.setUniformScale(scale); inst.setSequence(0); inst.setSequenceLoopMode(1);
+    scene.addInstance(inst);
+    shots.push({ inst, left: sq ? sq.interval[1] - sq.interval[0] : 1000 });
+    return true;
+  }
+
   // 每帧结尾：删掉这一帧没画的实体，推进动画（游戏时间，暂停 / 倍速都跟着走），画出来
   // ground：这一帧画好的地面画布（可选）
   function render(dtGame, groundCanvas) {
     ground = groundCanvas || null;
     for (const [e, L] of live) if (!seen.has(e)) { L.inst.detach(); live.delete(e); }
+    for (let i = shots.length - 1; i >= 0; i--) if ((shots[i].left -= Math.max(0, dtGame) * 1000) <= 0) { shots[i].inst.detach(); shots.splice(i, 1); }
     viewer.updateAndRender(Math.max(0, dtGame) * 1000);
   }
 
-  return { frame, put, render, doodad, ready: meta => { const mdx = mdxOf(meta); return !!mdx && typeof modelOf(mdx) !== 'string'; } };
+  return { frame, put, putModel, burst, render, doodad, preload: mdx => typeof modelOf(mdx) !== 'string',
+    ready: meta => { const mdx = mdxOf(meta); return !!mdx && typeof modelOf(mdx) !== 'string'; } };
 }
 
 // 不透明层（filterMode 0 / 1）改成普通混合，整组挪进半透明那一趟

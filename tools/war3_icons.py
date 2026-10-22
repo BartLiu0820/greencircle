@@ -29,7 +29,7 @@ GENERIC = {
     'stop': 'ReplaceableTextures/CommandButtons/BTNStop', 'build': 'ReplaceableTextures/CommandButtons/BTNScourgeBuild',
     'blink': A['A00D']['Art'], 'reroll': A['A03C']['Art'], 'woodmenu': A['A05N']['Art'], 'buyfood': A['A05K']['Art'],
     'wood2gold': A['A05L']['Art'], 'gold2wood': 'ReplaceableTextures/CommandButtons/BTNBundleOfLumber', 'learn': A['A05X']['Art'],
-    'sell': A['A04B']['Art'], 'switchdmg': A['A06V']['Art'],
+    'sell': A['A04B']['Art'], 'switchdmg': A['A06V']['Art'], 'fod': A['A04W']['Art'],   # 守卫者的死亡之指
     'str': A['A05Y']['Art'], 'agi': A['A060']['Art'], 'int': A['A05Z']['Art'], 'upgrade': A['A0B6']['Art'],   # 英雄的力量 / 敏捷 / 智力、升级
     'branch-pierce': A['A03H']['Art'], 'branch-magic': A['A04E']['Art'], 'branch-normal': A['A04G']['Art'], 'branch-chaos': A['A04H']['Art'],
 }

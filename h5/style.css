@@ -106,6 +106,9 @@ html, body, button, button:disabled, #minimap, #cv { cursor: url(assets/cursors/
 #info .skills span.on { border-color: #3f9a4c; color: var(--wood); }
 #cmd { display: grid; grid-template-columns: repeat(4, 52px); grid-template-rows: repeat(3, 52px); gap: 4px; align-content: center;
   padding: 5px; background: linear-gradient(#11160f, #070a06); border: 2px solid var(--edge); border-radius: 4px; box-shadow: inset 0 0 10px #000; }
+/* 物品栏（守卫者的 6 格）：手机上是命令卡下面的一行 */
+#inv { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; grid-column: 1 / -1; }
+#inv .cb { width: 100%; height: 36px; }
 /* 命令按钮：金属外框 + 内斜面，悬停发光，按下下沉，不可用变灰 */
 .cb { position: relative; width: 52px; height: 52px; padding: 0; overflow: hidden; border-radius: 3px;
   border: 2px solid #7a6530; border-top-color: #c9a85a; border-left-color: #b39548; border-bottom-color: #4a3c18; border-right-color: #57461c;
@@ -157,6 +160,16 @@ html, body, button, button:disabled, #minimap, #cv { cursor: url(assets/cursors/
 .w3dlg .w3btn { display: block; width: 100%; margin: 0 0 10px; padding-left: 14px; padding-right: 14px; font-size: 15px; font-weight: 600; letter-spacing: 1px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .w3hint { width: 0; min-width: 100%; min-height: 3.2em; margin-top: 4px; color: #c9d3b8; font-size: 12px; line-height: 1.55; text-align: center; text-shadow: 0 1px 1px #000; }
+@media (min-width: 821px) {                         /* 桌面：顶栏和底部控制台盖在地图上，弹窗在两者之间露出的地图区域里居中（控制台上沿 60/342 是透明藤蔓，不算） */
+  #modal { padding: calc(100vh * 100 / 1200 + 12px) 16px calc(100vh * 282 / 1200 + 12px); }
+  #modal-box { max-height: 100%; }
+}
+@media (max-height: 820px) {                        /* 矮屏：选项间距和按钮内边距收一点，五个选项不用滚动 */
+  #modal-box.dlg { padding-top: 6px; padding-bottom: 2px; }
+  .w3dlg h2 { margin-bottom: 8px !important; }
+  .w3dlg .w3btn { margin-bottom: 6px; padding-top: 5px; padding-bottom: 5px; }
+  .w3hint { min-height: 2.4em; }
+}
 @media (max-width: 420px) {                         /* 窄屏：边框和内边距收窄，把宽度留给选项文字 */
   #modal { padding: 8px; }
   #modal-box { border-width: 24px; border-image-width: 24px; padding: 18px 16px; }
@@ -274,4 +287,9 @@ html, body, button, button:disabled, #minimap, #cv { cursor: url(assets/cursors/
     padding: 0; background: none; border: 0; }
   #cmd .cb { width: 100%; height: 100%; border-radius: 0; }
   #cmd .cb.none { background: #000; border: 0; box-shadow: none; }
+  /* 物品栏：贴图上藤蔓树干里的 2×3 格 */
+  #inv { left: calc(100% * 1029 / 1600); top: calc(100% * 112 / 342); width: calc(100% * 150 / 1600); height: calc(100% * 229 / 342);
+    grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 1fr); column-gap: calc(100% * 8 / 150); row-gap: calc(100% * 8 / 229); }
+  #inv .cb { width: 100%; height: 100%; border-radius: 0; }
+  #inv .cb.none { background: transparent; border: 0; box-shadow: none; }
 }

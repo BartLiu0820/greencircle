@@ -105,7 +105,8 @@ function newGame(mode) {
     build: [], rerolls: 0, placing: null, selected: null, hero: null, heroChoice: null,
     bossRule: null, final: null, nextId: 1, hint: '准备阶段：选中守卫者，在出怪口附近建塔！',
     // 循环圈守卫者：无敌、移速 500、全图闪烁 (CD 1 秒)
-    builder: { isBuilder: true, x: NODES.L[0] + 250, y: NODES.L[1] + 450, speed: 500, order: null, blinkCd: 0 },
+    builder: { isBuilder: true, x: NODES.L[0] + 250, y: NODES.L[1] + 450, speed: 500, order: null, blinkCd: 0, mana: FOD.maxMana, fodAt: 0 },
+    inv: Array(6).fill(null),
     cam: { x: NODES.L[0] + 600, y: NODES.L[1] - 300, zoom: 2.4 },
     menu: 'main', pending: null,
     ach: RULE.startAch, rabbit: null, rabbitScroll: false, buys: {}, itemCd: {},
@@ -359,8 +360,13 @@ function orderBuild(fam, x, y, queue) {
 function builderUpdate(dt) {
   const b = G.builder, o = b.order;
   b.blinkCd = Math.max(0, b.blinkCd - dt);
+  b.mana = Math.min(FOD.maxMana, b.mana + FOD.regen * dt);
   if (!o) return;
-  const reach = o.kind === 'build' ? 220 : 8;
+  if (o.target) {                                              // 对单位的命令（用物品、死亡之指）：跟着目标走，目标没了就作废
+    if (o.target.dead || (o.kind === 'use' && !G.towers.includes(o.target))) { b.order = (b.queue && b.queue.shift()) || null; uiDirty(); return; }
+    o.x = o.target.x; o.y = o.target.y;
+  }
+  const reach = o.reach || (o.kind === 'build' ? 220 : 8);
   const dx = o.x - b.x, dy = o.y - b.y, d = Math.hypot(dx, dy);
   if (d <= reach) {
     if (o.kind === 'build') {
@@ -368,10 +374,38 @@ function builderUpdate(dt) {
       else { const t = buildTower(o.fam, o.x, o.y); if (t) { addFx({ kind: 'ring', x: t.x, y: t.y, r: 160, life: 0.5, color: '#ffd257' }); SFX.ui('construct', { x: t.x, y: t.y }); b.buildT = G.t; b.face = Math.atan2(o.y - b.y, o.x - b.x); } }
       uiDirty();
     }
+    if (o.kind === 'use') useItem(o.item, o.target);
+    if (o.kind === 'fod') castFinger(o.target);
     b.order = (b.queue && b.queue.shift()) || null; return;     // Shift 排队的下一个命令
   }
   const stepLen = Math.min(d - reach + 1, b.speed * dt);
   b.x += dx / d * stepLen; b.y += dy / d * stepLen; b.face = Math.atan2(dy, dx);
+}
+// 死亡之指（原图 A04W，守卫者自带）：对敌人使用，射程 800，冷却 90 秒，消耗 5 点魔法（守卫者魔法上限 10，每秒恢复 2）。
+// 技能本身（ANfd）直接杀死目标；BOSS 按原图触发器另算（war3map.j 的 wd）：龙 / 狗头人类 BOSS 生命高于 15 万时扣 10 万、否则无效，
+// 大红牛扣 7000，大骷髅 2.5 万，再次复活的骷髅 100 万，直升机 / 游艇 / 魔王 10 万。本复刻怪物生命按模式缩放，这些数也一起缩放
+const FOD = { range: 800, cd: 90, mana: 5, maxMana: 10, regen: 2, mdx: 'abilities/spells/demon/demonboltimpact/demonboltimpact.mdx' };
+const FOD_BOSS = { nsqt: 7000, nsko: 25000, nsoc: 25000, nslm: 1e6, ndrj: 1e5, n06Y: 1e5, Udre: 1e5, Udea: 1e5 };
+const FOD_DRAGON = ['nbzd', 'nrdr', 'nrdk', 'ngrd', 'nkob', 'nkot', 'nkog', 'ngst', 'njga'];
+const fodLeft = () => Math.max(0, G.builder.fodAt - G.t);
+function fodBlock() { return fodLeft() > 0 ? '死亡之指冷却中' : G.builder.mana < FOD.mana ? '魔法值不足' : null; }
+function orderFinger(m, queue) {
+  if (!m || !m.uid || m.dead) return msg('只能对敌人使用');
+  const why = fodBlock(); if (why) return msg(why);
+  giveOrder({ kind: 'fod', target: m, x: m.x, y: m.y, reach: FOD.range }, queue);
+}
+function castFinger(m) {
+  const b = G.builder, why = fodBlock();
+  if (why) return msg(why);
+  b.mana -= FOD.mana; b.fodAt = G.t + FOD.cd; b.spellT = G.t; b.face = Math.atan2(m.y - b.y, m.x - b.x);
+  FXS.beam(b.x, b.y, 120, m.x, m.y, 60, '#c48bff', 1.6, 0.45);
+  if (!(U3 && U3.burst(FOD.mdx, m.x, m.y))) FXS.explosion(m.x, m.y, 0.7, '#c48bff');
+  const k = G.hpScale;
+  const loss = FOD_DRAGON.includes(m.uid) ? (m.hp > 150000 * k ? 100000 * k : 0) : FOD_BOSS[m.uid] ? FOD_BOSS[m.uid] * k : m.hp;
+  uiDirty();
+  if (!loss) return msg(`死亡之指对${m.name}没有效果（它的生命不高于 ${fmt(150000 * k)}）`);
+  m.hp -= loss; b.dealt = (b.dealt || 0) + Math.min(loss, m.hp + loss);
+  if (m.hp <= 0) kill(m, b); else msg(`死亡之指：${m.name}失去 ${fmt(loss)} 生命`);
 }
 function blinkTo(x, y) {
   const b = G.builder;
@@ -895,6 +929,7 @@ const rabbitNear = () => G.rabbit && dist2(G.builder.x, G.builder.y, G.rabbit.x,
 const itemCdLeft = it => Math.max(0, (G.itemCd[it.id] || 0) - G.t, (it.firstAt || 0) - G.t);
 function itemBlock(it) {
   if (it.na) return it.na;
+  if (it.inv && !G.inv.includes(null)) return '物品栏已满';
   if (it.hero && !G.hero) return '还没有建造英雄塔';
   if (it.max && (G.buys[it.id] || 0) >= it.max) return `每局最多购买 ${it.max} 支`;
   if (it.firstAt && G.t < it.firstAt) return `开局 ${it.firstAt} 秒后才能购买（还有 ${Math.ceil(it.firstAt - G.t)} 秒）`;
@@ -933,24 +968,25 @@ function rerollSlot(cat) {
   msg(`${CAT_CN[cat]}换成了：${idx.map(i => G.build[i]).join('、')}`);
 }
 // ---------------------------------------------------------------- 商店（地图中央，原图 u00L「商店」，模型是"摇滚阿尔萨斯"）
-// 卖的东西按原图 Sellitems：I001,I002,I009,I00A,I00B,I01Y,I028。卷轴原图是买下后对目标使用：
-// 魔力卷轴 / 知识之书只能对英雄塔用（本复刻只有英雄塔有魔法），买下直接用；天赋卷轴要选一座 MAX 光环塔。
+// 卖的东西按原图 Sellitems：I001,I002,I009,I00A,I00B,I01Y,I028。木材是买下即用的（powerup）；
+// 魔力卷轴 / 知识之书 / 天赋卷轴是可使用的道具：买下放进守卫者的物品栏，再对目标使用（施法距离 600 / 600 / 750）。
+// 魔力卷轴 / 知识之书只能对英雄塔用（本复刻只有英雄塔有魔法），天赋卷轴要选一座 MAX 光环塔。
 // 复制卷轴、收购卷轴的目标是队友的守卫者 / 光环塔，单人模式用不了，只显示
 const TALENT_A = { 加速光环: 0.8, 攻击光环: 1.42, 减防光环: -100, 减速光环: -0.7 };   // 基础天赋 = MAX 光环技能升到 2 级（A01F / A007 / A00W / A00V 的 2 级数值）
 const SHOP_ITEMS = [
   { id: 'I001', key: 'Q', name: '1个小材', gold: 500, cd: 30, tip: '使用 500 金币购买 1 个木材', use: () => { G.wood += 1; } },
   { id: 'I002', key: 'W', name: '10个木材', gold: 5000, cd: 300, tip: '使用 5000 金币购买 10 个木材', use: () => { G.wood += 10; msg('木材 +10'); } },
-  { id: 'I00A', key: 'E', name: '魔力卷轴', gold: 2400, hero: true, tip: '对英雄塔使用，获得 120 点魔法（原图天神塔获得 400 点，本复刻天神塔没有魔法）',
+  { id: 'I00A', key: 'E', name: '魔力卷轴', gold: 2400, inv: true, range: 600, tip: '对英雄塔使用，获得 120 点魔法（原图天神塔获得 400 点，本复刻天神塔没有魔法）',
+    pick: '魔力卷轴：选择英雄塔（Esc 取消）', ok: t => t && t.isHero ? null : '只能对英雄塔使用',
     use: h => { h.mana = Math.min(h.maxMana(), h.mana + 120); msg(`${h.heroName} 魔法 +120`); } },
-  { id: 'I028', key: 'R', name: '知识之书', gold: 2200, hero: true, tip: '对英雄塔使用，随机一项属性（力量 / 敏捷 / 智力）+10',
+  { id: 'I028', key: 'R', name: '知识之书', gold: 2200, inv: true, range: 600, tip: '对英雄塔使用，随机一项属性（力量 / 敏捷 / 智力）+10',
+    pick: '知识之书：选择英雄塔（Esc 取消）', ok: t => t && t.isHero ? null : '只能对英雄塔使用',
     use: h => { const st = pick(['str', 'agi', 'int']); h.stat[st] += 10; msg(`英雄增加${statCN(st)} 10`); } },
-  { id: 'I01Y', key: 'A', name: '天赋卷轴', wood: 15, firstAt: 1200, cd: 300, target: true,
+  { id: 'I01Y', key: 'A', name: '天赋卷轴', wood: 15, firstAt: 1200, cd: 300, inv: true, range: 750,
     tip: `对 MAX 光环塔使用，激活[基础天赋]：光环升到 2 级（加速 +80% / 攻击 +142% / 减防 -100 / 减速 -70%）<br>开局 1200 秒后开放，购买间隔 300 秒`,
-    pick: '选择一座 MAX 光环塔（Esc 取消）', use: t => {
-      if (!t || t.cat !== 'aura' || t.lv < t.levels.length - 1) return msg('只能对 MAX 光环塔使用'), false;
-      if (t.talent) return msg('该单位已经激活'), false;
-      t.talent = true; FXS.ring(t.x, t.y, 220, '#9fffb0', 0.6, 4); msg(`${curLevel(t).name}获得了基础天赋`);
-    } },
+    pick: '天赋卷轴：选择一座 MAX 光环塔（Esc 取消）',
+    ok: t => !t || t.cat !== 'aura' || t.lv < t.levels.length - 1 ? '只能对 MAX 光环塔使用' : t.talent ? '该单位已经激活' : null,
+    use: t => { t.talent = true; FXS.ring(t.x, t.y, 220, '#9fffb0', 0.6, 4); msg(`${curLevel(t).name}获得了基础天赋`); } },
   { id: 'I009', key: 'S', name: '复制卷轴', gold: 3000, na: '单人模式没有友军的守卫者可以复制',
     tip: '对一位友军的守卫者使用，获得与其一模一样的建造能力（不保留自身守护神技等级，以后随机建筑需 6 木材）' },
   { id: 'I00B', key: 'D', name: '收购卷轴', gold: 1800, na: '单人模式没有友军的光环塔可以收购',
@@ -961,11 +997,27 @@ function shopBlock(it) {
   if (!it.na && !shopNear()) return `守卫者离商店太远（要在 ${RULE.shopReach} 范围内）`;
   return itemBlock(it);
 }
-function buyShop(it, target) {
+function buyShop(it) {
   const why = shopBlock(it); if (why) return msg(why);
-  if (it.target && !target) { G.pending = 'item:' + it.id; G.placing = null; msg(it.pick); uiDirty(); return; }   // 要选目标：先进入选目标状态
-  if (it.use(target || G.hero) === false) return;
+  if (it.inv) { G.inv[G.inv.indexOf(null)] = it; payItem(it); msg(`${it.name}放进了守卫者的物品栏：选中守卫者，点物品再点目标使用`); return; }
+  if (it.use(G.hero) === false) return;
   payItem(it);
+}
+// ---------------------------------------------------------------- 物品栏（原图守卫者带 6 格单位物品栏 Aiun）
+// 点物品 → 选目标 → 守卫者走到施法距离内再使用（和 WC3 对单位使用物品一样），用掉后从物品栏消失
+function invPick(i) {
+  const it = G.inv[i]; if (!it) return;
+  G.pending = 'inv:' + i; G.placing = null; msg(it.pick); uiDirty();
+}
+function orderUse(i, t, queue) {
+  const it = G.inv[i], why = it.ok(t); if (why) return msg(why);
+  giveOrder({ kind: 'use', item: it, target: t, x: t.x, y: t.y, reach: it.range }, queue);
+}
+function useItem(it, t) {
+  const i = G.inv.indexOf(it); if (i < 0) return;
+  if (!G.towers.includes(t)) return msg('目标已经不在了');
+  const why = it.ok(t); if (why) return msg(why);
+  it.use(t); G.inv[i] = null; SFX.ui('item'); uiDirty();
 }
 const auraAb = t => { const ab = curLevel(t).abils[0]; return ab && t.talent ? { ...ab, A: TALENT_A[t.fam] } : ab; };
 
@@ -1069,7 +1121,11 @@ const IMG = {};
 function img(key) {
   const src = AM.sprites && AM.sprites[key];
   if (!src) return null;
-  if (!IMG[key]) { const i = new Image(); i.src = 'assets/' + src; IMG[key] = i; }
+  if (!IMG[key]) {
+    const i = new Image(); i.src = 'assets/' + src; IMG[key] = i;
+    // 命令面板只在命令变了时才重建，开局那一次往往图标还没下载完、用了 SVG 占位；原版图标到了就重画一次
+    if (/^(ico|icon):/.test(key)) i.onload = () => { if (G) uiDirty(); };
+  }
   return IMG[key].complete && IMG[key].naturalWidth ? IMG[key] : null;
 }
 for (const k in AM.sprites || {}) img(k);            // 图标和头像先加载好，第一次打开面板就有图
@@ -1165,7 +1221,7 @@ function dirIndex(angle, dirs) {
 // 选动作：优先播放一次性动作（攻击/施法/建造/死亡），否则待机或行走
 function pickAnim(e, m) {
   const A = m.actions, once = (name, t0) => A[name] && t0 != null && G.t - t0 < A[name].frames / A[name].fps ? [name, t0] : null;
-  return (e.isHero && once('spell', e.spellT)) || once('attack', e.atkT) || (e.isBuilder && (A.build && e.buildT != null && G.t - e.buildT < 1.2) && ['build', e.buildT])
+  return ((e.isHero || e.isBuilder) && once('spell', e.spellT)) || once('attack', e.atkT) || (e.isBuilder && (A.build && e.buildT != null && G.t - e.buildT < 1.2) && ['build', e.buildT])
     || (e.uid || (e.isBuilder && e.order) ? (A.walk ? ['walk', 0] : null) : null) || (A.idle ? ['idle', 0] : A.walk ? ['walk', 0] : [Object.keys(A)[0], 0]);
 }
 function frameRect(m, name, t0, face, hold) {
@@ -1352,7 +1408,7 @@ function draw() {
   GATE_POS.forEach(([x, y], k) => label(k ? '出怪口（联机）' : '出怪口', x, y + 300, k ? '#c9a39e' : '#ffb0a8', 12));
   for (const z of G.zones) if (z.style !== 'bladestorm') { ctx.fillStyle = 'rgba(122,184,255,.18)'; gcircle(z.x, z.y, z.r); ctx.fill(); }
   for (const z of G.zones) if (z.style === 'bladestorm') drawBladestormGround(z);
-  for (const t of G.towers) if (t.cat === 'aura') drawAuraGround(t, now);          // 光环塔：地面光环（在单位下面）
+  for (const t of G.towers) if (t.cat === 'aura') { t.m3 = auraModel(t); if (!t.m3) drawAuraGround(t, now); }   // 光环塔：原版光环模型，画不了才程序绘制地面光环
   for (const t of G.towers) if (t.cat !== 'aura' && t.cat !== 'summon' && !t.isHero) drawTierGround(t, now);   // 塔的等级光圈
   // 选中范围
   const sel = G.selected;
@@ -1547,6 +1603,20 @@ const AURA_LOOK = {
   减速光环: { c1: '#5ab8ff', c2: '#dff6ff', glyph: 'flake' },     // 减速：冰蓝，雪花
 };
 function auraLevel(t) { return t.levels.length > 1 ? t.lv / (t.levels.length - 1) : 1; }   // 0 ~ 1
+// 原图光环塔单位的模型就是光环特效本身（units 表的 file），每级 modelScale 变大：
+// 加速 = 荆棘光环（h01V…h010），攻击 = 专注光环（h00I…h00P），减防 = 吸血光环（h00G…h01X），减速 = 强击光环（h01W…h01U）
+// 3D 时直接画这几个原版模型；没有 WebGL / 没导出 assets/w3/ 时退回下面的程序绘制
+const AURA_MDX = {
+  加速光环: ['abilities/spells/nightelf/thornsaura/thornsaura.mdx', [1, 1.2, 1.4, 1.6, 1.8, 2]],
+  攻击光环: ['abilities/spells/human/devotionaura/devotionaura.mdx', [1.3, 1.45, 1.6, 1.75, 1.9, 2.2]],
+  减防光环: ['abilities/spells/undead/vampiricaura/vampiricaura.mdx', [0.8, 0.95, 1.1, 1.25, 1.4, 1.55]],
+  减速光环: ['abilities/spells/nightelf/trueshotaura/trueshotaura.mdx', [1, 1.2, 1.4, 1.6, 1.8, 2]],
+};
+if (U3) [...Object.values(AURA_MDX).map(a => a[0]), FOD.mdx].forEach(U3.preload);
+function auraModel(t) {
+  const a = AURA_MDX[t.fam];
+  return !!(U3 && a && U3.putModel(t, a[0], t.x, t.y, a[1][Math.min(t.lv, a[1].length - 1)]));
+}
 function auraGlyph(kind, g, r) {
   g.beginPath();
   if (kind === 'arrow') { g.moveTo(-r, -r * 0.6); g.lineTo(r * 0.4, 0); g.lineTo(-r, r * 0.6); g.moveTo(-r * 0.2, -r * 0.6); g.lineTo(r, 0); g.lineTo(-r * 0.2, r * 0.6); }
@@ -1635,7 +1705,7 @@ function drawTower(t) {
   const atk = t.cat === 'aura' ? 'aura' : (t.isHero ? heroStats(t).atk : curLevel(t).atk);
   if (t.cat === 'summon') { if (t === G.selected) selRing(x, y, s * 0.6, '#3cff3c'); else if (t === HOV) selRing(x, y, s * 0.6, '#3cff3c', 0.45); }
   else if (t === G.selected) footRing(t, 1); else if (t === HOV) footRing(t, 0.45);
-  if (t.cat === 'aura') { drawAuraCore(t, performance.now() / 1000); return; }
+  if (t.cat === 'aura') { if (!t.m3) drawAuraCore(t, performance.now() / 1000); return; }
   const tier = t.cat === 'summon' || t.isHero ? 0 : towerTier(t);
   const m3 = metaOf(t), in3d = m3 && model3d(t, m3, t.x, t.y, t.face, pickAnim(t, m3), towerFit(m3));
   let sh = !in3d && sheetOf(t); const im = !in3d && !sh && entityImg(t);   // 3D 画了就不再加载精灵图
@@ -1832,6 +1902,8 @@ function portrait(e, name, color) {
   return im ? `<img src="${im.src}">` : `<div class="pt" style="background:${color}">${name.slice(0, 1)}</div>`;
 }
 function bar(cls, v, max, text) { return `<div class="bar ${cls}"><i style="width:${clamp(v / max, 0, 1) * 100}%"></i><span>${text}</span></div>`; }
+const builderState = b => { const o = b.order; return !o ? '待命' : o.kind === 'build' ? '前往建造 ' + (o.fam === 'hero' ? G.heroChoice : o.fam)
+  : o.kind === 'use' ? `前去使用${o.item.name}` : o.kind === 'fod' ? '前去施放死亡之指' : '移动中'; };
 function renderInfo() {
   const e = G.selected, box = $('info');
   if (!e || (e !== G.builder && e !== G.rabbit && e !== SHOP && !G.towers.includes(e) && !G.monsters.includes(e))) { G.selected = null; box.innerHTML = '<div class="empty">未选择单位</div>'; $('hpt').textContent = $('mpt').textContent = ''; setPortrait(null); return; }
@@ -1845,10 +1917,10 @@ function renderInfo() {
     mid = `<div class="nm">兔子</div><div class="sub">成就商店 · 剩余 ${Math.ceil(e.until - G.t)} 秒</div>
       <div class="kv"><span>当局成就</span><b>${G.ach}</b><span>守卫者</span><b>${rabbitNear() ? '在旁边，可以购买' : `太远（要在 ${RULE.rabbitReach} 范围内）`}</b></div>`;
   } else if (e.isBuilder) {
-    left = portrait(e, '守', '#a5521a') + bar('hp', 1, 1, '400000') + bar('mp', 1, 1, '无敌');
+    left = portrait(e, '守', '#a5521a') + bar('hp', 1, 1, '400000') + bar('mp', e.mana, FOD.maxMana, `${Math.floor(e.mana)} / ${FOD.maxMana}`);
     mid = `<div class="nm">循环圈守卫者</div><div class="sub">建造者 · 无敌的</div>
-      <div class="kv"><span>移动速度</span><b>500</b><span>技能</span><b>建造 · 随机建造 · 使用木材 · 全图闪烁</b>
-      <span>状态</span><b>${e.order ? (e.order.kind === 'build' ? '前往建造 ' + (e.order.fam === 'hero' ? G.heroChoice : e.order.fam) : '移动中') : '待命'}</b></div>`;
+      <div class="kv"><span>移动速度</span><b>500</b><span>技能</span><b>建造 · 随机建造 · 使用木材 · 全图闪烁 · 死亡之指</b>
+      <span>状态</span><b>${builderState(e)}</b></div>`;
   } else if (e.isHero) {
     const st = heroStats(e), hd = D.heroes[e.heroName];
     left = portrait(e, e.heroName, '#6b4a12') + bar('hp', 1, 1, '无敌的') + bar('mp', e.mana, e.maxMana(), `${Math.floor(e.mana)} / ${e.maxMana()}`);
@@ -1891,7 +1963,7 @@ function renderCard(e) {
     c1 = stat('armor-fortified', '护甲', INVULN);
     const d = Math.round(Math.hypot(G.builder.x - SHOP.x, G.builder.y - SHOP.y));
     c2 = `<div class="st"><div><span>守卫者距离：</span><b>${d}</b><br>${shopNear() ? '<b style="color:#6fd17a">可以购买</b>' : `<b style="color:#ff8f86">要在 ${RULE.shopReach} 范围内</b>`}</div></div>`;
-    extra = '<div class="tip">买木材、魔力卷轴、知识之书、天赋卷轴。复制 / 收购卷轴要对队友使用，单人模式用不了。</div>';
+    extra = '<div class="tip">买木材、魔力卷轴、知识之书、天赋卷轴。卷轴放进守卫者的物品栏，再对目标使用。复制 / 收购卷轴要对队友使用，单人模式用不了。</div>';
     hp = '无敌的';
   } else if (e.isRabbit) {
     name = '兔子'; sub = '成就商店 · 中立';
@@ -1903,8 +1975,8 @@ function renderCard(e) {
   } else if (e.isBuilder) {
     name = '循环圈守卫者'; sub = '不死族';
     c1 = stat('attack-melee', '攻击力', '1 - 1') + stat('armor-small', '护甲', INVULN);
-    c2 = `<div class="st"><div><span>移动速度：</span><b>500</b><br><span>状态：</span><b>${e.order ? (e.order.kind === 'build' ? '前往建造 ' + (e.order.fam === 'hero' ? G.heroChoice : e.order.fam) : '移动中') : '待命'}</b></div></div>`;
-    hp = '500000 / 500000'; mp = '10 / 10';
+    c2 = `<div class="st"><div><span>移动速度：</span><b>500</b><br><span>状态：</span><b>${builderState(e)}</b></div></div>`;
+    hp = '500000 / 500000'; mp = `${Math.floor(e.mana)} / ${FOD.maxMana}`;
   } else if (e.isHero) {
     const st = heroStats(e), hd = D.heroes[e.heroName];
     name = hd.name; sub = `等级 ${e.level} 英雄 · ${hd.title}`;
@@ -1986,7 +2058,7 @@ function buildCmds() {
     const cost = [it.ach && `<b style="color:#ff9ad5">${it.ach} 成就</b>`, it.gold && `<span class="gold">${it.gold} 金</span>`, it.wood && `<span class="wood">${it.wood} 木材</span>`].filter(Boolean).join(' + ');
     const cdOf = it.cd || it.firstAt ? { cdOf: () => [itemCdLeft(it), G.t < (it.firstAt || 0) ? it.firstAt : it.cd] } : {};
     return cmd(it.key, it.name.slice(0, 2), it.name, `<b>${it.name}</b><br>需要 ${cost}${it.cd ? ` · 冷却 ${it.cd} 秒` : ''}<br>${it.tip}${why ? `<br><b style="color:#ff5a4f">${why}</b>` : ''}`,
-      buy, { disabled: !!why, ico: 'item-' + it.id, active: G.pending === 'item:' + it.id, cost: it.gold, ...cdOf });
+      buy, { disabled: !!why, ico: 'item-' + it.id, cost: it.gold, ...cdOf });
   };
   const comeHere = (near, x, y, what) => cmd('F', '✦', '守卫者过来', `守卫者全图闪烁到${what}旁边（闪烁冷却 1 秒）`, () => { blinkTo(x + 150, y - 100); uiDirty(); }, { disabled: near, ico: 'blink' });
   if (e.isShop) {
@@ -2027,6 +2099,10 @@ function buildCmds() {
     out.push(cmd('B', '建', '建造', '打开建造栏（当前随机给出的 6 个塔 + 英雄塔）', () => { G.menu = 'build'; uiDirty(); }, { ico: 'build' }));
     out.push(cmd('R', '🎲', '随机建造', `重新随机建造栏：1 主塔、1 原始塔、1 光环塔、2 辅助塔、1 另类塔<br>${G.rerolls === 0 ? '首次免费' : '需要 1 木材'}`, () => rerollBuild(false), { disabled: G.rerolls > 0 && G.wood < 1, ico: 'reroll' }));
     out.push(cmd('U', '木', '使用木材', '购买人口（12 木）、兑换金币（1 木 → 300 金）。买木材去地图中央的商店', () => { G.menu = 'wood'; uiDirty(); }, { ico: 'woodmenu' }));
+    const fw = fodBlock();
+    out.push(cmd('X', '指', '死亡之指', `<span class="atk atk-magic">主动</span> 射程 ${FOD.range} · 冷却 ${FOD.cd} 秒 · <span style="color:#7ab8ff">${FOD.mana} 魔法</span><br>选择一个敌人：直接杀死它。<br>BOSS 只损失一部分生命（大红牛 7000、大骷髅 2.5 万、直升机 / 游艇 / 魔王 10 万、龙 / 狗头人 BOSS 生命高于 15 万时 10 万，按模式缩放）${fw ? `<br><b style="color:#ff5a4f">${fw}</b>` : ''}`,
+      () => { const why = fodBlock(); if (why) return msg(why); G.pending = 'fod'; G.placing = null; msg('死亡之指：选择一个敌人（Esc 取消）'); uiDirty(); },
+      { ico: 'fod', active: G.pending === 'fod', cdOf: () => [fodLeft(), FOD.cd] }));
     return out;
   }
   if (e.isHero) {
@@ -2100,6 +2176,26 @@ function renderCmds() {
     }
     grid.appendChild(b);
   }
+  renderInv();
+}
+// 物品栏：2×3 格，选中守卫者时显示它的物品（其他单位没有物品栏，格子空着）。热键同 WC3 的小键盘 7 8 / 4 5 / 1 2
+const INV_KEYS = ['7', '8', '4', '5', '1', '2'];
+const invItems = () => G.selected === G.builder ? G.inv : [];
+function renderInv() {
+  const box = $('inv'), items = invItems();
+  box.innerHTML = '';
+  for (let i = 0; i < 6; i++) {
+    const it = items[i], b = document.createElement('button');
+    b.className = 'cb' + (it ? '' : ' none') + (it && G.pending === 'inv:' + i ? ' active' : '');
+    if (it) {
+      const icon = img('ico:item-' + it.id);
+      b.innerHTML = (icon ? `<img src="${icon.src}">` : `<span class="ic">${it.name.slice(0, 2)}</span>`) + `<span class="hk">${INV_KEYS[i]}</span>`;
+      const c = { name: it.name, key: INV_KEYS[i], tip: `${it.tip}<br>点击后选择目标使用（施法距离 ${it.range}，守卫者会先走过去）` };
+      b.onclick = () => { showTip(c); SFX.ui('click'); invPick(i); };
+      b.onmouseenter = () => showTip(c); b.onmouseleave = () => showTip(null);
+    }
+    box.appendChild(b);
+  }
 }
 // 冷却遮罩：每帧更新（顺时针扫过的暗色扇形 + 剩余秒数）
 function updateCooldowns() {
@@ -2147,11 +2243,15 @@ function groundClick(x, y, shift) {
   }
   if (G.pending === 'move') { orderMove(x, y, shift); G.pending = null; uiDirty(); return; }
   if (G.pending === 'blink') { blinkTo(x, y); G.pending = null; uiDirty(); return; }
-  if (G.pending && G.pending.startsWith('item:')) {          // 对目标使用商店道具（天赋卷轴）
-    const it = SHOP_ITEMS.find(i => 'item:' + i.id === G.pending), t = mouse && hitTest(mouse.x, mouse.y);
+  if (G.pending && G.pending.startsWith('inv:')) {           // 对目标使用物品栏里的道具
+    const i = +G.pending.slice(4), t = mouse && hitTest(mouse.x, mouse.y);
     G.pending = null;
-    if (it && t && t.fam) buyShop(it, t); else msg(it ? it.pick.replace(/（.*）/, '') : '');
+    if (G.inv[i]) { if (t && G.towers.includes(t)) orderUse(i, t, shift); else msg(G.inv[i].ok(null)); }
     uiDirty(); return;
+  }
+  if (G.pending === 'fod') {                                  // 死亡之指：对敌人
+    const t = mouse && hitTest(mouse.x, mouse.y);
+    G.pending = null; orderFinger(t, shift); uiDirty(); return;
   }
   const hit = mouse && hitTest(mouse.x, mouse.y);
   if (hit) return select(hit);
@@ -2234,6 +2334,8 @@ window.addEventListener('keydown', e => {
   if (e.key === 'F2' && G.hero) { e.preventDefault(); select(G.hero); centerOn(G.hero); return; }
   if (e.key === ' ') { e.preventDefault(); if (G.selected) centerOn(G.selected); return; }
   if (e.key.toLowerCase() === 'p') { G.paused = !G.paused; return; }
+  const ni = e.code.startsWith('Numpad') ? INV_KEYS.indexOf(e.code.slice(6)) : -1;   // 小键盘：物品栏
+  if (ni >= 0) { e.preventDefault(); if (invItems()[ni]) { SFX.ui('click'); invPick(ni); } return; }
   const k = e.key.toUpperCase();
   if (dirty) { renderCmds(); dirty = false; }          // 连按热键（如 B → W）时先刷新命令面板
   const c = CMDS.find(c => c && c.key === k);
@@ -2314,7 +2416,8 @@ function showHelp() {
     <p>护甲减伤 = 护甲×0.02 /（1 + 护甲×0.02）。腐蚀塔、减防光环可以把护甲打成负数，负护甲会增伤。</p>
     <p><b>精英怪</b>：每只怪 1/55 概率成为精英（粉色外圈），带一种 900 范围的光环。击杀得 1~3 木材；由英雄塔击杀时，英雄所选属性 +1。</p>
     <p><b>资源</b>：起手 2000 金、5 木；12 木 = 1 人口；1 木 = 300 金。回收塔返还 100% 金币。</p>
-    <p><b>商店</b>：地图中央，守卫者走到 ${RULE.shopReach} 范围内选中商店购买：1 个木材（500 金，冷却 30 秒）、10 个木材（5000 金，冷却 300 秒）、魔力卷轴（英雄塔 +120 魔法）、知识之书（英雄塔随机属性 +10）、天赋卷轴（15 木，MAX 光环塔激活基础天赋，开局 1200 秒后开放）。复制 / 收购卷轴要对队友使用，单人用不了。</p>
+    <p><b>死亡之指</b>：守卫者的技能（热键 X），对 800 范围内的一个敌人使用，直接杀死它；BOSS 只扣一部分生命。冷却 90 秒，耗 5 点魔法（守卫者魔法上限 10）。</p>
+    <p><b>商店</b>：地图中央，守卫者走到 ${RULE.shopReach} 范围内选中商店购买：1 个木材（500 金，冷却 30 秒）、10 个木材（5000 金，冷却 300 秒）、魔力卷轴（英雄塔 +120 魔法）、知识之书（英雄塔随机属性 +10）、天赋卷轴（15 木，MAX 光环塔激活基础天赋，开局 1200 秒后开放）。三种卷轴买下后放进守卫者的<b>物品栏</b>（6 格），选中守卫者点物品（或小键盘 7 8 4 5 1 2），再点目标塔，守卫者走到施法距离内使用。复制 / 收购卷轴要对队友使用，单人用不了。</p>
     <p><b>兔子</b>：每个 BOSS 波（10/20/30/40 波、最终波）开始 ${RULE.rabbitDelay} 秒后，地图随机位置出现一只兔子（小地图粉点），${RULE.rabbitLife} 秒后消失。守卫者走到它 ${RULE.rabbitReach} 范围内，选中兔子就能用<b>当局成就</b>买道具：4 种塔类之球（重新随机建造栏的某一类塔）、5 个木材、魔法药水、知识药水。当局成就开局 ${RULE.startAch} 点，每次 Perfect +${RULE.achPerPerfect}；守卫者的<b>兔子卷轴</b>（${RULE.rabbitScrollAch} 成就）可以额外召唤一次兔子。</p>
     <p><b>英雄塔</b>：升级要 等级×100 金 + 200 魔法（英雄每击杀 +2 魔法）。学技能：第 1 个免费；第 2/3/4 个分别要 18/36/54 木材，且力量 ≥ 80/160/240。</p>
     <p style="color:#7f9483;font-size:11px">命令图标的图形来自 <a href="https://game-icons.net" target="_blank" style="color:#9fc4a6">game-icons.net</a>（Lorc、Delapouite 等，CC BY 3.0）。</p>
@@ -2355,5 +2458,5 @@ newGame('solo');
 showStart();
 requestAnimationFrame(frame);
 window.__G = () => G;   // 调试用
-window.__dbg = { get G() { return G; }, NODES, EDGES, kill, spawnMonster, FXS, buildTower, upgradeTower, learnSkill, heroLevelUp, step, canPlace, newGame, monstersAlive, towerStats, rerollBuild, orderBuild, orderMove, castSkill, spawnRabbit, buyRabbit, RABBIT_SHOP, SHOP, SHOP_ITEMS, buyShop };
+window.__dbg = { get G() { return G; }, NODES, EDGES, kill, spawnMonster, FXS, buildTower, upgradeTower, learnSkill, heroLevelUp, step, canPlace, newGame, monstersAlive, towerStats, rerollBuild, orderBuild, orderMove, castSkill, spawnRabbit, buyRabbit, RABBIT_SHOP, SHOP, SHOP_ITEMS, buyShop, orderFinger };
 })();

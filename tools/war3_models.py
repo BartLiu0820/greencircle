@@ -13,6 +13,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RAW = os.path.join(ROOT, 'art', 'war3_raw')
 OUT = os.path.join(ROOT, 'h5', 'assets', 'w3')
 SHEETS_JS = os.path.join(ROOT, 'h5', 'assets', 'sprites.js')
+# 精灵表里没有、游戏直接按路径画的特效模型：4 种光环塔（原图单位的模型就是光环特效）、死亡之指命中（A04W 的 TargetArt）
+EXTRA = ['abilities/spells/nightelf/thornsaura/thornsaura.mdx', 'abilities/spells/human/devotionaura/devotionaura.mdx',
+         'abilities/spells/undead/vampiricaura/vampiricaura.mdx', 'abilities/spells/nightelf/trueshotaura/trueshotaura.mdx',
+         'abilities/spells/demon/demonboltimpact/demonboltimpact.mdx']
 
 
 def norm(p):
@@ -63,7 +67,7 @@ def main():
     src = open(SHEETS_JS, encoding='utf-8').read()
     sheets = json.loads(src[src.index('{'):src.rindex('}') + 1])
     models = sorted({':'.join(m['aliasOf'].split(':')[2:]) + '.mdx' for m in sheets.values() if m.get('war3') and m.get('aliasOf') and not m.get('glow')})
-    todo = [norm(m) for m in models]
+    todo = [norm(m) for m in models] + EXTRA
     from war3_terrain import TREES                     # 树墙：模型的贴图是可替换贴图（编号 31 / 32 / 36），MDX 里没写路径，单独拷
     for mdl, tex, vs in TREES.values():
         todo += [norm(mdl.split('/', 1)[1] + f'{v}.mdx') for v in vs] + [norm(tex.split('/', 1)[1] + '.blp')]
