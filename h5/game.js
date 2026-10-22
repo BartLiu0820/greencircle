@@ -2263,6 +2263,7 @@ function showDialog(title, buttons, foot = '') {
   showModal(`<div class="w3dlg"><h2>${title}</h2>${buttons.map((b, i) => `<button class="w3btn" data-i="${i}">${b.text}</button>`).join('')}
     <div class="w3hint">${foot}</div></div>`);
   $('modal-box').classList.add('dlg');
+  fitDialog();
   const hint = $('modal-box').querySelector('.w3hint');
   $('modal-box').querySelectorAll('.w3btn').forEach(el => {
     const b = buttons[+el.dataset.i];
@@ -2271,6 +2272,16 @@ function showDialog(title, buttons, foot = '') {
     el.onclick = () => { SFX.ui('bigClick'); b.fn(); };
   });
 }
+// 对话框的选项一律单行：框已经撑到最宽还放不下时，所有按钮一起缩小字号（保持一致），最小 11px，再不够才用省略号
+function fitDialog() {
+  const btns = [...$('modal-box').querySelectorAll('.w3dlg .w3btn')];
+  if (!btns.length) return;
+  for (let fs = 15; fs >= 11; fs -= 0.5) {
+    btns.forEach(b => { b.style.fontSize = fs + 'px'; b.style.letterSpacing = fs < 13 ? '0' : ''; });
+    if (btns.every(b => b.scrollWidth <= b.clientWidth)) break;
+  }
+}
+window.addEventListener('resize', () => { if (!$('modal').classList.contains('hidden')) fitDialog(); });
 function showStart() {
   const start = (mode, hero) => { newGame(mode); if (hero) G.heroChoice = hero; hideModal(); resize(); clampCam(); uiDirty(); };
   const pickHero = mode => showDialog('选择英雄塔', Object.values(D.heroes).map(h => ({

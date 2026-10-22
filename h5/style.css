@@ -151,10 +151,17 @@ html, body, button, button:disabled, #minimap, #cv { cursor: url(assets/cursors/
 #modal-box button:hover::after { opacity: .9; }
 #modal-box button:hover { color: #fff; }
 #modal-box button:active { background-image: url(assets/ui/dialog-btn-down.png); border-image-source: url(assets/ui/dialog-btn-border-down.png); padding: 8px 15px 6px 17px; }
-#modal-box.dlg { max-width: 420px; padding: 14px 18px 10px; user-select: none; }
-.w3dlg h2 { text-align: center; font-size: 19px; letter-spacing: 2px; margin-bottom: 14px !important; }
-.w3dlg .w3btn { display: block; width: 100%; margin: 0 0 10px; font-size: 15px; font-weight: 600; letter-spacing: 1px; }
-.w3hint { min-height: 3.2em; margin-top: 4px; color: #c9d3b8; font-size: 12px; line-height: 1.55; text-align: center; text-shadow: 0 1px 1px #000; }
+/* 开局菜单：和原版一样每个选项一行。框按最长的那行撑宽（最宽 520px、不超出屏幕），还放不下就由 fitDialog() 统一缩小字号 */
+#modal-box.dlg { width: auto; min-width: min(340px, 100%); max-width: min(520px, 100%); padding: 14px 18px 10px; user-select: none; overflow-x: hidden; }
+.w3dlg h2 { text-align: center; font-size: 19px; letter-spacing: 2px; margin-bottom: 14px !important; white-space: nowrap; }
+.w3dlg .w3btn { display: block; width: 100%; margin: 0 0 10px; padding-left: 14px; padding-right: 14px; font-size: 15px; font-weight: 600; letter-spacing: 1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.w3hint { width: 0; min-width: 100%; min-height: 3.2em; margin-top: 4px; color: #c9d3b8; font-size: 12px; line-height: 1.55; text-align: center; text-shadow: 0 1px 1px #000; }
+@media (max-width: 420px) {                         /* 窄屏：边框和内边距收窄，把宽度留给选项文字 */
+  #modal { padding: 8px; }
+  #modal-box { border-width: 24px; border-image-width: 24px; padding: 18px 16px; }
+  #modal-box.dlg { padding: 10px 6px 6px; }
+}
 .row { display: flex; gap: 6px; margin: 6px 0; flex-wrap: wrap; }
 
 /* ---------- 手机竖屏：控制台变两行（小地图 + 信息 / 命令面板） ---------- */
