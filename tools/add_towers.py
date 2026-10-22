@@ -54,5 +54,9 @@ head, body = open(dpath, encoding='utf-8').read().split('window.GAME_DATA = ', 1
 D = json.loads(body.rstrip().rstrip(';'))
 for name, (cat, uid) in FAMILIES.items():
     D['towers'][name] = dict(name=name, cat=cat, levels=[level(uid)])
+# 弹跳塔 MAX（h021）：不在建造栏，由 3 座 4 级弹跳塔合成（A0CI）或天赋快建得到；武器是 mbounce，17 个目标
+bmax = level('h021')
+bmax.update(targets=int(fl(U['h021'], 'targCount1', 1)), tip='伤害类型为【通用】，弹射 17 个目标；每次攻击放灵魂重击')
+D['towers']['弹跳塔']['max'] = bmax
 open(dpath, 'w', encoding='utf-8').write(head + 'window.GAME_DATA = ' + json.dumps(D, ensure_ascii=False, separators=(',', ':')) + ';\n')
 print('data.js 补进塔：', ' '.join(f'{n}({c})' for n, (c, _) in FAMILIES.items()))

@@ -114,6 +114,7 @@ function newGame(mode) {
     waveVars: {}, next: null, carryHint: null, sc: null, curUnit: null, waveHook: null, waveNote: '', finalCountdown: false,
     k7: rint(1, 2),          // 原图开局随机：30 波出亡灵飞艇（1）还是地精飞艇（2）
     mem: {},                 // 主塔回收时记下的技能等级和魔法，再建同一种主塔时恢复（原图 D1~D7、DK/DL/DM 等全局变量）
+    bounce: { atk: 0, as: 0, talent: false, bolt: 1 },   // 弹跳塔的玩家科技：提升攻击 R000 / 攻速 R001、弹跳天赋 R00P、MAX 回收时记下的灵魂重击等级（Oq）
   };
   G.selected = G.builder;
   FXS.clear();
@@ -185,6 +186,8 @@ function kill(m, src) {
     const owner = src && (src.owner || src);
     if (owner && owner.isHero) { owner.stat[owner.growth] += 1; msg(`英雄击杀精英怪：${statCN(owner.growth)} +1，木材 +${w}`); }
     else msg(`击杀精英怪：木材 +${w}`);
+    const bm = G.towers.find(o => o.bmax);         // 杀死精英怪 20% 概率升级弹跳塔 MAX 的灵魂重击
+    if (bm && bm.bolt < BOUNCE.bolt.length && Math.random() < 0.2) { bm.bolt++; msg(`弹跳塔 MAX 灵魂重击升到 ${bm.bolt} 级`); }
   }
   if (m.onDeath) m.onDeath(src);
   SFX.ent('unit:' + m.uid, 'death', { x: m.x, y: m.y });
@@ -351,7 +354,9 @@ function canPlace(x, y, withOrders = false) {
 // 数量限制（原图用"只能建造一个主塔 / 只能建造2个新辅助 / 只能建造1个巫系辅助 / 全场只能建造一个"这些占位单位实现）
 function buildBlock(fam) {
   const f = D.towers[fam], n = fn => G.towers.filter(fn).length;
-  if (f.cat === 'main' && G.towers.some(t => t.cat === 'main')) return '只能建造一个主塔';
+  // 弹跳塔不占主塔名额（原图要求的是 n01U，不是 ovln）：随机模式最多 3 座（Bbt），有弹跳塔 MAX 后不能再建（n01U 被删掉）
+  if (fam === '弹跳塔') return G.towers.some(t => t.bmax) ? '拥有弹跳塔 MAX 后不能建造弹跳塔' : n(t => t.fam === fam) >= 3 ? '只允许建造 3 个弹跳塔' : null;
+  if (f.cat === 'main' && G.towers.some(t => t.cat === 'main' && t.fam !== '弹跳塔')) return '只能建造一个主塔';
   if (f.cat === 'aura' && n(t => t.fam === fam) >= RULE.maxAuraPerKind) return '随机模式每种光环限制 2 个';
   if (f.cat === 'big' && n(t => t.cat === 'big' || t.cat === 'evo') >= 2) return '只能建造 2 个新辅助（大辅助）';
   if (f.cat === 'witch' && n(t => t.cat === 'witch') >= 1) return '只能建造 1 个巫系辅助';
@@ -375,7 +380,8 @@ function buildTower(fam, x, y) {
   G.gold -= lv0.gold;
   const t = newTower(fam, x, y);
   G.towers.push(t);
-  return t;
+  const kit = KITS[fam];
+  return kit && kit.built ? kit.built(t) : t;     // 建成时的触发器（弹跳天赋快建会把它换成 MAX）
 }
 function upgradeTower(t, branchKey) {
   const f = famOf(t);
@@ -481,7 +487,8 @@ function towerStats(t) {
   const lv = curLevel(t);
   // 目标数只对弹射武器有意义：弹跳塔、通灵塔（武器类型 mbounce，3 个目标）。毒塔单位表里的 targCount 是普通飞弹，原图只打一个目标
   const targets = t.fam === '弹跳塔' || t.fam === '通灵塔' ? lv.targets || 1 : 1;
-  return { dmg: lv.dmg, cd: lv.cd, range: lv.range, atk: lv.atk, targets };
+  const dmg = lv.dmg + (t.fam === '弹跳塔' ? BOUNCE.atkStep * G.bounce.atk : 0);     // 弹跳提升攻击（R000）加的是基础攻击
+  return { dmg, cd: lv.cd, range: lv.range, atk: lv.atk, targets };
 }
 // WC3 的塔锁定目标：一直打同一个，直到它死掉或走出射程才重新找最近的（腐蚀、减速、重击就集中在一个目标上）
 function lockTarget(t, r) {
@@ -520,7 +527,8 @@ function shot(t, m) { t.face = Math.atan2(m.y - t.y, m.x - t.x); }
 //   攻击：攻击光环和剑圣强攻（AEar）取最大；原始战力、魔幻塔强攻（Aakb）、兽人咆哮、神力另算
 // 这些都只加塔的基础攻击（attack() / heroAttack() 里乘进去），不加技能伤害
 const bv = (t, k) => t.buff && t.buff[k] && t.buff[k].until > G.t ? t.buff[k].v : 0;
-const towerAS = t => (1 + Math.max(t.buffAS, t.selfAS || 0) + Math.max(bv(t, 'bloodlust'), t.selfAS2 || 0) + bv(t, 'fire')) * (1 - t.eliteAS);
+//   弹跳提升攻速（R001）是科技，和光环叠加
+const towerAS = t => (1 + Math.max(t.buffAS, t.selfAS || 0) + Math.max(bv(t, 'bloodlust'), t.selfAS2 || 0) + bv(t, 'fire') + (t.fam === '弹跳塔' ? BOUNCE.asStep * G.bounce.as : 0)) * (1 - t.eliteAS);
 const towerAtk = t => (1 + Math.max(t.buffDmg, t.selfAtk2 || 0) + (t.selfAtk || 0) + bv(t, 'roar') + bv(t, 'divine')) * (1 - t.eliteWeak);
 
 function towerUpdate(t, dt) {
@@ -721,6 +729,12 @@ const ICE = {
   hailArmor: [8, 16, 24, 32, 40, 50, 100, 150, 200, 250, 300],                                                        // 冰雹术 A032 / 腐蚀 A02Z
   flash: [150, 300, 600, 900, 1200, 2100, 3000, 4000, 8000, 15000, 50000], flashN: [7, 7, 8, 8, 9, 9, 10, 10, 12, 14, 14],   // 闪冰术 A031 / A030
   nova: [250, 1000, 2250, 4000, 6250, 9000, 12250, 16000, 20250, 25000, 50000],                                        // 爆冰术 A038 / A039
+};
+const BOUNCE = {   // 弹跳塔
+  mana: 300, value: 58000,                     // 魔法上限；MAX 的造价（3 座 4 级弹跳塔 3×16000 + 合成 10000，回收按这个返还）
+  atkStep: 60, atkMax: 20, asStep: 0.09, asMax: 10,   // 提升基础攻击 A0CE / 攻速 A0CF：每次 2 木材 + 150 魔法
+  merge: 10000, xferRange: 600, xferCd: 3,     // 合成大跳跳 A0CI；转移魔法 A0CJ
+  bolt: [10000, 20000, 40000, 80000, 160000, 400000, 800000, 1200000, 1600000, 2000000], boltCd: 5, boltStun: 5,   // 灵魂重击 A0M0（说明只写到 10 级）
 };
 const GOD_PAIRS = [['magic', 'pierce'], ['chaos', 'pierce'], ['normal', 'pierce'], ['chaos', 'magic'], ['chaos', 'normal'], ['magic', 'normal']];   // 切换伤害类型 A06V 1~6 级
 const SWORD = {
@@ -998,6 +1012,53 @@ const KITS = {
     },
     info(t) { const [d, cd] = [[1000, 3], [5000, 3], [20000, 3], [40000, 2]][t.lv]; return [`灵魂锁链：${d} 魔法伤害 + 无视护甲 1 秒，冷却 ${cd} 秒`]; },
   },
+  // 弹跳塔（原图触发器 BE5 提升 / BE8 杀敌得魔法 / BFc 转移魔法 / BFS 合成 / BFW 天赋快建 / BBr 灵魂重击）：
+  // 杀敌 +1 魔法（上限 300）。提升基础攻击 / 攻速是玩家科技，对所有弹跳塔（含 MAX）生效，回收不返还。
+  // 3 座 4 级弹跳塔 + 10000 金合成弹跳塔 MAX（全场 1 个，保留施法那座的魔法）；MAX 每次攻击对目标放灵魂重击，杀精英 20% 升级。
+  // 天赋卷轴激活 MAX 的弹跳天赋后，MAX 回收了再建弹跳塔：金币 ≥ 58000 且空余人口 ≥ 2 时扣 58000，所有 1 级弹跳塔回收，直接变成 MAX
+  弹跳塔: {
+    init(t) { t.maxMana = BOUNCE.mana; },
+    kill(t) { addMana(t, 1); },
+    built(t) {
+      const b = G.bounce;
+      if (!b.talent || G.towers.some(o => o.bmax) || G.gold < BOUNCE.value || G.foodCap - foodUsed() < 2) return t;
+      G.gold -= BOUNCE.value;
+      for (const o of G.towers.filter(o => o.fam === '弹跳塔' && !o.bmax && o.lv === 0)) sellTower(o);
+      msg('弹跳天赋：花费 58000 金币，直接建成弹跳塔 MAX');
+      return bounceMax(t.x, t.y, 0, b.bolt);
+    },
+    attack(t, target) {
+      if (!t.bmax || !cdReady(t, 'bolt')) return;
+      setCd(t, 'bolt', BOUNCE.boltCd);
+      const dmg = BOUNCE.bolt[t.bolt - 1];
+      FXS.launch('stormHammer', muzzle(t, 'stormHammer'), target, hit => { if (hit) { hurt(hit, dmg, 'magic', t); stun(hit, BOUNCE.boltStun); } });
+    },
+    cmds(t) {
+      const b = G.bounce, out = [
+        costCmd(t, 'A', '提升基础攻击', `所有弹跳塔基础攻击 +${BOUNCE.atkStep}（${b.atk}/${BOUNCE.atkMax} 级，现在 +${b.atk * BOUNCE.atkStep}）<br>受攻击光环等加成影响；回收不返还木材和魔法`,
+          { wood: 2, mana: 150 }, () => { b.atk++; msg(`升级成功，当前攻击提升 ${b.atk} 级`); }, { why: b.atk >= BOUNCE.atkMax ? '已经是最高等级' : null }),
+        costCmd(t, 'S', '提升基础攻速', `所有弹跳塔攻速 +${pctTxt(BOUNCE.asStep)}（${b.as}/${BOUNCE.asMax} 级，现在 +${pctTxt(b.as * BOUNCE.asStep)}）<br>和光环叠加；回收不返还木材和魔法`,
+          { wood: 2, mana: 150 }, () => { b.as++; msg(`升级成功，当前攻速提升 ${b.as} 级`); }, { why: b.as >= BOUNCE.asMax ? '已经是最高等级' : null }),
+      ];
+      if (t.bmax) return out;
+      out.push(cmd('B', '转移', '转移魔法', `<b>转移魔法</b><br>把魔法转给 ${BOUNCE.xferRange} 范围内另一座弹跳塔，对方最多补到 ${BOUNCE.mana}，多出的留在这座<br>不能转给弹跳塔 MAX，冷却 ${BOUNCE.xferCd} 秒`,
+        () => { if (!cdReady(t, 'xfer')) return msg('转移魔法冷却中'); G.pending = 'xfer:' + t.id; G.placing = null; msg('转移魔法：选择另一座弹跳塔（Esc 取消）'); uiDirty(); },
+        { active: G.pending === 'xfer:' + t.id, cdOf: () => [cdLeft(t, 'xfer'), BOUNCE.xferCd] }));
+      if (isMax(t) && t.lv > 0) {
+        const four = G.towers.filter(o => o.fam === '弹跳塔' && !o.bmax && isMax(o) && o.lv > 0).length;
+        out.push(costCmd(t, 'T', '合成弹跳塔MAX', `消耗任意 3 座 4 级弹跳塔，在这里合成 <b>弹跳塔 MAX</b>（全场只能合成 1 个，保留这座的魔法）<br>${D.towers.弹跳塔.max.tip}<br>MAX 每次攻击放灵魂重击：${fmt(BOUNCE.bolt[0])} 魔法伤害 + 晕 ${BOUNCE.boltStun} 秒，冷却 ${BOUNCE.boltCd} 秒；杀死精英怪 20% 概率升级`,
+          { gold: BOUNCE.merge }, () => bounceMerge(t), { why: four < 3 ? `需要 3 座 4 级弹跳塔（现在 ${four} 座）` : null }));
+      }
+      return out;
+    },
+    info(t) {
+      const b = G.bounce, out = [`提升基础攻击 ${b.atk}/${BOUNCE.atkMax} 级（+${b.atk * BOUNCE.atkStep}），攻速 ${b.as}/${BOUNCE.asMax} 级（+${pctTxt(b.as * BOUNCE.asStep)}）`];
+      if (t.bmax) out.push(`灵魂重击 ${t.bolt} 级：${fmt(BOUNCE.bolt[t.bolt - 1])} 魔法伤害 + 晕 ${BOUNCE.boltStun} 秒，${cdReady(t, 'bolt') ? '就绪' : '冷却 ' + Math.ceil(cdLeft(t, 'bolt')) + ' 秒'}`);
+      if (b.talent) out.push('弹跳天赋：MAX 回收后再建弹跳塔，金币 ≥ 58000 且空余人口 ≥ 2 时直接变成 MAX');
+      return out;
+    },
+    sell(t) { if (t.bmax) G.bounce.bolt = t.bolt; },
+  },
   // 图腾塔：图腾之链（每 5 秒）从攻击目标开始弹 8 个敌人，每弹一次伤害 +20%（MAX +25%），无视护甲
   图腾塔: {
     init(t) { t.maxMana = 1600; },
@@ -1254,6 +1315,34 @@ function evoCmd(t, small, to) {
     FXS.nova(t.x, t.y, 260, '#9fffb0', 0.6); SFX.ui('upgrade');
     msg(`${t.fam}进化成了${to}`);
   }, { why });
+}
+// 弹跳塔 MAX：等级表只有一级（h021），回收返还 58000
+function bounceMax(x, y, mana, bolt) {
+  const d = D.towers.弹跳塔.max;
+  const t = newTower('弹跳塔', x, y, { levels: [d], spent: BOUNCE.value, food: d.food, bmax: true, bolt, talent: G.bounce.talent });
+  t.mana = mana;
+  G.towers.push(t);
+  FXS.nova(x, y, 300, '#c8b8ff', 0.6); SFX.ui('upgrade');
+  return t;
+}
+// 合成大跳跳：所有 4 级弹跳塔被消耗（最多 3 座），在施法那座的位置建成 MAX
+function bounceMerge(t) {
+  const four = G.towers.filter(o => o.fam === '弹跳塔' && !o.bmax && isMax(o) && o.lv > 0);
+  G.towers = G.towers.filter(o => !four.includes(o));
+  const m = bounceMax(t.x, t.y, t.mana, 1);
+  if (four.includes(G.selected)) G.selected = m;
+  msg('合成了弹跳塔 MAX');
+}
+// 转移魔法：对方补到 300，多出的留下
+function bounceXfer(src, t) {
+  if (!G.towers.includes(src)) return;
+  if (!t || t === src || t.fam !== '弹跳塔' || t.bmax) return msg('只能转给另一座弹跳塔（不能转给弹跳塔 MAX）');
+  if (dist2(src.x, src.y, t.x, t.y) > (BOUNCE.xferRange + FOOT_HALF) ** 2) return msg('目标太远');
+  if (!cdReady(src, 'xfer')) return msg('转移魔法冷却中');
+  const sum = src.mana + t.mana;
+  t.mana = Math.min(BOUNCE.mana, sum); src.mana = sum - t.mana;
+  setCd(src, 'xfer', BOUNCE.xferCd);
+  FXS.beam(src.x, src.y, 150, t.x, t.y, 150, '#7ab8ff', 1.4, 0.4);
 }
 // 击杀：塔的魔法值（功勋）
 function towerKilled(t, m) { const kit = KITS[t.fam]; if (kit && kit.kill) kit.kill(t, m); }
@@ -1839,10 +1928,10 @@ const SHOP_ITEMS = [
     pick: '知识之书：选择英雄塔（Esc 取消）', ok: t => t && t.isHero ? null : '只能对英雄塔使用',
     use: h => { const st = pick(['str', 'agi', 'int']); h.stat[st] += 10; msg(`英雄增加${statCN(st)} 10`); } },
   { id: 'I01Y', key: 'A', name: '天赋卷轴', wood: 15, firstAt: 1200, cd: 300, inv: true, range: 750,
-    tip: `激活天赋（原图 A053）：<br>MAX 光环塔：光环升到 2 级（加速 +80% / 攻击 +142% / 减防 -100 / 减速 -70%）<br>大辅助、巫系：技能升到 MAX<br>破坏塔 MAX：同时攻击 9 个；通灵塔 MAX：高级通灵；地精塔 MAX：每秒多回 2.5 魔法<br>开局 1200 秒后开放，购买间隔 300 秒`,
+    tip: `激活天赋（原图 A053）：<br>MAX 光环塔：光环升到 2 级（加速 +80% / 攻击 +142% / 减防 -100 / 减速 -70%）<br>大辅助、巫系：技能升到 MAX<br>弹跳塔 MAX：弹跳天赋（MAX 回收后再建弹跳塔，金币 ≥ 58000 时直接变成 MAX）<br>破坏塔 MAX：同时攻击 9 个；通灵塔 MAX：高级通灵；地精塔 MAX：每秒多回 2.5 魔法<br>开局 1200 秒后开放，购买间隔 300 秒`,
     pick: '天赋卷轴：选择一座可以激活天赋的塔（Esc 取消）',
-    ok: t => !t || !(t.cat === 'aura' || TALENT_FAMS.has(t.fam)) ? '只能对光环塔、大辅助、巫系、破坏塔 / 通灵塔 / 地精塔使用' : !isMax(t) ? '要升到 MAX 才能激活天赋' : t.talent ? '该单位已经激活' : null,
-    use: t => { t.talent = true; FXS.ring(t.x, t.y, 220, '#9fffb0', 0.6, 4); msg(`${curLevel(t).name}获得了${t.cat === 'aura' ? '基础天赋' : '天赋'}`); } },
+    ok: t => !t || !(t.cat === 'aura' || TALENT_FAMS.has(t.fam)) ? '只能对光环塔、大辅助、巫系、弹跳塔 MAX、破坏塔 / 通灵塔 / 地精塔使用' : !isMax(t) || (t.fam === '弹跳塔' && !t.bmax) ? '要升到 MAX 才能激活天赋' : t.talent ? '该单位已经激活' : null,
+    use: t => { t.talent = true; if (t.bmax) G.bounce.talent = true; FXS.ring(t.x, t.y, 220, '#9fffb0', 0.6, 4); msg(`${curLevel(t).name}获得了${t.cat === 'aura' ? '基础天赋' : '天赋'}`); } },
   { id: 'I009', key: 'S', name: '复制卷轴', gold: 3000, na: '单人模式没有友军的守卫者可以复制',
     tip: '对一位友军的守卫者使用，获得与其一模一样的建造能力（不保留自身守护神技等级，以后随机建筑需 6 木材）' },
   { id: 'I00B', key: 'D', name: '收购卷轴', gold: 1800, na: '单人模式没有友军的光环塔可以收购',
@@ -1875,7 +1964,7 @@ function useItem(it, t) {
   const why = it.ok(t); if (why) return msg(why);
   it.use(t); G.inv[i] = null; SFX.ui('item'); uiDirty();
 }
-const TALENT_FAMS = new Set(['萨满塔', '兽人塔', '驱逐塔', '缓速塔', '巫医塔', '巫术塔', '巫法塔', '巫魔塔', '破坏塔', '通灵塔', '地精塔']);
+const TALENT_FAMS = new Set(['弹跳塔', '萨满塔', '兽人塔', '驱逐塔', '缓速塔', '巫医塔', '巫术塔', '巫法塔', '巫魔塔', '破坏塔', '通灵塔', '地精塔']);
 const auraAb = t => { const ab = curLevel(t).abils[0]; return ab && t.talent ? { ...ab, A: TALENT_A[t.fam] } : ab; };
 
 // 兔子卷轴（原图守护宗师卖，20 点成就）：额外召唤一次兔子，每局只能 1 次
@@ -2346,7 +2435,7 @@ function draw() {
     }
     ctx = octx;
   }
-  if (G.pending && mouse) { label(G.pending === 'blink' ? '闪烁到这里' : G.pending.startsWith('item:') ? '对这里的光环塔使用' : '移动到这里', wx(mouse.x, mouse.y), wy(mouse.y) + 90, '#c8f5c8', 12); }
+  if (G.pending && mouse) { label(G.pending === 'blink' ? '闪烁到这里' : G.pending.startsWith('xfer:') ? '把魔法转给这座弹跳塔' : G.pending.startsWith('item:') ? '对这里的光环塔使用' : '移动到这里', wx(mouse.x, mouse.y), wy(mouse.y) + 90, '#c8f5c8', 12); }
   TER.drawOverlay(ctx, view);
   ctx = gctx;
   if (U3) { U3.render(G.t - (draw.lastT ?? G.t), gctx.canvas); draw.lastT = G.t; }
@@ -3024,7 +3113,7 @@ function buildCmds() {
   if (e.fam && e.cat !== 'summon') {
     const f = famOf(e), kit = KITS[e.fam];
     if (kit && kit.cmds) out.push(...kit.cmds(e));
-    if (f.branches && e.lv === 0) Object.keys(f.branches).forEach((k, i) => { const n = f.branches[k][0]; out.push(cmd(['Q', 'W', 'E', 'R'][i], k, k + '分支', `<b>${n.name}</b> ${atkTag(n.atk)}<br><span class="gold">${n.gold} 金</span> · 攻击 ${n.dmg} · 弹射 ${n.targets} 个`, () => upgradeTower(e, k), { atk: n.atk, disabled: G.gold < n.gold, ico: 'branch-' + n.atk, cost: n.gold })); });
+    if (f.branches && e.lv === 0 && !e.bmax) Object.keys(f.branches).forEach((k, i) => { const n = f.branches[k][0]; out.push(cmd(['Q', 'W', 'E', 'R'][i], k, k + '分支', `<b>${n.name}</b> ${atkTag(n.atk)}<br><span class="gold">${n.gold} 金</span> · 攻击 ${n.dmg} · 弹射 ${n.targets} 个`, () => upgradeTower(e, k), { atk: n.atk, disabled: G.gold < n.gold, ico: 'branch-' + n.atk, cost: n.gold })); });
     else if (e.levels[e.lv + 1]) { const n = e.levels[e.lv + 1]; out.push(cmd('U', '↑', '升级', `升级到 <b>${n.name}</b><br><span class="gold">${n.gold} 金</span>${e.cat === 'aura' ? '' : ` · 攻击 ${fmt(n.dmg)} · 间隔 ${n.cd}s · 射程 ${n.range}`}<br>${n.tip || ''}`, () => upgradeTower(e), { disabled: G.gold < n.gold, ico: 'upgrade', iconKey: `portrait:tower:${e.fam}:${e.lv + 2}`, cost: n.gold })); }
     while (out.length < 7) out.push(null);
     out.push(cmd('Y', '回', '回收', `返还建造和升级花费的 100% 金币：<b>${e.spent}</b>`, () => sellTower(e), { ico: 'sell' }));
@@ -3127,6 +3216,12 @@ function groundClick(x, y, shift) {
     const i = +G.pending.slice(4), t = mouse && hitTest(mouse.x, mouse.y);
     G.pending = null;
     if (G.inv[i]) { if (t && G.towers.includes(t)) orderUse(i, t, shift); else msg(G.inv[i].ok(null)); }
+    uiDirty(); return;
+  }
+  if (G.pending && G.pending.startsWith('xfer:')) {          // 弹跳塔转移魔法：对另一座弹跳塔
+    const src = G.towers.find(o => o.id === +G.pending.slice(5)), t = mouse && hitTest(mouse.x, mouse.y);
+    G.pending = null;
+    if (src) bounceXfer(src, t);
     uiDirty(); return;
   }
   if (G.pending === 'fod') {                                  // 死亡之指：对敌人
@@ -3333,5 +3428,5 @@ newGame('solo');
 showStart();
 requestAnimationFrame(frame);
 window.__G = () => G;   // 调试用
-window.__dbg = { get G() { return G; }, NODES, EDGES, kill, hurt, spawnMonster, FXS, buildTower, upgradeTower, learnSkill, heroLevelUp, step, canPlace, newGame, monstersAlive, towerStats, rerollBuild, orderBuild, orderMove, castSkill, spawnRabbit, buyRabbit, RABBIT_SHOP, SHOP, SHOP_ITEMS, buyShop, orderFinger, KITS, towerAS, towerAtk, effArmor, applyAuras, sellTower, select, hurt, buildCmds, newTower, attack };
+window.__dbg = { get G() { return G; }, NODES, EDGES, kill, hurt, spawnMonster, FXS, buildTower, upgradeTower, learnSkill, heroLevelUp, step, canPlace, newGame, monstersAlive, towerStats, rerollBuild, orderBuild, orderMove, castSkill, spawnRabbit, buyRabbit, RABBIT_SHOP, SHOP, SHOP_ITEMS, buyShop, orderFinger, KITS, towerAS, towerAtk, effArmor, applyAuras, sellTower, select, hurt, buildCmds, newTower, attack, bounceXfer };
 })();

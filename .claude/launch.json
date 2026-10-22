@@ -108,6 +108,15 @@
         "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/edb1cc8a-5e99-4d85-b6cc-42909a26f6fb/scratchpad/h5srv && exec python3 -m http.server 8813"
       ],
       "port": 8813
+    },
+    {
+      "name": "h5-bounce",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/ed9d1260-d72f-48e6-9e8d-2ae47ed50bcb/scratchpad/h5srv && exec python3 -m http.server 8821"
+      ],
+      "port": 8821
     }
   ]
 }
