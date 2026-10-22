@@ -36,7 +36,7 @@ const ATK_CN = { normal: '普通', pierce: '穿刺', magic: '魔法', chaos: '�
 const ATK_COLOR = { normal: '#e8e8e8', pierce: '#ffb347', magic: '#7ab8ff', chaos: '#c48bff', hero: '#ffd257', spells: '#7ab8ff' };
 const COUNTER = { '物理': 'magic', '抗性': 'normal', '魔法': 'pierce', '神圣': 'chaos' };
 const SPAWNER = { '多': { every: 0.25, count: 62 }, '中': { every: 0.6, count: 32 }, '少': { every: 1.0, count: 15 } };
-const CAT_CN = { main: '主塔', raw: '原始塔', sup: '辅助塔', aura: '光环塔', alt: '另类塔', hero: '英雄塔' };
+const CAT_CN = { main: '主塔', raw: '原始塔', sup: '辅助塔', aura: '光环塔', alt: '另类塔', hero: '英雄塔', big: '大辅助', witch: '巫系辅助', uniq: '全场唯一', evo: '大辅助（进化）', summon: '召唤物' };
 
 // ---------------------------------------------------------------- 路线 (由地图 region + 移动指令还原)
 // 原图 8 名玩家的塔遍布整个环；单人时把路线整体缩小到 MAP_SCALE，让塔的射程覆盖更多路段（射程、移速等数值不变）
@@ -113,6 +113,7 @@ function newGame(mode) {
     ach: RULE.startAch, rabbit: null, rabbitScroll: false, buys: {}, itemCd: {},
     waveVars: {}, next: null, carryHint: null, sc: null, curUnit: null, waveHook: null, waveNote: '', finalCountdown: false,
     k7: rint(1, 2),          // 原图开局随机：30 波出亡灵飞艇（1）还是地精飞艇（2）
+    mem: {},                 // 主塔回收时记下的技能等级和魔法，再建同一种主塔时恢复（原图 D1~D7、DK/DL/DM 等全局变量）
   };
   G.selected = G.builder;
   FXS.clear();
@@ -122,18 +123,23 @@ function newGame(mode) {
   SFX.startMusic();
 }
 
-// ---------------------------------------------------------------- 建造栏 (随机 6 选：1 主塔、1 原始、1 光环、2 辅助、1 另类)
+// ---------------------------------------------------------------- 建造栏
+// 原图随机建造（war3map.j 里 Qf / Hd / He / Hf / Hh / Hg / H7 七个随机数）：1 主塔、1 原始塔、1 光环塔、1 新辅助（4 大辅助 + 4 巫系）、
+// 1 小辅助、1 另类塔、1 全场唯一塔
 const FAM = Object.values(D.towers);
 const byCat = c => FAM.filter(f => f.cat === c).map(f => f.name);
+const SLOT_POOL = { main: ['main'], raw: ['raw'], aura: ['aura'], newsup: ['big', 'witch'], sup: ['sup'], alt: ['alt'], uniq: ['uniq'] };
+const SLOTS = Object.keys(SLOT_POOL);
+const slotPool = s => SLOT_POOL[s].flatMap(byCat);
+const slotOf = fam => SLOTS.find(s => SLOT_POOL[s].includes(D.towers[fam].cat));
 function rerollBuild(free) {
   if (!free) {
     if (G.rerolls > 0 && G.wood < RULE.rerollWood) return msg(`木材不足（随机建造需要 ${RULE.rerollWood} 木材，首次免费）`);
     if (G.rerolls > 0) G.wood -= RULE.rerollWood;
     G.rerolls++;
   }
-  const sups = byCat('sup').sort(() => Math.random() - 0.5);
   if (MODES[G.mode].build) G.build = MODES[G.mode].build.slice();      // 演示模式：固定建造栏
-  else G.build = [pick(byCat('main')), pick(byCat('raw')), pick(byCat('aura')), sups[0], sups[1], pick(byCat('alt'))];
+  else G.build = SLOTS.map(s => pick(slotPool(s)));
   G.placing = null;
   uiDirty();
 }
@@ -142,18 +148,23 @@ function rerollBuild(free) {
 function armorMult(armor) {
   return armor >= 0 ? 1 / (1 + 0.02 * armor) : 2 - Math.pow(0.98, -armor);   // DefenseArmor=0.02
 }
-function effArmor(m) { return m.armor + m.auraArmor - m.armorDown - m.shred; }
+// 护甲：减防光环和剑刃之魂的减甲是同一种光环（AHad），只取大的；恐惧塔 / 恐惧之眼也不叠加，只取大的
+const debuff = (m, k) => m.deb[k] && m.deb[k].until > G.t ? m.deb[k].v : 0;
+function effArmor(m) {
+  return m.armor + m.auraFocus - Math.max(m.auraArmorDown, debuff(m, 'blade')) - m.armorDown - m.shred - debuff(m, 'fear');
+}
 function typeMult(atk, m) {
   const row = D.damage[atk] || D.damage.normal;
   return row[ARMOR_COL[m.type] ?? 7];
 }
+// 光环、原始战力等只加塔的"基础攻击"（在 attack() 里乘进攻击伤害），这里不再放大技能、持续伤害和区域伤害
 function hurt(m, amount, atk, src, opt = {}) {
   if (m.dead || !(amount > 0)) return 0;   // 同时挡掉 NaN
   let dmg = amount * typeMult(atk, m);
-  if (!opt.ignoreArmor) dmg *= armorMult(effArmor(m));
-  if (src && src.dmgMul) dmg *= src.dmgMul;
+  if (!opt.ignoreArmor && !(m.ignoreArmorUntil > G.t)) dmg *= armorMult(effArmor(m));   // 灵魂锁链：目标护甲被无视
   m.hp -= dmg;
-  if (src) src.dealt = (src.dealt || 0) + dmg;
+  const owner = src && src.cat === 'summon' && src.owner && !src.owner.isHero ? src.owner : src;   // 冰雹狮鹫等召唤物的伤害算在塔上
+  if (owner) owner.dealt = (owner.dealt || 0) + dmg;
   if (m.hp <= 0) kill(m, src);
   return dmg;
 }
@@ -162,7 +173,12 @@ function kill(m, src) {
   m.dead = true; m.hp = 0;
   G.gold += Math.round(m.bounty);
   G.kills++;
-  if (src) { src.kills = (src.kills || 0) + 1; const owner = src.owner || src; if (owner.isHero) owner.mana = Math.min(owner.maxMana(), owner.mana + 2); }   // 英雄每击杀 +2 魔法
+  if (src) {
+    src.kills = (src.kills || 0) + 1;
+    const owner = src.owner || src;
+    if (owner.isHero) owner.mana = Math.min(owner.maxMana(), owner.mana + 2);    // 英雄每击杀 +2 魔法
+    else if (owner.fam && G.towers.includes(owner)) towerKilled(owner, m);         // 塔的魔法值（功勋）
+  }
   if (m.elite) {
     const w = rint(1, 3); G.wood += w;
     const owner = src && (src.owner || src);
@@ -187,7 +203,8 @@ function spawnMonster(id, opt = {}) {
     maxHp: u.hp * hpMul, hp: u.hp * hpMul, armor: u.armor, type: u.armorType, speed: u.speed || 250,
     bounty: u.bounty, regen: u.regen || 0, path: SPAWN_PATH.slice(1), prev: null, cur: SPAWN_PATH[0], lane: rnd(-0.75, 0.75),
     slow: 0, slowUntil: 0, stunUntil: 0, shred: 0, shredUntil: 0, armorDown: 0, armorDownUntil: 0,
-    auraArmor: 0, auraSlow: 0, auraSpeed: 0, auraRegen: 0, burn: null, dots: [],
+    auraFocus: 0, auraArmorDown: 0, auraSlow: 0, auraSpeed: 0, auraRegen: 0, burn: null, dots: [],
+    deb: {}, ignoreArmorUntil: 0, frozenUntil: 0, expel: null,       // deb：限时减甲 / 加速（{ v, until }）；expel：被驱逐（遣返用）
     boss: !!opt.boss, r: opt.boss ? 90 : 55, elite: null,
   };
   if (!opt.noElite && !NO_ELITE.has(id) && Math.random() < RULE.eliteChance) makeElite(m);
@@ -215,6 +232,19 @@ function nextNode(m) {
   const opts = ADJ[m.cur].filter(n => n !== m.prev);
   return pick(opts.length ? opts : ADJ[m.cur]);   // 路口 50/50 随机，不走回头路
 }
+// 遣返（war3map.j 的 BHC）：带驱逐状态的怪走进 L、Y 两个转弯口时，驱逐塔的驱逐 85%、巫师塔（光明）的驱逐 95% 概率被传回出怪口。
+// 魔王不会被遣返
+const REPATRIATE_AT = new Set(['L', 'Y']);
+function repatriate(m) {
+  const e = m.expel;
+  if (!e || e.until <= G.t || m.uid === 'Udea' || !REPATRIATE_AT.has(m.cur) || Math.random() >= e.p) return false;
+  FXS.ring(m.x, m.y, 140, '#9fe3ff', 0.45, 4);
+  const [x, y] = NODES[SPAWN_PATH[0]];
+  Object.assign(m, { x: x + rnd(-150, 150), y: y + rnd(-150, 150), cur: SPAWN_PATH[0], prev: null, path: SPAWN_PATH.slice(1), expel: null });
+  m.target = nextNode(m);
+  FXS.ring(m.x, m.y, 140, '#9fe3ff', 0.45, 4);
+  return true;
+}
 // ---------------------------------------------------------------- 怪物移动与碰撞
 // 每只怪沿路线走，但有自己的"车道"（离路中线的偏移，左右以前进方向为准）；怪与怪之间互相推开，
 // 被推的位移拆成"沿路"和"横向"两部分：横向换道（不出路面），沿路被挡住就慢下来排队。
@@ -229,7 +259,7 @@ const toSeg = (f, x, y) => [(x - f.A[0]) * f.ux + (y - f.A[1]) * f.uy, (x - f.A[
 function moveMonster(m, dt) {
   if (!m.target) m.target = nextNode(m);
   if (G.t < m.stunUntil) return;
-  let spd = m.speed * (1 + m.auraSpeed) * (1 - Math.max(m.slow * (G.t < m.slowUntil ? 1 : 0), m.auraSlow));
+  let spd = m.speed * (1 + m.auraSpeed + debuff(m, 'expelSpeed')) * (1 - Math.max(m.slow * (G.t < m.slowUntil ? 1 : 0), m.auraSlow));
   spd = clamp(spd, 30, 522);
   let f = segFrame(m), [sAlong, lat] = toSeg(f, m.x, m.y);
   sAlong += spd * dt;
@@ -240,7 +270,9 @@ function moveMonster(m, dt) {
   let guard = 0;
   while (sAlong >= f.len && guard++ < 3) {
     const px = f.A[0] + f.ux * sAlong + f.nx * lat, py = f.A[1] + f.uy * sAlong + f.ny * lat;
-    m.prev = m.cur; m.cur = m.target; m.target = nextNode(m);
+    m.prev = m.cur; m.cur = m.target;
+    if (repatriate(m)) return;
+    m.target = nextNode(m);
     m.lane = clamp(m.lane * 0.6 + rnd(-0.4, 0.4), -0.85, 0.85);
     f = segFrame(m); [sAlong, lat] = toSeg(f, px, py);
   }
@@ -315,16 +347,32 @@ const footCells = (x, y) => { const r = []; for (let i = -1; i <= 1; i++) for (l
 function canPlace(x, y, withOrders = false) {
   return footCells(x, y).every(([cx, cy]) => cellBuildable(cx, cy) && !cellTaken(cx, cy, withOrders));
 }
+// 数量限制（原图用"只能建造一个主塔 / 只能建造2个新辅助 / 只能建造1个巫系辅助 / 全场只能建造一个"这些占位单位实现）
+function buildBlock(fam) {
+  const f = D.towers[fam], n = fn => G.towers.filter(fn).length;
+  if (f.cat === 'main' && G.towers.some(t => t.cat === 'main')) return '只能建造一个主塔';
+  if (f.cat === 'aura' && n(t => t.fam === fam) >= RULE.maxAuraPerKind) return '随机模式每种光环限制 2 个';
+  if (f.cat === 'big' && n(t => t.cat === 'big' || t.cat === 'evo') >= 2) return '只能建造 2 个新辅助（大辅助）';
+  if (f.cat === 'witch' && n(t => t.cat === 'witch') >= 1) return '只能建造 1 个巫系辅助';
+  if (f.cat === 'uniq' && n(t => t.fam === fam) >= 1) return '全场唯一，只能建造一个';
+  return null;
+}
+function newTower(fam, x, y, extra) {
+  const f = D.towers[fam], lv0 = f.levels[0];
+  const t = { id: G.nextId++, fam, cat: f.cat, x, y, lv: 0, levels: f.levels, spent: lv0.gold, food: lv0.food || 0,
+    cdLeft: 0, kills: 0, dealt: 0, attacks: 0, mana: 0, maxMana: 0, angle: 0, buff: {}, cds: {}, buffAS: 0, buffDmg: 0, eliteAS: 0, eliteWeak: 0, ...extra };
+  const kit = KITS[fam];
+  if (kit && kit.init) kit.init(t, G.mem[fam]);
+  return t;
+}
 function buildTower(fam, x, y) {
   if (fam === 'hero') return buildHero(x, y);
-  const f = D.towers[fam], lv0 = f.levels[0];
-  if (f.cat === 'main' && G.towers.some(t => t.cat === 'main')) return msg('只能建造一个主塔');
-  if (f.cat === 'aura' && G.towers.filter(t => t.fam === fam).length >= RULE.maxAuraPerKind) return msg('随机模式每种光环限制 2 个');
+  const lv0 = D.towers[fam].levels[0], why = buildBlock(fam);
+  if (why) return msg(why);
   if (G.gold < lv0.gold) return msg('金币不足');
   if (foodUsed() + (lv0.food || 0) > G.foodCap) return msg('人口不足（12 木材可买 1 人口）');
   G.gold -= lv0.gold;
-  const t = { id: G.nextId++, fam, cat: f.cat, x, y, lv: 0, levels: f.levels, spent: lv0.gold, food: lv0.food || 0,
-    cdLeft: 0, kills: 0, dealt: 0, attacks: 0, mana: 0, angle: 0, buffAS: 0, buffDmg: 0, eliteAS: 0, eliteWeak: 0 };
+  const t = newTower(fam, x, y);
   G.towers.push(t);
   return t;
 }
@@ -343,9 +391,11 @@ function upgradeTower(t, branchKey) {
 }
 function sellTower(t) {
   G.gold += t.spent;                      // ConstructionRefundRate = UpgradeRefundRate = 1.0
+  const kit = KITS[t.fam];
+  if (kit && kit.sell) kit.sell(t);       // 功勋木材、容器金币等额外返还，主塔记下技能等级
   SFX.ui('sell');
   if (t.isHero) G.hero = null;
-  G.towers = G.towers.filter(x => x !== t);
+  G.towers = G.towers.filter(x => x !== t && x.owner !== t);
   G.zones = G.zones.filter(z => z.owner !== t);
   if (G.selected === t) G.selected = G.builder;
   G.menu = 'main'; uiDirty();
@@ -359,6 +409,8 @@ function orderBuild(fam, x, y, queue) {
   const food = fam === 'hero' ? 1 : D.towers[fam].levels[0].food || 0;
   if (G.gold < cost) return msg('金币不足'), false;
   if (foodUsed() + food > G.foodCap) return msg('人口不足（12 木材可买 1 人口）'), false;
+  const why = fam !== 'hero' && buildBlock(fam);
+  if (why) return msg(why), false;
   giveOrder({ kind: 'build', fam, x, y }, queue);
   return true;
 }
@@ -423,7 +475,9 @@ function blinkTo(x, y) {
 function towerStats(t) {
   if (t.isHero) return heroStats(t);
   const lv = curLevel(t);
-  return { dmg: lv.dmg, cd: lv.cd, range: lv.range, atk: lv.atk, targets: lv.targets || 1 };
+  // 目标数只对弹射武器有意义：弹跳塔、通灵塔（武器类型 mbounce，3 个目标）。毒塔单位表里的 targCount 是普通飞弹，原图只打一个目标
+  const targets = t.fam === '弹跳塔' || t.fam === '通灵塔' ? lv.targets || 1 : 1;
+  return { dmg: lv.dmg, cd: lv.cd, range: lv.range, atk: lv.atk, targets };
 }
 function inRange(x, y, r) { return G.monsters.filter(m => !m.dead && dist2(x, y, m.x, m.y) <= r * r); }
 function nearest(x, y, r) {
@@ -451,14 +505,24 @@ const sndKey = t => t.isHero ? 'hero:' + t.heroName : 'tower:' + t.fam;      // 
 const muzzle = (t, style) => ({ x: t.x, y: t.y, z: (MUZZLE[style] || 150) + (t.isHero ? 30 : 0) });
 function shot(t, m) { t.face = Math.atan2(m.y - t.y, m.x - t.x); }
 
+// 攻速 / 攻击加成。WC3 里同一种 buff 不叠加，取最大：
+//   攻速：加速光环、原始战速、魔幻塔急速、破坏塔极速都是"耐久光环"类（AOae），取最大；萨满嗜血术和剑圣致速不叠加，取最大；火速另算
+//   攻击：攻击光环和剑圣强攻（AEar）取最大；原始战力、魔幻塔强攻（Aakb）、兽人咆哮、神力另算
+// 这些都只加塔的基础攻击（attack() / heroAttack() 里乘进去），不加技能伤害
+const bv = (t, k) => t.buff && t.buff[k] && t.buff[k].until > G.t ? t.buff[k].v : 0;
+const towerAS = t => (1 + Math.max(t.buffAS, t.selfAS || 0) + Math.max(bv(t, 'bloodlust'), t.selfAS2 || 0) + bv(t, 'fire')) * (1 - t.eliteAS);
+const towerAtk = t => (1 + Math.max(t.buffDmg, t.selfAtk2 || 0) + (t.selfAtk || 0) + bv(t, 'roar') + bv(t, 'divine')) * (1 - t.eliteWeak);
+
 function towerUpdate(t, dt) {
   if (t.cat === 'aura') return;
+  const kit = KITS[t.fam];
   if (t.isHero) heroTick(t, dt);
+  if (t.maxMana && t.manaRegen) t.mana = clamp(t.mana + t.manaRegen * dt, 0, t.maxMana);
+  if (kit && kit.tick) kit.tick(t, dt);
   const st = towerStats(t);
-  const asMul = (1 + t.buffAS) * (1 - t.eliteAS);
-  t.dmgMul = (1 + t.buffDmg) * (1 - t.eliteWeak);
+  t.atkMul = towerAtk(t);
   if (t.fam === '扫射塔') return sweepUpdate(t, dt, st);
-  t.cdLeft -= dt * asMul;
+  t.cdLeft -= dt * towerAS(t);
   if (t.cdLeft > 0) return;
   const target = nearest(t.x, t.y, st.range);
   if (!target) { t.cdLeft = 0; return; }
@@ -470,20 +534,27 @@ function towerUpdate(t, dt) {
 
 // 普通塔一次攻击 (按 WC3 技能代码解释附加效果)
 function attack(t, target, st) {
-  const lv = curLevel(t), col = ATK_COLOR[st.atk];
-  let dmg = st.dmg;
-  // 致命一击
-  const crit = abil(lv, 'AOcr');
+  const lv = curLevel(t), kit = KITS[t.fam];
+  let dmg = st.dmg * t.atkMul;
+  // 致命一击（剑圣塔的致命一击由它的技能包按成长模式处理）
+  const crit = !(kit && kit.ownCrit) && abil(lv, 'AOcr');
   if (crit && Math.random() * 100 < (crit.A || 25)) { dmg *= crit.B || 3; addFx({ kind: 'text', x: target.x, y: target.y, text: '暴击', life: 0.6, color: '#ffd257' }); }
   // 目标集合
   let targets = [target];
-  const n = st.targets > 1 ? st.targets : 1;
-  if (t.fam === '破坏塔') targets = inRange(t.x, t.y, st.range).slice(0, t.lv === 0 ? 4 : 3 + t.lv);
-  else if (t.fam === '弹跳塔') targets = chainTargets(target, n, 500);
-  else if (n > 1) targets = [target].concat(inRange(t.x, t.y, st.range).filter(m => m !== target).slice(0, n - 1));
-  if (t.fam === '箭塔' && t.attacks % 3 === 0) targets = inRange(t.x, t.y, st.range);                 // 每 3 次攻击打全部
-  if (t.fam === '通灵塔' && t.attacks % 10 === 0) { t.necroUntil = G.t + 1; }                         // 每 10 击 6 倍 1 秒
-  if (t.necroUntil > G.t) dmg *= 6;
+  if (t.fam === '弹跳塔' || t.fam === '通灵塔') targets = chainTargets(target, st.targets, 500);   // 弹射；通灵塔武器是 mbounce：3 个目标、弹射范围 500
+  // 破坏塔：分裂破坏 A06U（多重射击）。说明"同时攻击 4 个单位"，2~MAX 级还是同一个技能；天赋（分裂破坏 2 级）9 个
+  if (t.fam === '破坏塔') targets = [target].concat(inRange(t.x, t.y, 1200).filter(m => m !== target).slice(0, (t.talent ? 9 : 4) - 1));
+  // 箭塔：箭射 A07X 每次攻击升 1 级，4 级时（每 4 次攻击里的第 4 次）打 800 范围内所有敌人
+  if (t.fam === '箭塔' && t.attacks % 4 === 0) targets = inRange(t.x, t.y, 800);
+  // 通灵塔：每攻击 1 次得 1 个灵魂，10 个进入通灵状态 6 倍攻击 1 秒；天赋（高级通灵）8 个、10 倍 2 秒，通灵状态不存灵魂
+  if (t.fam === '通灵塔') {
+    const [need, mul, dur] = t.talent ? [8, 10, 2] : [10, 6, 1];
+    if (!(t.talent && t.necroUntil > G.t) && (t.souls = (t.souls || 0) + 1) >= need) { t.souls = 0; t.necroUntil = G.t + dur; t.necroMul = mul; FXS.souls(t.x, t.y, 160, '#c48bff'); }
+    if (t.necroUntil > G.t) dmg *= t.necroMul;
+  }
+  const a = { dmg, targets };
+  if (kit && kit.attack && kit.attack(t, target, st, a) === false) return;
+  dmg = a.dmg; targets = a.targets;
   const style = missileOf(t), from = muzzle(t, style);
   shot(t, target);
   // 主目标命中后的范围效果（目标在飞行途中死了，就以落点为中心）
@@ -491,31 +562,24 @@ function attack(t, target, st) {
     const c = hit || { x, y };
     if (t.fam === '牛头塔') splash(t, c, (abil(lv, 'Aroc') || {}).area || 500, dmg, st.atk);     // 粉碎（分裂）A0A9：500 范围
     if (t.fam === '群攻塔') { splash(t, c, 300, dmg, st.atk); stunArea(c, 300, 0.1); }
-    if (t.fam === '寒冰塔') {                                                          // 爆冰术：300 范围混乱伤害 + 减速 30%
-      const ice = [250, 1000, 2250, 4000, 6250][t.lv];
-      for (const m of inRange(c.x, c.y, 300)) { hurt(m, ice, 'chaos', t); slowM(m, 0.3, 6); }
-    }
-    if (t.fam === '天神塔') {                                                          // 300 范围两种伤害随机
-      const types = t.godTypes || ['normal', 'magic'];
-      for (const m of inRange(c.x, c.y, 300)) if (m !== hit) hurt(m, dmg * rnd(0.5, 1), pick(types), t);
-      FXS.ring(c.x, c.y, 300, '#ffe9a0', 0.3, 4);
-    }
   };
   const land = (m, primary) => (hit, x, y) => {
-    if (hit) { hurt(hit, dmg, st.atk, t); onHitEffects(t, lv, hit, st); }
+    if (hit) { hurt(hit, dmg, st.atk, t); onHitEffects(t, lv, hit, st); frozenBurst(hit); }
     if (primary) { area(hit, x, y); SFX.ent(sndKey(t), 'hit', { x, y }); }
   };
   SFX.ent(sndKey(t), 'launch', { x: t.x, y: t.y });
-  if (t.fam === '弹跳塔') {                     // 月刃依次弹到下一个目标
+  if (t.fam === '弹跳塔' || t.fam === '通灵塔') {     // 依次弹到下一个目标
     const hop = (i, src) => { if (i >= targets.length) return;
       FXS.launch(style, src, targets[i], (hit, x, y) => { land(targets[i], i === 0)(hit, x, y); hop(i + 1, { x, y, z: 50 }); }, w3opt(t)); };
     return hop(0, from);
   }
   for (const m of targets) FXS.launch(style, from, m, land(m, m === target), w3opt(t));
 }
+// 自带的重击由技能包处理的塔（群攻塔的范围重击、巨箭塔的双刃箭、巫师塔（暗黑）的范围晕眩、缓速塔天赋的魔法攻击）
+const OWN_BASH = new Set(['群攻塔', '巨箭塔', '巫师塔（暗黑）', '缓速塔']);
 function onHitEffects(t, lv, m, st) {
   const bash = abil(lv, 'AHbh');
-  if (bash && t.fam !== '群攻塔' && Math.random() * 100 < (bash.A || 0)) {
+  if (bash && !OWN_BASH.has(t.fam) && Math.random() * 100 < (bash.A || 0)) {
     if (bash.C) hurt(m, bash.C, st.atk, t);
     stun(m, bash.dur || 1);
   }
@@ -523,8 +587,13 @@ function onHitEffects(t, lv, m, st) {
   if (corr) { m.shred = Math.max(m.shredUntil > G.t ? m.shred : 0, corr.B || 10); m.shredUntil = G.t + (corr.dur || 5); }
   const sl = abil(lv, 'Aven');
   if (sl) slowM(m, sl.B || 0.2, sl.dur || 5);
+  // 慢性毒药 Aspo：每秒 A 点伤害、移速降低 C，持续 Dur（20 秒）；同一种毒不叠加，新的覆盖旧的
   const po = abil(lv, 'Aspo');
-  if (po) { m.dots.push({ dps: Math.max(po.A || 10, st.dmg * 0.2), until: G.t + 5, atk: st.atk, src: t }); slowM(m, po.B || 0.2, 4); }
+  if (po) {
+    m.dots = m.dots.filter(d => d.kind !== 'poison');
+    m.dots.push({ kind: 'poison', dps: po.A || 10, until: G.t + (po.dur || 20), atk: st.atk, src: t });
+    slowM(m, po.C ?? po.B ?? 0.2, po.dur || 20);
+  }
   if (t.fam === '闪电塔') { if (Math.random() < 0.04) hurt(m, 10000, 'magic', t); if (Math.random() < 0.05) stun(m, 2); }
   if (t.fam === '混乱塔' && t.lv === t.levels.length - 1 && m.type === 'divine' && !m.boss && Math.random() < 0.02) hurt(m, m.hp * 10, 'hero', t, { ignoreArmor: true });
 }
@@ -546,23 +615,638 @@ function splash(t, center, r, dmg, atk) {
 function stun(m, s) { if (!m.boss) m.stunUntil = Math.max(m.stunUntil, G.t + s); }
 function stunArea(c, r, s) { for (const m of inRange(c.x, c.y, r)) stun(m, s); }
 function slowM(m, v, s) { if (G.t >= m.slowUntil || v >= m.slow) { m.slow = v; } m.slowUntil = Math.max(m.slowUntil, G.t + s); }
+function debuffM(m, k, v, s) {
+  const d = m.deb[k], on = d && d.until > G.t;
+  m.deb[k] = { v: on ? Math.max(d.v, v) : v, until: Math.max(on ? d.until : 0, G.t + s) };
+}
+function aoeAt(src, x, y, r, dmg, atk, opt) { for (const m of inRange(x, y, r)) hurt(m, dmg, atk, src, opt); }
 
-// 扫射塔：360 度旋转射线 (穿透之箭 AUcs，射线长 600，宽 100，CD 0.1/0.05 秒，无视护甲)
+// 扫射塔：360 度旋转射线（穿透之箭 AUcs，宽 100，CD 0.1/0.05 秒，无视护甲）。转速受攻速光环影响，伤害不受光环影响。
+// 强化 A07J（每级 200 魔法，共 7 级）：射线长 600/650/…/850/900，伤害 ×1/2/3/4/5/6/10
+const SWEEP_MUL = [1, 2, 3, 4, 5, 6, 10];
 function sweepUpdate(t, dt, st) {
-  const lv = curLevel(t), arrow = abil(lv, 'AUcs');
-  const asMul = (1 + t.buffAS) * (1 - t.eliteAS);
+  const lv = curLevel(t), arrow = abil(lv, 'AUcs'), k = t.sw ? t.sw.k : 1;
+  const asMul = towerAS(t);
   t.angle = (t.angle + dt * 2.2 * asMul) % (Math.PI * 2);
   t.cdLeft -= dt * asMul;
   if (t.cdLeft > 0) return;
   t.cdLeft += arrow ? arrow.cool || 0.1 : 0.1;
-  const len = 600 + t.lv * 40, ex = t.x + Math.cos(t.angle) * len, ey = t.y + Math.sin(t.angle) * len;
-  const dmg = arrow ? arrow.A : 6;
+  const len = k === 7 ? 900 : 550 + k * 50, ex = t.x + Math.cos(t.angle) * len, ey = t.y + Math.sin(t.angle) * len;
+  const dmg = (arrow ? arrow.A : 6) * SWEEP_MUL[k - 1];
   for (const m of G.monsters) {
     if (m.dead) continue;
     if (segDist2(m.x, m.y, [t.x, t.y], [ex, ey]) < (100 + m.r) ** 2) hurt(m, dmg, 'magic', t, { ignoreArmor: true });
   }
   FXS.beam(t.x, t.y, 150, ex, ey, 40, '#7ab8ff', 1.3, 0.09);
 }
+
+// ================================================================ 塔的技能（按原图触发器 war3map.j 和技能表实现）
+// 每种塔一个技能包，都是可选的：
+//   init(t, mem) 建成时（mem：主塔回收时记下的技能等级和魔法）    tick(t, dt) 每帧
+//   self(t) → { as, as2, atk, atk2 } 自身攻速 / 攻击加成（见 towerAS / towerAtk）
+//   attack(t, target, st, a) 每次攻击（原图 EVENT_PLAYER_UNIT_ATTACKED，攻击出手时触发）；a = { dmg, targets } 可以改
+//   kill(t, m) 击杀    cmds(t) 命令按钮    info(t) 信息面板多出来的几行    sell(t) 回收时（额外返还、记下状态）
+const isMax = t => t.lv === t.levels.length - 1;
+const cdReady = (t, k) => !(t.cds[k] > G.t);
+const cdLeft = (t, k) => Math.max(0, (t.cds[k] || 0) - G.t);
+const setCd = (t, k, s) => { t.cds[k] = G.t + s; };
+const addMana = (t, v) => { t.mana = clamp(t.mana + v, 0, t.maxMana || Infinity); };
+function giveBuff(t, k, v, dur) { if (!t.buff) return; const b = t.buff[k], on = b && b.until > G.t; t.buff[k] = { v: on ? Math.max(b.v, v) : v, until: G.t + dur }; }
+// 友军塔（建筑之间按"中心距离 ≤ 范围 + 占地半边"算，和魔兽按碰撞体积算范围一样，否则 100 范围的咆哮连隔壁的塔都够不着）
+const alliesNear = (x, y, r) => G.towers.filter(o => o.cat !== 'aura' && dist2(x, y, o.x, o.y) <= (r + FOOT_HALF) ** 2);
+const anyEnemy = (x, y, r) => G.monsters.some(m => !m.dead && dist2(x, y, m.x, m.y) <= r * r);
+const pctTxt = v => Math.round(v * 100) + '%';
+// 召唤物（冰雹狮鹫）：放进 G.towers，用普通塔的攻击逻辑；伤害和击杀算在召唤它的塔上
+function summon(owner, o) {
+  const s = { id: G.nextId++, cat: 'summon', owner, lv: 0, cdLeft: 0, food: 0, spent: 0, kills: 0, dealt: 0, attacks: 0, buff: {}, cds: {},
+    buffAS: 0, buffDmg: 0, eliteAS: 0, eliteWeak: 0, ...o };
+  G.towers.push(s);
+  return s;
+}
+// 木材 / 金币 / 魔法检查，返回不满足的原因
+function lack(cost) {
+  if (cost.gold && G.gold < cost.gold) return '金币不足';
+  if (cost.wood && G.wood < cost.wood) return '木材不足';
+  if (cost.mana && cost.t.mana < cost.mana) return '魔法值不足';
+  return null;
+}
+function pay(cost) { G.gold -= cost.gold || 0; G.wood -= cost.wood || 0; if (cost.mana) cost.t.mana -= cost.mana; uiDirty(); }
+// 命令按钮：带花费的技能（不够就灰掉，提示里写原因）
+function costCmd(t, key, name, tip, cost, fn, opt = {}) {
+  const why = opt.why || lack({ ...cost, t });
+  const c = [cost.gold && `<span class="gold">${cost.gold} 金</span>`, cost.wood && `<span class="wood">${cost.wood} 木材</span>`, cost.mana && `<span style="color:#7ab8ff">${cost.mana} 魔法</span>`].filter(Boolean).join(' + ');
+  return cmd(key, name.slice(0, 2), name, `<b>${name}</b>${c ? `<br>需要 ${c}` : ''}<br>${tip}${why ? `<br><b style="color:#ff5a4f">${why}</b>` : ''}`,
+    () => { const w = opt.why || lack({ ...cost, t }); if (w) return msg(w); pay({ ...cost, t }); fn(); uiDirty(); }, { disabled: !!why, cost: cost.gold, ...opt.o });
+}
+// 功勋：花木材提升，每杀一个敌人多得魔法；回收时返还用掉的木材
+function meritCmd(t, key, step, max, perKill) {
+  const m = t.merit;
+  return costCmd(t, key, '功勋', `等级 ${m}/${max}：每杀死一个敌人获得 <b>${perKill(m)}</b> 点魔法${m < max ? `，下一级 ${perKill(m + 1)}` : ''}<br>回收时返还用掉的木材`,
+    { wood: m < max ? step(m) : 0 }, () => { t.merit++; msg(`功勋提升到 ${t.merit} 级`); }, { why: m >= max ? '已经是最高等级' : null });
+}
+const meritSpent = (t, step) => { let s = 0; for (let i = 1; i < t.merit; i++) s += step(i); return s; };
+
+// ---------------------------------------------------------------- 原始战速 / 原始战力
+// 每座 MAX 原始塔身上有原始战速（A082，牛头 / 通灵 / 闪电 / 箭塔）或原始战力（A073，毒 / 群攻 / 混乱 / 破坏），
+// 技能等级 = 自己的 MAX 原始塔总数（建好 / 回收时由触发器 BCc / p8 重设）。1 座时不加成；
+// 战速：80% → 每多一座 +10%，最高 150%（不和加速光环叠加）；战力：60% → 每多一座 +20%，最高 200%（能和攻击光环叠加）
+const primalSpd = n => n < 2 ? 0 : Math.min(1.5, 0.6 + 0.1 * n);
+const primalPow = n => n < 2 ? 0 : Math.min(2, 0.2 + 0.2 * n);
+const hasAbil = (t, id) => (curLevel(t).abils || []).some(a => a.id === id);
+
+// ---------------------------------------------------------------- 主塔数值（技能说明 / 技能表）
+const MAGIC = {   // 魔幻塔
+  bolt: [30, 90, 150, 250, 410, 1200, 2000, 4000, 8000, 20000],          // 雷霆闪电 A05F：每道闪电的魔法伤害（星落 A04Y，900 范围，3.1 秒）
+  darts: [3, 4, 5, 6, 7, 9, 10, 11, 13, 15],                              // 穿刺之镖 A050：攻击目标数
+  power: [0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.8, 2.4, 3, 4],                   // 强攻 A03G（等级 = 穿刺之镖）
+  meteor: [60, 330, 690, 1140, 1680, 2500, 4000, 8000, 25000, 60000],     // 混乱流星 A05E / 流星伤害 A05D：每击混乱伤害 + 晕 0.3 秒
+  haste: [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 1, 1.3, 1.6, 2],                 // 急速 A04I（等级 = 混乱流星）
+  charge: [0.2, 0.4, 0.6, 0.8, 1],                                         // 雷霆闪电每秒充能（DI，按塔等级），充满 10 点放一次
+  modes: ['雷霆闪电', '穿刺之镖', '混乱流星'],
+};
+const HOLY = { r: [250, 275, 300, 325, 350, 400], d: [30, 70, 120, 250, 800, 1500], gain: [1.5, 1.6, 1.7, 1.8, 1.9, 2], types: [null, 'normal', 'pierce', 'magic', 'chaos'] };
+const ICE = {
+  names: ['冰雹术', '闪冰术', '爆冰术'],
+  hailDmg: [100, 700, 2000, 4000, 10000], hailCd: [0.2, 0.25, 0.3, 0.45, 0.25], hailRange: [600, 500, 500, 500, 500],   // 狮鹫骑士（按寒冰塔等级）
+  hailArmor: [8, 16, 24, 32, 40, 50, 100, 150, 200, 250, 300],                                                        // 冰雹术 A032 / 腐蚀 A02Z
+  flash: [150, 300, 600, 900, 1200, 2100, 3000, 4000, 8000, 15000, 50000], flashN: [7, 7, 8, 8, 9, 9, 10, 10, 12, 14, 14],   // 闪冰术 A031 / A030
+  nova: [250, 1000, 2250, 4000, 6250, 9000, 12250, 16000, 20250, 25000, 50000],                                        // 爆冰术 A038 / A039
+};
+const GOD_PAIRS = [['magic', 'pierce'], ['chaos', 'pierce'], ['normal', 'pierce'], ['chaos', 'magic'], ['chaos', 'normal'], ['magic', 'normal']];   // 切换伤害类型 A06V 1~6 级
+const SWORD = {
+  modes: ['剑刃之魂', '风暴之魂', '致命一击'],
+  blade: [60, 180, 340, 540, 780, 1500, 2000, 3000, 5500, 8000, 12000],   // 剑刃之魂 A01R：250 范围（MAX 350）魔法伤害
+  bladeArmor: [10, 20, 30, 40, 50, 60, 80, 110],                            // 剑刃风暴的专注光环 A01T：按剑圣塔等级减甲
+  crit: [8, 9, 10, 11, 12, 14, 18, 20, 40, 60, 120],                        // 致命一击 A03O：15% 概率的倍数
+  atk: [0, 0.2, 0.35, 0.5, 0.65, 0.8, 0.95, 1.1, 1.25, 1.4, 1.6],           // 强攻 A01V（等级 = 致命一击，不和攻击光环叠加）
+  as: [0, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.2],                  // 致速 A03D（等级 = 风暴之魂，不和萨满嗜血叠加）
+};
+
+// 冰封塔冻住的敌人被攻击时，范围 500 无视护甲伤害（每 0.2 秒最多一次）
+function frozenBurst(m) {
+  const by = m.frozenBy;
+  if (!(m.frozenUntil > G.t) || !by || !G.towers.includes(by) || G.t - (m.frozenProc || 0) < 0.2) return;
+  m.frozenProc = G.t;
+  aoeAt(by, m.x, m.y, 200, 500, 'hero', { ignoreArmor: true });
+  FXS.ring(m.x, m.y, 200, '#bff4ff', 0.25, 3);
+}
+// 区域效果（落地的漩涡、陷阱、守卫、恐惧之眼）：每帧对范围内的怪调用 each(m, dt)，tick(z, dt) 处理自己的逻辑
+function field(owner, x, y, r, dur, o) { G.zones.push({ owner, x, y, r, t0: G.t, until: G.t + dur, dps: 0, fxT: 0, ...o }); }
+
+const KITS = {
+  // ---------------------------------------------------------------- 主塔
+  // 魔幻塔：三种成长（切换成长类型 A051）。当前成长的技能吃魔法自动升级：雷霆闪电 100+20×等级、穿刺之镖 150+10×等级、混乱流星 180；
+  // 不是当前成长的技能不生效，到 5 级后一直生效。杀一个敌人得 1+0.2×功勋 点魔法（2功勋 A05G）
+  魔幻塔: {
+    init(t, mem) { t.maxMana = 500; t.mana = mem ? mem.mana : 0; t.mg = { mode: 1, lv: mem ? mem.lv.slice() : [1, 1, 1], dh: 0, meteors: [] }; t.merit = 1; },
+    on: (t, i) => t.mg.mode === i + 1 || t.mg.lv[i] >= 5,
+    self(t) { const k = KITS.魔幻塔, l = t.mg.lv; return { atk: k.on(t, 1) ? MAGIC.power[l[1] - 1] : 0, as: k.on(t, 2) ? MAGIC.haste[l[2] - 1] : 0 }; },
+    tick(t, dt) {
+      t.mg.dh += MAGIC.charge[t.lv] * dt;
+      // 流星陨落（nano）：活 4 秒，每 0.4 秒打一次 900 范围内的敌人；MAX 魔幻塔时每击再加 150 范围 1~等级×1000 混乱伤害
+      const l = t.mg.lv[2];
+      for (const s of t.mg.meteors) {
+        if (G.t < s.next) continue;
+        s.next += 0.4;
+        const m = nearest(s.x, s.y, 300) || nearest(t.x, t.y, 900);
+        if (!m) continue;
+        const mx = m.x, my = m.y;
+        FXS.fall(mx, my, { z: 900, dx: -300, dy: 160, dur: 0.25, color: '#c48bff', core: '#ffe0ff', size: 18, rock: '#3a2050', onEnd: () => {
+          if (!m.dead) { hurt(m, MAGIC.meteor[l - 1], 'chaos', t); stun(m, 0.3); }
+          if (isMax(t)) aoeAt(t, mx, my, 150, rint(1, l * 1000), 'chaos');
+          FXS.explosion(mx, my, 0.45, '#c48bff');
+        } });
+      }
+      t.mg.meteors = t.mg.meteors.filter(s => s.until > G.t);
+    },
+    attack(t, target, st, a) {
+      const k = KITS.魔幻塔, g = t.mg, l = g.lv;
+      // 成长：当前成长类型的技能魔法够了就升级（最高 10 级）
+      if (g.mode === 1 && l[0] < 10 && t.mana >= 100 + 20 * l[0]) { t.mana -= 100 + 20 * l[0]; l[0]++; msg(`魔幻塔：雷霆闪电升到 ${l[0]} 级`); }
+      if (g.mode === 2 && l[1] < 10 && t.mana >= 150 + 10 * l[1]) { t.mana -= 150 + 10 * l[1]; l[1]++; msg(`魔幻塔：穿刺之镖升到 ${l[1]} 级`); }
+      if (g.mode === 3 && l[2] < 10 && t.mana >= 180) { t.mana -= 180; l[2]++; msg(`魔幻塔：混乱流星升到 ${l[2]} 级`); }
+      // 雷霆闪电：充能满 10 点就放一次星落：3.1 秒内每 0.5 秒（每级快 0.04 秒）对 900 范围内所有敌人造成魔法伤害
+      if (k.on(t, 0) && g.dh >= 10) {
+        g.dh = g.dh < 15 ? g.dh - 10 : 0;
+        const lv = l[0], every = 0.5 - 0.04 * (lv - 1);
+        for (let s = 0; s < 3.1; s += every) later(s, () => {
+          if (!G.towers.includes(t)) return;
+          const ms = inRange(t.x, t.y, 900);
+          for (const m of ms) hurt(m, MAGIC.bolt[lv - 1], 'magic', t);
+          for (const m of ms.slice(0, 5)) FXS.beam(m.x + rnd(-40, 40), m.y, 900, m.x, m.y, 30, '#9fd0ff', 1, 0.12);
+        });
+        FXS.nova(t.x, t.y, 900, '#9fd0ff', 0.5); SFX.spell('frostPulse', { x: t.x, y: t.y });
+      }
+      // 穿刺之镖：多重射击（900 范围）
+      if (k.on(t, 1)) a.targets = [target].concat(inRange(t.x, t.y, 900).filter(m => m !== target)).slice(0, MAGIC.darts[l[1] - 1]);
+      // 混乱流星：1/8 概率召唤流星（同时最多 3 个）
+      if (k.on(t, 2) && Math.random() < 1 / 8 && g.meteors.length < 3) { g.meteors.push({ x: target.x, y: target.y, until: G.t + 4, next: G.t + 0.4 }); FXS.flash(t.x, t.y, 160, '#c48bff', 120); }
+    },
+    kill(t) { addMana(t, 1 + 0.2 * t.merit); },
+    cmds(t) {
+      const g = t.mg;
+      return [
+        costCmd(t, 'Q', '切换成长类型', `当前 <b>${MAGIC.modes[g.mode - 1]}</b> 成长 → 切换到 ${MAGIC.modes[g.mode % 3]}<br>当前成长的技能吃魔法自动升级；不是当前成长的技能不生效，到 5 级后一直生效`,
+          { mana: 3 }, () => { g.mode = g.mode % 3 + 1; setCd(t, 'mode', 2); msg(`魔幻塔切换到${MAGIC.modes[g.mode - 1]}成长`); },
+          { why: cdReady(t, 'mode') ? null : '冷却中', o: { cdOf: () => [cdLeft(t, 'mode'), 2] } }),
+        meritCmd(t, 'W', m => m + 1, 10, m => (1 + 0.2 * m).toFixed(1)),
+      ];
+    },
+    info(t) {
+      const g = t.mg, l = g.lv, on = i => KITS.魔幻塔.on(t, i) ? '' : '（未生效）';
+      return [`成长：${MAGIC.modes[g.mode - 1]}`, `雷霆闪电 ${l[0]} 级${on(0)}：每道 ${MAGIC.bolt[l[0] - 1]}，充能 ${Math.min(10, g.dh).toFixed(1)}/10`,
+        `穿刺之镖 ${l[1]} 级${on(1)}：${MAGIC.darts[l[1] - 1]} 个目标，攻击 +${pctTxt(MAGIC.power[l[1] - 1])}`,
+        `混乱流星 ${l[2]} 级${on(2)}：每击 ${MAGIC.meteor[l[2] - 1]}，攻速 +${pctTxt(MAGIC.haste[l[2] - 1])}`];
+    },
+    sell(t) { G.wood += meritSpent(t, m => m + 1); G.mem.魔幻塔 = { lv: t.mg.lv.slice(), mana: t.mana }; },
+  },
+  // 神圣塔：选一种伤害类型后，每次攻击对目标周围造成"神圣攻击"（基础值 + 当前魔法值）。杀敌得 1.5~2 魔法，但魔法超过容器（200×等级）就不再增加
+  神圣塔: {
+    init(t, mem) { t.maxMana = 4000; t.mana = mem ? mem.mana : 0; t.holy = { type: 0, cont: 1 }; },
+    attack(t, target) {
+      const ty = HOLY.types[t.holy.type]; if (!ty) return;
+      const r = HOLY.r[t.lv], d = HOLY.d[t.lv] + t.mana;
+      aoeAt(t, target.x, target.y, r, d, ty);
+      FXS.nova(target.x, target.y, r, ATK_COLOR[ty], 0.3);
+    },
+    kill(t) { if (t.mana <= t.holy.cont * 200) addMana(t, HOLY.gain[t.lv]); },
+    cmds(t) {
+      const h = t.holy, out = ['普通', '穿刺', '魔法', '混乱'].map((nm, i) => costCmd(t, 'QWER'[i], '切换' + nm, `神圣攻击改成 <b>${nm}</b> 伤害（每种切换冷却 90 秒）`, {},
+        () => { h.type = i + 1; setCd(t, 'type' + i, 90); msg(`神圣塔：神圣攻击切换为${nm}伤害`); },
+        { why: h.type === i + 1 ? '当前就是这种伤害' : cdReady(t, 'type' + i) ? null : '冷却中', o: { active: h.type === i + 1, cdOf: () => [cdLeft(t, 'type' + i), 90], atk: HOLY.types[i + 1] } }));
+      out.push(costCmd(t, 'A', '魔法容器', `容器 ${h.cont} 级：魔法值不超过 <b>${h.cont * 200}</b> 时杀敌才得魔法；每级 +200<br>回收时返还容器的金币`,
+        { gold: h.cont < 20 ? 3000 : 0 }, () => { h.cont++; }, { why: h.cont >= 20 ? '已经是最高等级' : null }));
+      return out;
+    },
+    info(t) { const ty = t.holy.type; return [`神圣攻击：${ty ? ATK_CN[HOLY.types[ty]] + '，' + HOLY.r[t.lv] + ' 范围 ' + fmt(HOLY.d[t.lv] + t.mana) : '<b style="color:#ffb347">还没选伤害类型（按 Q W E R 选）</b>'}`,
+      `魔法容器 ${t.holy.cont} 级（上限 ${t.holy.cont * 200}），杀敌 +${HOLY.gain[t.lv]} 魔法`]; },
+    sell(t) { G.gold += (t.holy.cont - 1) * 3000; G.mem.神圣塔 = { mana: Math.max(t.mana, G.mem.神圣塔 ? G.mem.神圣塔.mana : 0) }; },
+  },
+  // 寒冰塔：冰雹术 / 闪冰术 / 爆冰术。"选择升级技能"选中的那个每次攻击都放，魔法够了自动升级（160 / 7 级起 280 / 10→11 级 450 魔法 + 10000 金）；
+  // 没选中的按 等级/7 的概率放。冰霜光环每次攻击升 1 级，升满 5 级放一次"关联技能"（冰封），然后回到关联等级（三个技能平均等级）
+  寒冰塔: {
+    init(t, mem) { t.maxMana = 500; t.mana = mem ? mem.mana : 0; t.ice = { sel: 1, lv: mem ? mem.lv.slice() : [1, 1, 1], aura: 1 }; t.merit = 1; },
+    link: t => Math.floor(t.ice.lv.reduce((s, v) => s + v, 0) / 3),
+    attack(t, target) {
+      const c = t.ice, L = c.lv, s = c.sel - 1, x = target.x, y = target.y;
+      if (t.mana >= 160 && L[s] < 7) { L[s]++; t.mana -= 160; msg(`寒冰塔：${ICE.names[s]}升到 ${L[s]} 级`); }
+      if (t.mana >= 280 && L[s] >= 7 && L[s] < 10) { L[s]++; t.mana -= 280; msg(`寒冰塔：${ICE.names[s]}升到 ${L[s]} 级`); }
+      if (t.mana >= 450 && L[s] === 10 && !L.includes(11) && G.gold >= 10000) { L[s] = 11; t.mana -= 450; G.gold -= 10000; msg(`寒冰塔：${ICE.names[s]}升到 MAX（花费 10000 金币）`); }
+      const k = KITS.寒冰塔, link = k.link(t), linked = c.aura >= link + 5;
+      for (let i = 0; i < 3; i++) {
+        if (i === s) k.cast(t, i, target, x, y, true, linked);
+        else if (rint(1, 7) <= L[i]) k.cast(t, i, target, x, y, false, false);
+      }
+      c.aura = linked ? link + 1 : Math.max(c.aura, link) + 1;
+    },
+    cast(t, i, target, x, y, sel, linked) {
+      const L = t.ice.lv[i];
+      if (i === 0) {                         // 冰雹术：在目标处召唤狮鹫骑士（按寒冰塔等级）攻击，每击减甲；关联：每击冰封 10 秒
+        summon(t, { fam: '冰雹', title: '冰雹（狮鹫骑士）', label: '雹', x, y, until: G.t + (L === 11 ? 12 : (sel ? 2 : 1.6) + 0.4 * L),
+          levels: [{ name: '冰雹', dmg: ICE.hailDmg[t.lv], cd: ICE.hailCd[t.lv], range: ICE.hailRange[t.lv], atk: 'normal', targets: 1,
+            abils: [{ code: 'AIcb', B: ICE.hailArmor[L - 1], dur: 5 }].concat(linked ? [{ code: 'AHbh', A: 100, dur: 10 }] : []) }] });
+        FXS.snow(x, y, 60, 1);
+      }
+      if (i === 1) {                         // 闪冰术：从目标开始连锁，伤害不递减；关联：冰封 600 范围 4 秒，并重置攻击冷却
+        const chain = chainTargets(target, ICE.flashN[L - 1], L >= 8 ? 800 : 700);
+        chain.forEach((m, j) => { const p = j ? chain[j - 1] : { x: t.x, y: t.y }; FXS.beam(p.x, p.y, j ? 50 : 160, m.x, m.y, 50, '#bff4ff', 1.2, 0.18); hurt(m, ICE.flash[L - 1], 'magic', t); });
+        if (linked) { stunArea({ x, y }, 600, 4); t.cdLeft = 0; FXS.nova(x, y, 600, '#bff4ff', 0.5); }
+      }
+      if (i === 2) {                         // 爆冰术：300 范围混乱伤害 + 减速 30% 6 秒（MAX 再加 60000 魔法）；关联：冰封 7 秒并造成魔法伤害
+        for (const m of inRange(x, y, 300)) {
+          hurt(m, ICE.nova[L - 1], 'chaos', t); slowM(m, 0.3, 6);
+          if (L === 11) hurt(m, 60000, 'magic', t);
+          if (linked) { stun(m, 7); hurt(m, ICE.nova[L - 1], 'magic', t); }
+        }
+        FXS.nova(x, y, 300, '#9fe3ff', 0.4); FXS.snow(x, y, 30, 0.8);
+      }
+    },
+    kill(t) { addMana(t, 0.7 + 0.3 * t.merit); },
+    cmds(t) {
+      const c = t.ice;
+      return [
+        cmd('Q', '选', '选择升级技能', `当前：<b>${ICE.names[c.sel - 1]}</b> → ${ICE.names[c.sel % 3]}<br>选中的技能每次攻击都释放，魔法够了自动升级；其他技能按 等级/7 的概率释放`,
+          () => { c.sel = c.sel % 3 + 1; msg(`寒冰塔：选择升级${ICE.names[c.sel - 1]}`); uiDirty(); }),
+        meritCmd(t, 'W', m => m * 3 + 2, 6, m => (0.7 + 0.3 * m).toFixed(1)),
+      ];
+    },
+    info(t) {
+      const c = t.ice, L = c.lv, link = KITS.寒冰塔.link(t);
+      return [`选择升级：${ICE.names[c.sel - 1]}`, `冰雹术 ${L[0]} 级（减甲 ${ICE.hailArmor[L[0] - 1]}）· 闪冰术 ${L[1]} 级（${ICE.flash[L[1] - 1]}×${ICE.flashN[L[1] - 1]}）· 爆冰术 ${L[2]} 级（${ICE.nova[L[2] - 1]}）`,
+        `冰霜光环 ${c.aura} 级：600 范围敌人移速 -${5 + 3 * (c.aura - 1)}%（再攻击 ${Math.max(0, link + 5 - c.aura)} 次放关联技能）`];
+    },
+    sell(t) { G.wood += meritSpent(t, m => m * 3 + 2); G.mem.寒冰塔 = { lv: t.ice.lv.slice(), mana: t.mana }; },
+  },
+  // 天神塔：攻击下限 = 魔法值，上限 = 攻击上限技能（每级 400）+ 塔的攻击力；每次攻击对目标 300 范围造成下限~上限之间的随机伤害（两种伤害类型随机一种），
+  // 并获得 1~4 点魔法。开启最高伤害：每次攻击造成上限伤害、消耗 2 魔法。雷霆一击（每 10 秒）：900 范围 魔法值×(8/10/12/14) 随机类型伤害 + 减速 80%
+  天神塔: {
+    init(t, mem) { t.maxMana = 30000; t.mana = mem ? mem.mana : 0; t.god = { pair: 1, cap: 1, power: 1, max: false }; },
+    hi: t => Math.max(Math.floor(t.mana), 400 * t.god.cap + curLevel(t).dmg),
+    attack(t, target) {
+      const g = t.god, x = target.x, y = target.y, lo = Math.floor(t.mana), hi = KITS.天神塔.hi(t);
+      if (g.power > 1) aoeAt(t, x, y, 300, Math.floor(hi / 50) * (g.power - 1) + 120 * (g.power - 1), 'hero', { ignoreArmor: true });   // 天神之力
+      if (g.max) {
+        if (t.mana >= hi / 2) { aoeAt(t, x, y, 300, hi, 'hero'); t.mana -= 2; }
+        else { g.max = false; msg('天神塔魔法不足最高伤害的一半，关闭最高伤害'); }
+      }
+      if (!g.max) {
+        if (lo < hi) addMana(t, t.lv + 1);
+        aoeAt(t, x, y, 300, rint(lo, hi), pick(GOD_PAIRS[g.pair - 1]));
+      }
+      FXS.ring(x, y, 300, '#ffe9a0', 0.3, 4);
+      if (cdReady(t, 'clap') && lo > 0) {    // 雷霆一击（自动释放）
+        setCd(t, 'clap', 10);
+        const ty = pick(['normal', 'pierce', 'magic', 'chaos']);
+        for (const m of inRange(t.x, t.y, 900)) { hurt(m, lo * ((t.lv + 1) * 2 + 6), ty, t); slowM(m, 0.8, 10); }
+        FXS.nova(t.x, t.y, 900, '#ffe9a0', 0.6); addFx({ kind: 'text', x: t.x, y: t.y + 80, text: `雷霆一击 ${ATK_CN[ty]}`, life: 1, color: '#ffe9a0' });
+      }
+    },
+    cmds(t) {
+      const g = t.god, hi = KITS.天神塔.hi(t), cn = p => GOD_PAIRS[p - 1].map(a => ATK_CN[a]).join(' / ');
+      return [
+        costCmd(t, 'Q', '切换伤害类型', `当前：<b>${cn(g.pair)}</b> → ${cn(g.pair % 6 + 1)}（冷却 5 秒）`, { mana: 1 },
+          () => { g.pair = g.pair % 6 + 1; setCd(t, 'pair', 5); }, { why: cdReady(t, 'pair') ? null : '冷却中', o: { cdOf: () => [cdLeft(t, 'pair'), 5], ico: 'switchdmg' } }),
+        costCmd(t, 'W', '增加攻击上限', `攻击上限 ${g.cap * 400} → ${(g.cap + 1) * 400}（另加塔的攻击力 ${curLevel(t).dmg}）<br>10 级起每次还要 1000 魔法；回收返还每级 800 金`,
+          { gold: g.cap < 20 ? 1500 : 0, mana: g.cap >= 10 && g.cap < 20 ? 1000 : 0 }, () => { g.cap++; }, { why: g.cap >= 20 ? '已经是最高等级' : null }),
+        costCmd(t, 'E', g.max ? '关闭最高伤害' : '开启最高伤害', g.max ? '恢复成两种伤害随机，可以获得魔法' : `每次攻击造成上限伤害（${fmt(hi)}），每次消耗 2 魔法，不再获得魔法<br>魔法值要不少于上限的一半（${fmt(hi / 2)}）`,
+          {}, () => { g.max = !g.max; }, { why: !g.max && t.mana < hi / 2 ? '魔法值不足最高伤害的一半' : null, o: { active: g.max } }),
+        costCmd(t, 'R', '天神之力', `等级 ${g.power}/11：每次攻击额外造成 [上限的 ${2 * (g.power - 1)}% + ${120 * (g.power - 1)}] 无视护甲伤害<br>回收返还木材`,
+          { wood: g.power < 11 ? 5 : 0, mana: g.power < 11 ? 600 : 0 }, () => { g.power++; }, { why: g.power >= 11 ? '已经是最高等级' : null }),
+      ];
+    },
+    info(t) { const g = t.god; return [`攻击下限 ${Math.floor(t.mana)} ~ 上限 ${KITS.天神塔.hi(t)}（${GOD_PAIRS[g.pair - 1].map(a => ATK_CN[a]).join(' / ')}）${g.max ? ' · 最高伤害开启' : ''}`,
+      `天神之力 ${g.power} 级 · 雷霆一击 ${cdReady(t, 'clap') ? '就绪' : Math.ceil(cdLeft(t, 'clap')) + ' 秒'}`]; },
+    sell(t) { G.gold += (t.god.cap - 1) * 800; G.wood += (t.god.power - 1) * 5; G.mem.天神塔 = { mana: t.mana }; },
+  },
+  // 剑圣塔：模式切换选成长技能，杀敌得 0.7+0.3×功勋 魔法，200 魔法自动升级（10→11 级要 500 魔法 + 20 木材）；不是当前模式的技能 5 级起才生效
+  剑圣塔: {
+    ownCrit: true,
+    init(t, mem) { t.maxMana = 1000; t.mana = mem ? mem.mana : 0; t.bm = { mode: 1, lv: mem ? mem.lv.slice() : [1, 1, 1], hits: 0 }; t.merit = 1; },
+    on: (t, i) => t.bm.mode === i + 1 || t.bm.lv[i] >= 5,
+    self(t) { const l = t.bm.lv; return { atk2: SWORD.atk[l[2] - 1], as2: SWORD.as[l[1] - 1] }; },
+    attack(t, target, st, a) {
+      const k = KITS.剑圣塔, l = t.bm.lv;
+      if (k.on(t, 0) && G.zones.filter(z => z.owner === t && z.style === 'bladestorm').length <= 1) {   // 剑刃之魂：目标处的剑刃风暴
+        const armor = SWORD.bladeArmor[t.lv];
+        zone(t, target.x, target.y, l[0] === 11 ? 350 : 250, 0.6, SWORD.blade[l[0] - 1], 'magic', null, 'bladestorm', { each: m => debuffM(m, 'blade', armor, 0.3) });
+      }
+      if (k.on(t, 1) && ++t.bm.hits >= 5) {    // 风暴之魂：每 5 次攻击，800 范围 150×等级² 混乱伤害
+        t.bm.hits = 0;
+        aoeAt(t, t.x, t.y, 800, 150 * l[1] * l[1], 'chaos');
+        FXS.nova(t.x, t.y, 800, '#9fe3ff', 0.4); SFX.spell('bladestorm', { x: t.x, y: t.y });
+      }
+      if (k.on(t, 2) && l[2] < 11) {           // 致命一击：15% 倍数暴击；25% 额外 等级²×200、5% 额外 等级²×1000 普通伤害
+        if (Math.random() < 0.15) { a.dmg *= SWORD.crit[l[2] - 1]; addFx({ kind: 'text', x: target.x, y: target.y, text: SWORD.crit[l[2] - 1] + '倍', life: 0.7, color: '#ffd257' }); }
+        if (Math.random() < 0.25) hurt(target, l[2] * l[2] * 200, 'normal', t);
+        if (Math.random() < 0.05) hurt(target, l[2] * l[2] * 1000, 'normal', t);
+      } else if (k.on(t, 2) && Math.random() < 0.15) a.dmg *= SWORD.crit[10];
+    },
+    kill(t) {
+      addMana(t, 0.7 + 0.3 * t.merit);
+      const i = t.bm.mode - 1, l = t.bm.lv;
+      if (l[i] <= 9 && t.mana >= 200) { l[i]++; t.mana -= 200; msg(`剑圣塔：${SWORD.modes[i]}升到 ${l[i]} 级`); }
+      else if (l[i] === 10 && t.mana >= 500 && G.wood >= 20) { l[i] = 11; t.mana -= 500; G.wood -= 20; msg(`剑圣塔：${SWORD.modes[i]}升到 MAX（扣除 500 魔法、20 木材）`); }
+    },
+    cmds(t) {
+      const b = t.bm;
+      return [
+        costCmd(t, 'Q', '模式切换', `当前 <b>${SWORD.modes[b.mode - 1]}</b> 成长 → ${SWORD.modes[b.mode % 3]}<br>杀敌攒够 200 魔法自动升级当前技能；其他技能 5 级起一直生效`, { mana: 1 },
+          () => { b.mode = b.mode % 3 + 1; setCd(t, 'mode', 1); msg(`剑圣塔切换到${SWORD.modes[b.mode - 1]}成长`); }, { why: cdReady(t, 'mode') ? null : '冷却中' }),
+        meritCmd(t, 'W', () => 8, 6, m => (0.7 + 0.3 * m).toFixed(1)),
+      ];
+    },
+    info(t) {
+      const l = t.bm.lv, on = i => KITS.剑圣塔.on(t, i) ? '' : '（未生效）';
+      return [`成长：${SWORD.modes[t.bm.mode - 1]}`, `剑刃之魂 ${l[0]} 级${on(0)}：${SWORD.blade[l[0] - 1]}/秒，减甲 ${SWORD.bladeArmor[t.lv]}`,
+        `风暴之魂 ${l[1]} 级${on(1)}：每 5 击 ${150 * l[1] * l[1]}，致速 +${pctTxt(SWORD.as[l[1] - 1])}`,
+        `致命一击 ${l[2]} 级${on(2)}：15% ${SWORD.crit[l[2] - 1]} 倍，强攻 +${pctTxt(SWORD.atk[l[2] - 1])}`];
+    },
+    sell(t) { G.wood += meritSpent(t, () => 8); G.mem.剑圣塔 = { lv: t.bm.lv.slice(), mana: t.mana }; },
+  },
+  // 扫射塔：杀敌 +1 魔法，强化（200 魔法）提升射线长度和伤害倍数，共 7 级
+  扫射塔: {
+    init(t, mem) { t.maxMana = 1000; t.mana = mem ? mem.mana : 0; t.sw = { k: mem ? mem.k : 1 }; },
+    kill(t) { addMana(t, 1); },
+    cmds(t) {
+      const k = t.sw.k;
+      return [costCmd(t, 'Q', '强化', `强化 ${k}/7：射线长 ${k === 7 ? 900 : 550 + k * 50}，伤害 ×${SWEEP_MUL[k - 1]}${k < 7 ? `<br>下一级：长 ${k + 1 === 7 ? 900 : 600 + k * 50}，伤害 ×${SWEEP_MUL[k]}` : ''}`,
+        { mana: k < 7 ? 200 : 0 }, () => { t.sw.k++; msg(`扫射塔强化到 ${t.sw.k} 级`); }, { why: k >= 7 ? '已经是最高等级' : null })];
+    },
+    info(t) { const k = t.sw.k, a = abil(curLevel(t), 'AUcs'); return [`强化 ${k}/7：射线长 ${k === 7 ? 900 : 550 + k * 50}，每次 ${(a ? a.A : 6) * SWEEP_MUL[k - 1]} 伤害`]; },
+    sell(t) { G.mem.扫射塔 = { k: t.sw.k, mana: t.mana }; },
+  },
+
+  // ---------------------------------------------------------------- 另类塔
+  // 灵魂塔：灵魂锁链（自动）对攻击目标造成魔法伤害，并让它的护甲被无视 1 秒
+  灵魂塔: {
+    attack(t, target) {
+      const [d, cd] = [[1000, 3], [5000, 3], [20000, 3], [40000, 2]][t.lv];
+      if (!cdReady(t, 'chain')) return;
+      setCd(t, 'chain', cd);
+      hurt(target, d, 'magic', t); target.ignoreArmorUntil = G.t + 1;
+      FXS.beam(t.x, t.y, 160, target.x, target.y, 50, '#c48bff', 1.4, 0.3); FXS.souls(target.x, target.y, 60, '#c48bff');
+    },
+    info(t) { const [d, cd] = [[1000, 3], [5000, 3], [20000, 3], [40000, 2]][t.lv]; return [`灵魂锁链：${d} 魔法伤害 + 无视护甲 1 秒，冷却 ${cd} 秒`]; },
+  },
+  // 图腾塔：图腾之链（每 5 秒）从攻击目标开始弹 8 个敌人，每弹一次伤害 +20%（MAX +25%），无视护甲
+  图腾塔: {
+    init(t) { t.maxMana = 1600; },
+    attack(t, target) {
+      const a = abil(curLevel(t), 'AOcl'); if (!a || !cdReady(t, 'chain')) return;
+      setCd(t, 'chain', a.cool || 5);
+      let d = a.A;
+      const chain = chainTargets(target, a.B || 8, a.area || 800);
+      chain.forEach((m, j) => { const p = j ? chain[j - 1] : { x: t.x, y: t.y }; FXS.beam(p.x, p.y, j ? 50 : 170, m.x, m.y, 50, '#7ab8ff', 1.2, 0.2); hurt(m, d, 'magic', t, { ignoreArmor: true }); d *= 1 - (a.C || -0.2); });
+    },
+    kill(t) { if (isMax(t)) addMana(t, 1); },
+    info(t) { const a = abil(curLevel(t), 'AOcl') || {}; return [`图腾之链：${a.A} 伤害弹 ${a.B} 个，每弹 +${pctTxt(-(a.C || -0.2))}，冷却 ${cdReady(t, 'chain') ? '就绪' : Math.ceil(cdLeft(t, 'chain')) + ' 秒'}`]; },
+  },
+  // 精灵塔：召唤精灵（自动），精灵碰到敌人造成魔法伤害，并纠缠 200 范围内的敌人
+  精灵塔: {
+    lv: t => [[1, 20, 0.6, 1.7], [2, 200, 1, 2.2], [3, 500, 1.4, 2.8], [4, 1000, 1.8, 3.2]][t.lv],
+    tick(t) {
+      if (!cdReady(t, 'wisp')) return;
+      const ms = inRange(t.x, t.y, 1000); if (!ms.length) return;
+      const [n, d, root, cd] = KITS.精灵塔.lv(t);
+      setCd(t, 'wisp', cd);
+      for (let i = 0; i < n; i++) FXS.launch('wisp', { x: t.x, y: t.y, z: 150 }, pick(ms), (hit, x, y) => {
+        for (const m of inRange(x, y, 200)) { hurt(m, d, 'magic', t); stun(m, root); }
+        FXS.ring(x, y, 200, '#9fffb0', 0.35, 3);
+      });
+    },
+    info(t) { const [n, d, root, cd] = KITS.精灵塔.lv(t); return [`召唤精灵：每 ${cd} 秒 ${n} 个，每个 ${d} 魔法伤害、纠缠 200 范围 ${root} 秒`]; },
+  },
+  // 地精塔：魔法满 10 点时火箭群激活——这次和之后 3 次攻击打 1000 范围内所有敌人，消耗 10 魔法；每秒回魔 0.5/1/1/1.5，杀敌 +1
+  地精塔: {
+    init(t) { t.maxMana = 12; t.rk = { on: false, n: 0 }; },
+    tick(t) { t.manaRegen = (t.levels[t.lv].manaRegen || [0.5, 1, 1, 1.5][t.lv]) + (t.talent ? 2.5 : 0); },
+    attack(t, target, st, a) {
+      const r = t.rk;
+      if (r.on && t.mana < 10) { if (r.n >= 3) { r.on = false; r.n = 0; } else r.n++; }
+      if (t.mana >= 10) { r.on = true; t.mana -= 10; }
+      if (r.on) a.targets = inRange(t.x, t.y, 1000);
+    },
+    kill(t) { addMana(t, 1); },
+    info(t) { return [`火箭群：${t.rk.on ? '<b>激活中</b>' : '魔法 10 点时激活'}，每秒回魔 ${t.manaRegen || 0}`]; },
+  },
+  // 巨箭塔：双刃箭。伤害等级（每级 2 木材）×1500 单体无视护甲伤害 + 晕 0.8 秒；转换后 200 范围 ×250；每次消耗 2 魔法
+  巨箭塔: {
+    init(t) { t.maxMana = 6; t.ba = { lv: 1, mode: 1 }; },
+    tick(t) { t.manaRegen = [1, 1, 1.2][t.lv]; },
+    attack(t, target) {
+      const b = t.ba, n = b.lv - 1;
+      if (b.mode === 1) stun(target, 0.8);                      // 双刃箭本身是 100% 的重击
+      if (n < 1 || t.mana < 2) return;
+      t.mana -= 2;
+      if (b.mode === 1) hurt(target, 1500 * n, 'hero', t, { ignoreArmor: true });
+      else { aoeAt(t, target.x, target.y, 200, 250 * n, 'hero', { ignoreArmor: true }); FXS.ring(target.x, target.y, 200, '#ffd257', 0.25, 3); }
+    },
+    cmds(t) {
+      const b = t.ba;
+      return [
+        cmd('Q', '转', '转换攻击效果', `当前：<b>${b.mode === 1 ? '单体' : '范围'}</b>。单体：伤害等级×1500 无视护甲伤害 + 晕眩 0.8 秒；范围：200 范围 伤害等级×250`,
+          () => { b.mode = 3 - b.mode; uiDirty(); }),
+        costCmd(t, 'W', '升级伤害', `伤害等级 ${b.lv - 1}/10`, { wood: b.lv < 11 ? 2 : 0 }, () => { b.lv++; }, { why: b.lv >= 11 ? '已经是最高等级' : null }),
+      ];
+    },
+    info(t) { const n = t.ba.lv - 1; return [`双刃箭（${t.ba.mode === 1 ? '单体' : '范围'}）：伤害等级 ${n}，${t.ba.mode === 1 ? 1500 * n : 250 * n} 伤害，每次 2 魔法`]; },
+  },
+
+  // ---------------------------------------------------------------- 大辅助（MAX 效果要用天赋卷轴激活）
+  萨满塔: { tick(t) { lust(t, t.talent ? 0.6 : 0.4, t.talent ? 13 : 10, t.talent ? 3 : 4, t.talent ? 600 : 400); },
+    info(t) { return [`嗜血术：给附近一座塔 +${t.talent ? 60 : 40}% 攻速 ${t.talent ? 13 : 10} 秒，冷却 ${t.talent ? 3 : 4} 秒`]; }, cmds: t => [evoCmd(t, '冰霜塔', '小熊猫塔（风）')] },
+  兽人塔: { attack(t) { roar(t, t.talent ? 0.85 : 0.55, t.talent ? 12 : 10, 12, t.talent ? 150 : 100); },
+    info(t) { return [`咆哮：${t.talent ? 150 : 100} 范围友军攻击 +${t.talent ? 85 : 55}% ${t.talent ? 12 : 10} 秒，冷却 12 秒`]; }, cmds: t => [evoCmd(t, '腐蚀塔', '小熊猫塔（火）')] },
+  驱逐塔: {
+    attack(t, target) {
+      expel(t, target, t.talent ? 2 : 0.5, t.talent ? 10 : 5, t.talent ? 0.5 : 2, 0.85);
+      if (t.talent) aoeAt(t, target.x, target.y, 200, 300, 'chaos');
+    },
+    info(t) { return [`驱逐：200 范围敌人移速 +${t.talent ? 200 : 50}% ${t.talent ? 10 : 5} 秒；被驱逐的敌人走到第二个转弯口 85% 被遣返出怪口`]; },
+    cmds: t => [evoCmd(t, '暴击塔', '巫师塔（光明）')],
+  },
+  缓速塔: {
+    init(t) { t.maxMana = 6; t.manaRegen = 1.3; },
+    attack(t, target) {
+      if (t.talent) hurt(target, 2000, 'magic', t);
+      if (t.mana < 1) return;
+      t.mana -= 1;
+      vortex(t, target, 200, t.talent ? 0.48 : 0.3, t.talent ? 3.8 : 2.2);
+    },
+    info(t) { return [`缓速带：每次攻击（1 魔法）在地上留下漩涡，经过的敌人减速 ${t.talent ? 48 : 30}% ${t.talent ? 3.8 : 2.2} 秒`]; },
+    cmds: t => [evoCmd(t, '重击塔', '巫师塔（暗黑）')],
+  },
+  // 进化后的大辅助
+  '小熊猫塔（风）': {
+    init(t) { t.lust = 1; },
+    tick(t) { const l = t.lust; lust(t, 1.2, 2 + 0.5 * l, 6.5 - 0.5 * l, 150); },
+    cmds(t) { return [costCmd(t, 'Q', '风之强化', `嗜血术（风）${t.lust}/4 级：附近一座塔 +120% 攻速 ${2 + 0.5 * t.lust} 秒，冷却 ${6.5 - 0.5 * t.lust} 秒`, { wood: t.lust < 4 ? 5 : 0 },
+      () => { t.lust++; }, { why: t.lust >= 4 ? '已经是最高等级' : null })]; },
+  },
+  '小熊猫塔（火）': { attack(t) { roar(t, 1, 6, 9, 100); }, info: () => ['咆哮（火）：100 范围友军攻击 +100% 6 秒，冷却 9 秒'] },
+  '巫师塔（光明）': { attack(t, target) { expel(t, target, 0.2, 15, 1, 0.95); }, info: () => ['驱逐：200 范围敌人移速 +20% 15 秒；走到第二个转弯口 95% 被遣返出怪口'] },
+  '巫师塔（暗黑）': {
+    init(t) { t.maxMana = 6; t.manaRegen = 1.5; },
+    attack(t, target) {
+      if (t.mana < 1) return;
+      t.mana -= 1;
+      vortex(t, target, 220, 0.4, 3);
+      for (const m of inRange(target.x, target.y, 220)) { stun(m, 0.5); hurt(m, 5000, 'magic', t); }
+    },
+    info: () => ['缓速：每次攻击（1 魔法）220 范围晕眩 0.5 秒、5000 魔法伤害，并留下减速 40% 的漩涡'],
+  },
+
+  // ---------------------------------------------------------------- 巫系（MAX 效果要用天赋卷轴激活）
+  巫术塔: {
+    attack(t, target) {
+      const [r, d, pct, cd] = t.talent ? [300, 10000, 0.07, 10] : [250, 800, 0.05, 12];
+      if (!cdReady(t, 'dd')) return;
+      setCd(t, 'dd', cd);
+      aoeAt(t, target.x, target.y, r, d, 'normal');
+      field(t, target.x, target.y, r, 1, { color: 'rgba(120,255,120,.16)', each: (m, dt) => hurt(m, m.maxHp * pct * dt, 'hero', t, { ignoreArmor: true }) });
+      FXS.nova(target.x, target.y, r, '#7dff7d', 0.6);
+    },
+    info(t) { const [r, d, pct, cd] = t.talent ? [300, 10000, 0.07, 10] : [250, 800, 0.05, 12]; return [`死亡凋零：${r} 范围 ${d} 普通伤害，之后 1 秒每秒消耗敌人 ${pct * 100}% 生命，冷却 ${cd} 秒`]; },
+  },
+  巫法塔: {
+    attack(t, target) {
+      const [detect, r, delay, s, cd] = t.talent ? [250, 300, 0.5, 3, 3.5] : [150, 200, 1, 2, 4.5];
+      if (!cdReady(t, 'trap')) return;
+      setCd(t, 'trap', cd);
+      field(t, target.x, target.y, r, 8, { color: 'rgba(255,210,87,.10)', tick(z) {
+        if (z.armAt == null && anyEnemy(z.x, z.y, detect)) z.armAt = G.t + delay;
+        if (z.armAt != null && G.t >= z.armAt) { stunArea(z, r, s); FXS.nova(z.x, z.y, r, '#ffd257', 0.4); z.until = G.t; }
+      } });
+    },
+    info(t) { const [, r, delay, s, cd] = t.talent ? [250, 300, 0.5, 3, 3.5] : [150, 200, 1, 2, 4.5]; return [`静止陷阱：有敌人靠近 ${delay} 秒后晕眩 ${r} 范围 ${s} 秒，冷却 ${cd} 秒`]; },
+  },
+  巫魔塔: {
+    attack(t, target) {
+      const [v, dur, cd] = t.talent ? [100, 3, 3] : [60, 4, 4];
+      if (!cdReady(t, 'eye')) return;
+      setCd(t, 'eye', cd);
+      field(t, target.x, target.y, 250, dur, { color: 'rgba(196,139,255,.14)', each: m => debuffM(m, 'fear', v, dur) });
+    },
+    info(t) { const [v, dur, cd] = t.talent ? [100, 3, 3] : [60, 4, 4]; return [`恐惧之眼：经过的敌人护甲 -${v}，持续 ${dur} 秒（不和恐惧塔叠加），冷却 ${cd} 秒`]; },
+  },
+  巫医塔: {
+    attack(t, target) {
+      const [r, d, cd, dur] = t.talent ? [300, 3000, 9, 9] : [200, 300, 12, 12];
+      if (!cdReady(t, 'ward')) return;
+      setCd(t, 'ward', cd);
+      zone(t, target.x, target.y, r, dur, d, 'magic', null, 'ward', { color: 'rgba(122,184,255,.16)' });
+    },
+    info(t) { const [r, d, cd, dur] = t.talent ? [300, 3000, 9, 9] : [200, 300, 12, 12]; return [`守卫：${dur} 秒内每秒对 ${r} 范围造成 ${d} 魔法伤害，冷却 ${cd} 秒`]; },
+  },
+
+  // ---------------------------------------------------------------- 全场唯一
+  恐惧塔: {
+    tick(t) {
+      if (!cdReady(t, 'howl') || !anyEnemy(t.x, t.y, 600)) return;
+      setCd(t, 'howl', 12);
+      for (const m of inRange(t.x, t.y, 600)) debuffM(m, 'fear', 80, 3);
+      FXS.nova(t.x, t.y, 600, '#c48bff', 0.6); SFX.spell('frostNova', { x: t.x, y: t.y });
+    },
+    info: () => ['恐怖嚎叫：每 12 秒 600 范围敌人护甲 -80，持续 3 秒'],
+  },
+  火速塔: {
+    tick(t) {
+      if (!cdReady(t, 'fire') || !anyEnemy(t.x, t.y, 1500)) return;
+      setCd(t, 'fire', 12);
+      for (const o of alliesNear(t.x, t.y, 200)) giveBuff(o, 'fire', 1.7, 2);
+      FXS.nova(t.x, t.y, 300, '#ff8a3c', 0.5);
+    },
+    info: () => ['火速：每 12 秒 200 范围友军攻速 +170%，持续 2 秒'],
+  },
+  神力塔: {
+    tick(t) {
+      if (!cdReady(t, 'inner') || !anyEnemy(t.x, t.y, 1500)) return;
+      const c = alliesNear(t.x, t.y, 800).filter(o => o !== t && o.cat !== 'uniq' && !bv(o, 'divine'))
+        .sort((a, b) => towerStats(b).dmg / towerStats(b).cd - towerStats(a).dmg / towerStats(a).cd)[0];
+      if (!c) return;
+      setCd(t, 'inner', 5);
+      giveBuff(c, 'divine', 2.6, 1.8);
+      FXS.beam(t.x, t.y, 160, c.x, c.y, 160, '#ffe08a', 1.4, 0.4); FXS.ring(c.x, c.y, 160, '#ffe08a', 0.5, 3);
+    },
+    info: () => ['神力：每 5 秒给附近攻击最强的一座塔 +260% 攻击，持续 1.8 秒'],
+  },
+  冰封塔: {
+    tick(t) {
+      if (!cdReady(t, 'freeze') || !anyEnemy(t.x, t.y, 600)) return;
+      setCd(t, 'freeze', 3);
+      for (const m of inRange(t.x, t.y, 600)) { if (m.boss) continue; stun(m, 2); m.frozenUntil = G.t + 2; m.frozenBy = t; FXS.snow(m.x, m.y, 30, 0.4); }
+      FXS.nova(t.x, t.y, 600, '#bff4ff', 0.5);
+    },
+    info: () => ['冰封：每 3 秒冰封 600 范围敌人 2 秒；冰封的敌人被攻击时，范围 500 无视护甲伤害（每 0.2 秒一次）'],
+  },
+  // 银行塔：每秒 +利息金币（8 木材提升 1 点，最高 10）；每 90 秒按银行魔法给木材（100~399：1 个，400 以上：2 个），魔法每秒 -0.2
+  银行塔: {
+    init(t) { t.maxMana = 1000; t.mana = 1000; t.bank = { rate: 1, acc: 0, wood: 90 }; },
+    tick(t, dt) {
+      const b = t.bank;
+      b.acc += b.rate * dt; if (b.acc >= 1) { const g = Math.floor(b.acc); G.gold += g; b.acc -= g; }
+      addMana(t, -0.2 * dt);
+      if ((b.wood -= dt) <= 0) { b.wood += 90; const w = t.mana >= 400 ? 2 : t.mana >= 100 ? 1 : 0; if (w) { G.wood += w; msg(`银行塔：木材利息 +${w}`); } }
+    },
+    cmds(t) { const r = t.bank.rate; return [costCmd(t, 'Q', '提升金币利息', `当前每秒 ${r} 金 → ${r + 1} 金<br>回收返还木材`, { wood: r < 10 ? 8 : 0 }, () => { t.bank.rate++; }, { why: r >= 10 ? '已经是最高等级' : null })]; },
+    info(t) { return [`利息：每秒 ${t.bank.rate} 金；${Math.ceil(t.bank.wood)} 秒后木材 +${t.mana >= 400 ? 2 : t.mana >= 100 ? 1 : 0}`]; },
+    sell(t) { G.wood += (t.bank.rate - 1) * 8; },
+  },
+  // 魔法塔：每秒 +0.7 魔法，可以转给英雄塔（每次 20 点）
+  魔法塔: {
+    init(t) { t.maxMana = 1000; t.manaRegen = 0.7; },
+    cmds(t) {
+      return [costCmd(t, 'Q', '补充魔法', '把 20 点魔法转给英雄塔', { mana: 20 }, () => { const h = G.hero; h.mana = Math.min(h.maxMana(), h.mana + 20); msg(`${h.heroName} 魔法 +20`); },
+        { why: G.hero ? null : '还没有建造英雄塔' })];
+    },
+  },
+};
+// 嗜血术：给附近一座没有嗜血的塔加攻速（优先打得最多的）
+function lust(t, v, dur, cd, range) {
+  if (!cdReady(t, 'lust') || !anyEnemy(t.x, t.y, 1500)) return;
+  const c = alliesNear(t.x, t.y, range).filter(o => !bv(o, 'bloodlust') && o.cat !== 'uniq').sort((a, b) => (b.dealt || 0) - (a.dealt || 0))[0];
+  if (!c) return;
+  setCd(t, 'lust', cd);
+  giveBuff(c, 'bloodlust', v, dur);
+  FXS.ring(c.x, c.y, 150, '#ff5a4f', 0.5, 3);
+}
+// 咆哮：附近友军攻击力加成（攻击时自动释放）
+function roar(t, v, dur, cd, area) {
+  if (!cdReady(t, 'roar')) return;
+  setCd(t, 'roar', cd);
+  for (const o of alliesNear(t.x, t.y, area)) giveBuff(o, 'roar', v, dur);
+  FXS.nova(t.x, t.y, area + FOOT_HALF, '#ff8a3c', 0.5);
+}
+// 驱逐：目标处 200 范围的敌人加速通过，并带上"被驱逐"状态（遣返用）
+function expel(t, target, speed, dur, cd, p) {
+  if (!cdReady(t, 'expel')) return;
+  setCd(t, 'expel', cd);
+  for (const m of inRange(target.x, target.y, 200)) { debuffM(m, 'expelSpeed', speed, dur); m.expel = { p: Math.max(p, m.expel && m.expel.until > G.t ? m.expel.p : 0), until: G.t + dur }; }
+  FXS.ring(target.x, target.y, 200, '#9fe3ff', 0.4, 3);
+}
+// 缓速漩涡：留在地上 3 秒，经过的敌人减速
+function vortex(t, target, r, v, s) {
+  field(t, target.x, target.y, r, 3, { color: 'rgba(122,184,255,.14)', each: m => slowM(m, v, s) });
+}
+// 进化（大辅助 + 1 座同系 MAX 小辅助 + 8000 金币）：大辅助变成小熊猫塔 / 巫师塔，那座小辅助被消耗掉
+function evoCmd(t, small, to) {
+  const need = G.towers.find(o => o.fam === small && isMax(o));
+  const why = !need ? `需要 1 座 ${small} MAX` : G.towers.filter(o => o.fam === t.fam).length >= 2 ? '合成时不能同时拥有 2 个该单位' : null;
+  const d = D.towers[to].levels[0];
+  return costCmd(t, 'E', '进化', `进化成 <b>${to}</b>（消耗 1 座 ${small} MAX）<br>${(d.tip || '').replace(/\n/g, '<br>')}`, { gold: 8000 }, () => {
+    const o = G.towers.find(x => x.fam === small && isMax(x));
+    if (!o) return;
+    G.towers = G.towers.filter(x => x !== o && x !== t);
+    if (G.selected === o) G.selected = G.builder;
+    const n = newTower(to, t.x, t.y, { spent: t.spent + 8000, food: t.food, kills: t.kills, dealt: t.dealt });
+    G.towers.push(n);
+    if (G.selected === t) G.selected = n;
+    FXS.nova(t.x, t.y, 260, '#9fffb0', 0.6); SFX.ui('upgrade');
+    msg(`${t.fam}进化成了${to}`);
+  }, { why });
+}
+// 击杀：塔的魔法值（功勋）
+function towerKilled(t, m) { const kit = KITS[t.fam]; if (kit && kit.kill) kit.kill(t, m); }
 
 // ---------------------------------------------------------------- 英雄塔
 const HERO_KITS = {
@@ -632,7 +1316,7 @@ const HERO_KITS = {
       const ang = Math.random() * Math.PI * 2;
       const x = h.x + Math.cos(ang) * 250, y = h.y + Math.sin(ang) * 250;
       G.towers.push({ id: G.nextId++, fam: '炎魔', cat: 'summon', summonOf: h, owner: h, x, y, lv: 0, cdLeft: 0, until: G.t + 30, food: 0, spent: 0,
-        levels: [{ dmg: lerpStat(20, 10000, h.stat.str, 180), cd: 1, range: 600, atk: 'chaos', targets: 1, abils: [] }], buffAS: 0, buffDmg: 0, eliteAS: 0, eliteWeak: 0 });
+        levels: [{ dmg: lerpStat(20, 10000, h.stat.str, 180), cd: 1, range: 600, atk: 'chaos', targets: 1, abils: [] }], title: '炎魔', label: '魔', buff: {}, cds: {}, buffAS: 0, buffDmg: 0, eliteAS: 0, eliteWeak: 0 });
       FXS.explosion(x, y, 0.6, '#ff5a2a'); SFX.spell('summon', { x, y });
     } },
   ],
@@ -646,7 +1330,7 @@ function buildHero(x, y) {
   G.gold -= hd.gold;
   const h = { id: G.nextId++, isHero: true, fam: 'hero', heroName: hd.name, cat: 'hero', x, y, lv: 0, level: 1, spent: hd.gold, food: 1,
     stat: { str: 10, agi: 10, int: 10 }, growth: 'str', points: 0, mana: 0, learned: [], cdLeft: 0, cds: {}, auto: {}, asBonus: 0,
-    kills: 0, dealt: 0, attacks: 0, buffAS: 0, buffDmg: 0, eliteAS: 0, eliteWeak: 0, levels: [{}],
+    kills: 0, dealt: 0, attacks: 0, buff: {}, buffAS: 0, buffDmg: 0, eliteAS: 0, eliteWeak: 0, levels: [{}],
     maxMana() { return D.heroes[this.heroName].mana || 1000; } };
   G.towers.push(h); G.hero = h;
   return h;
@@ -679,7 +1363,7 @@ function castSkill(h, i, auto) {
   if (!auto) addFx({ kind: 'text', x: h.x, y: h.y + 60, text: D.heroes[h.heroName].skills[i].name, life: 0.8, color: '#9fe3ff' });
 }
 function heroAttack(h, tg, st) {
-  let dmg = st.dmg;
+  let dmg = st.dmg * h.atkMul;                      // 光环等加成只加普通攻击，技能伤害不加
   for (const i of h.learned) { const s = HERO_KITS[h.heroName][i]; if (s.critChance && Math.random() < s.critChance) { dmg *= s.critMul; SFX.spell('crit', { x: tg.x, y: tg.y }); addFx({ kind: 'text', x: tg.x, y: tg.y, text: s.critMul + '倍', life: 0.7, color: '#ffd257' }); break; } }
   shot(h, tg);
   const style = missileOf(h);
@@ -695,9 +1379,9 @@ function aoe(h, c, r, dmg, atk, ignoreArmor, color) {
   for (const m of inRange(c.x, c.y, r)) hurt(m, dmg, atk, h, { ignoreArmor });
   addFx({ kind: 'ring', x: c.x, y: c.y, r, life: 0.25, color: color || ATK_COLOR[atk] });
 }
-function zone(owner, x, y, r, dur, dps, atk, endFn, style) {
+function zone(owner, x, y, r, dur, dps, atk, endFn, style, extra) {
   if (style === 'bladestorm') SFX.spell('bladestorm', { x, y });
-  G.zones.push({ owner, x, y, r, t0: G.t, until: G.t + dur, dps, atk, endFn, style, fxT: 0 });
+  G.zones.push({ owner, x, y, r, t0: G.t, until: G.t + dur, dps, atk, endFn, style, fxT: 0, ...extra });
 }
 function later(s, fn) { G.timeouts.push({ at: G.t + s, fn }); }
 const LEARN_COST = [{ wood: 0, str: 0 }, { wood: 18, str: 80 }, { wood: 36, str: 160 }, { wood: 54, str: 240 }];
@@ -728,8 +1412,15 @@ function heroLevelUp(h) {
 
 // ---------------------------------------------------------------- 光环 (每帧重算)
 function applyAuras() {
-  for (const m of G.monsters) { m.auraArmor = 0; m.auraSlow = 0; m.auraSpeed = 0; m.auraRegen = 0; }
-  for (const t of G.towers) { t.buffAS = 0; t.buffDmg = 0; t.eliteAS = 0; t.eliteWeak = 0; }
+  for (const m of G.monsters) { m.auraFocus = 0; m.auraArmorDown = 0; m.auraSlow = 0; m.auraSpeed = 0; m.auraRegen = 0; }
+  for (const t of G.towers) { t.buffAS = 0; t.buffDmg = 0; t.eliteAS = 0; t.eliteWeak = 0; t.selfAS = 0; t.selfAS2 = 0; t.selfAtk = 0; t.selfAtk2 = 0; }
+  // 塔自身的加成：原始战速 / 原始战力（等级 = MAX 原始塔数量），各主塔的技能（魔幻塔急速 / 强攻、剑圣塔致速 / 强攻）
+  const primal = G.towers.filter(t => t.cat === 'raw' && isMax(t)).length;
+  for (const t of G.towers) {
+    if (t.cat === 'raw' && isMax(t)) { if (hasAbil(t, 'A082')) t.selfAS = primalSpd(primal); if (hasAbil(t, 'A073')) t.selfAtk = primalPow(primal); }
+    const kit = KITS[t.fam], b = kit && kit.self && kit.self(t);
+    if (b) { t.selfAS = Math.max(t.selfAS, b.as || 0); t.selfAS2 = b.as2 || 0; t.selfAtk += b.atk || 0; t.selfAtk2 = b.atk2 || 0; }
+  }
   // 光环塔 (同类光环不叠加，取最大)
   let armorAuras = [], slowAuras = [];
   for (const a of G.towers) {
@@ -742,9 +1433,11 @@ function applyAuras() {
     if (a.fam === '减防光环') armorAuras.push([a, r, -ab.A]);
     if (a.fam === '减速光环') slowAuras.push([a, r, -ab.A]);
   }
+  // 寒冰塔的冰霜光环：600 范围敌人移速 -(5 + 3×(等级-1))%（和减速光环同类，取最大）
+  for (const t of G.towers) if (t.fam === '寒冰塔') slowAuras.push([t, 600, 0.05 + 0.03 * (t.ice.aura - 1)]);
   for (const m of G.monsters) {
     if (m.dead) continue;
-    for (const [a, r, v] of armorAuras) if (dist2(a.x, a.y, m.x, m.y) <= r * r) m.auraArmor = Math.min(m.auraArmor, -v);
+    for (const [a, r, v] of armorAuras) if (dist2(a.x, a.y, m.x, m.y) <= r * r) m.auraArmorDown = Math.max(m.auraArmorDown, v);
     for (const [a, r, v] of slowAuras) if (dist2(a.x, a.y, m.x, m.y) <= r * r) m.auraSlow = Math.max(m.auraSlow, v);
   }
   // 精英怪光环 (900 范围)
@@ -754,7 +1447,7 @@ function applyAuras() {
     if (aura.key === 'focus' || aura.key === 'endur' || aura.key === 'unholy') {
       for (const m of G.monsters) {
         if (m.dead || dist2(e.x, e.y, m.x, m.y) > 900 * 900) continue;
-        if (aura.key === 'focus') m.auraArmor = Math.max(m.auraArmor, m.auraArmor + v);
+        if (aura.key === 'focus') m.auraFocus = Math.max(m.auraFocus, v);
         if (aura.key === 'endur') m.auraSpeed = Math.max(m.auraSpeed, v);
         if (aura.key === 'unholy') m.auraRegen = Math.max(m.auraRegen, v);
       }
@@ -1001,15 +1694,15 @@ function buyRabbit(it) {
   if (it.use(G.hero) === false) return;
   payItem(it);
 }
-// 球：只重新随机建造栏里这一类的格子（辅助塔两格一起换）
+// 球：只重新随机建造栏里这一类的格子（辅助之球：新辅助和小辅助两格一起换）
 function rerollSlot(cat) {
-  const idx = G.build.map((f, i) => D.towers[f] && D.towers[f].cat === cat ? i : -1).filter(i => i >= 0);
+  const kinds = cat === 'sup' ? ['newsup', 'sup'] : [cat];
+  const idx = G.build.map((f, i) => D.towers[f] && kinds.includes(slotOf(f)) ? i : -1).filter(i => i >= 0);
   if (!idx.length) return msg(`建造栏里没有${CAT_CN[cat]}`), false;
-  const cur = idx.map(i => G.build[i]);
-  let pool = byCat(cat).filter(f => !cur.includes(f));
-  if (pool.length < idx.length) pool = byCat(cat);
-  pool.sort(() => Math.random() - 0.5);
-  idx.forEach((i, k) => { G.build[i] = pool[k]; });
+  for (const i of idx) {
+    const s = slotOf(G.build[i]), all = slotPool(s), pool = all.filter(f => f !== G.build[i]);
+    G.build[i] = pick(pool.length ? pool : all);
+  }
   if (G.placing && G.placing !== 'hero' && !G.build.includes(G.placing)) G.placing = null;
   msg(`${CAT_CN[cat]}换成了：${idx.map(i => G.build[i]).join('、')}`);
 }
@@ -1022,17 +1715,17 @@ const TALENT_A = { 加速光环: 0.8, 攻击光环: 1.42, 减防光环: -100, �
 const SHOP_ITEMS = [
   { id: 'I001', key: 'Q', name: '1个小材', gold: 500, cd: 30, tip: '使用 500 金币购买 1 个木材', use: () => { G.wood += 1; } },
   { id: 'I002', key: 'W', name: '10个木材', gold: 5000, cd: 300, tip: '使用 5000 金币购买 10 个木材', use: () => { G.wood += 10; msg('木材 +10'); } },
-  { id: 'I00A', key: 'E', name: '魔力卷轴', gold: 2400, inv: true, range: 600, tip: '对英雄塔使用，获得 120 点魔法（原图天神塔获得 400 点，本复刻天神塔没有魔法）',
-    pick: '魔力卷轴：选择英雄塔（Esc 取消）', ok: t => t && t.isHero ? null : '只能对英雄塔使用',
-    use: h => { h.mana = Math.min(h.maxMana(), h.mana + 120); msg(`${h.heroName} 魔法 +120`); } },
+  { id: 'I00A', key: 'E', name: '魔力卷轴', gold: 2400, inv: true, range: 600, tip: '对英雄塔使用获得 120 点魔法，对天神塔使用获得 400 点魔法',
+    pick: '魔力卷轴：选择英雄塔或天神塔（Esc 取消）', ok: t => t && (t.isHero || t.fam === '天神塔') ? null : '只能对英雄塔或天神塔使用',
+    use: t => { if (t.isHero) { t.mana = Math.min(t.maxMana(), t.mana + 120); msg(`${t.heroName} 魔法 +120`); } else { addMana(t, 400); msg('天神塔魔法 +400'); } } },
   { id: 'I028', key: 'R', name: '知识之书', gold: 2200, inv: true, range: 600, tip: '对英雄塔使用，随机一项属性（力量 / 敏捷 / 智力）+10',
     pick: '知识之书：选择英雄塔（Esc 取消）', ok: t => t && t.isHero ? null : '只能对英雄塔使用',
     use: h => { const st = pick(['str', 'agi', 'int']); h.stat[st] += 10; msg(`英雄增加${statCN(st)} 10`); } },
   { id: 'I01Y', key: 'A', name: '天赋卷轴', wood: 15, firstAt: 1200, cd: 300, inv: true, range: 750,
-    tip: `对 MAX 光环塔使用，激活[基础天赋]：光环升到 2 级（加速 +80% / 攻击 +142% / 减防 -100 / 减速 -70%）<br>开局 1200 秒后开放，购买间隔 300 秒`,
-    pick: '天赋卷轴：选择一座 MAX 光环塔（Esc 取消）',
-    ok: t => !t || t.cat !== 'aura' || t.lv < t.levels.length - 1 ? '只能对 MAX 光环塔使用' : t.talent ? '该单位已经激活' : null,
-    use: t => { t.talent = true; FXS.ring(t.x, t.y, 220, '#9fffb0', 0.6, 4); msg(`${curLevel(t).name}获得了基础天赋`); } },
+    tip: `激活天赋（原图 A053）：<br>MAX 光环塔：光环升到 2 级（加速 +80% / 攻击 +142% / 减防 -100 / 减速 -70%）<br>大辅助、巫系：技能升到 MAX<br>破坏塔 MAX：同时攻击 9 个；通灵塔 MAX：高级通灵；地精塔 MAX：每秒多回 2.5 魔法<br>开局 1200 秒后开放，购买间隔 300 秒`,
+    pick: '天赋卷轴：选择一座可以激活天赋的塔（Esc 取消）',
+    ok: t => !t || !(t.cat === 'aura' || TALENT_FAMS.has(t.fam)) ? '只能对光环塔、大辅助、巫系、破坏塔 / 通灵塔 / 地精塔使用' : !isMax(t) ? '要升到 MAX 才能激活天赋' : t.talent ? '该单位已经激活' : null,
+    use: t => { t.talent = true; FXS.ring(t.x, t.y, 220, '#9fffb0', 0.6, 4); msg(`${curLevel(t).name}获得了${t.cat === 'aura' ? '基础天赋' : '天赋'}`); } },
   { id: 'I009', key: 'S', name: '复制卷轴', gold: 3000, na: '单人模式没有友军的守卫者可以复制',
     tip: '对一位友军的守卫者使用，获得与其一模一样的建造能力（不保留自身守护神技等级，以后随机建筑需 6 木材）' },
   { id: 'I00B', key: 'D', name: '收购卷轴', gold: 1800, na: '单人模式没有友军的光环塔可以收购',
@@ -1065,6 +1758,7 @@ function useItem(it, t) {
   const why = it.ok(t); if (why) return msg(why);
   it.use(t); G.inv[i] = null; SFX.ui('item'); uiDirty();
 }
+const TALENT_FAMS = new Set(['萨满塔', '兽人塔', '驱逐塔', '缓速塔', '巫医塔', '巫术塔', '巫法塔', '巫魔塔', '破坏塔', '通灵塔', '地精塔']);
 const auraAb = t => { const ab = curLevel(t).abils[0]; return ab && t.talent ? { ...ab, A: TALENT_A[t.fam] } : ab; };
 
 // 兔子卷轴（原图守护宗师卖，20 点成就）：额外召唤一次兔子，每局只能 1 次
@@ -1104,10 +1798,11 @@ function step(dt) {
   // 塔
   for (const t of G.towers) towerUpdate(t, dt);
   G.towers = G.towers.filter(t => !t.until || t.until > G.t);
-  // 区域伤害 (剑魂等)
+  // 区域效果（剑魂、守卫、漩涡、陷阱、恐惧之眼……）
   for (const z of G.zones) {
     const victims = inRange(z.x, z.y, z.r);
-    for (const m of victims) hurt(m, z.dps * dt, z.atk, z.owner);
+    for (const m of victims) { if (z.dps) hurt(m, z.dps * dt, z.atk, z.owner); if (z.each) z.each(m, dt); }
+    if (z.tick) z.tick(z, dt);
     if (z.until <= G.t && z.endFn) {
       const e = z.endFn(); aoe(z.owner, z, z.r, e.dmg, e.atk, e.ignore);
     }
@@ -1454,7 +2149,7 @@ function draw() {
   if (U3) U3.frame(view, TER.glSource());
   TER.drawGround(ctx, view, now);                 // 原版地块铺的地面、中央法阵、出怪口（terrain.js）
   GATE_POS.forEach(([x, y], k) => label(k ? '出怪口（联机）' : '出怪口', x, y + 300, k ? '#c9a39e' : '#ffb0a8', 12));
-  for (const z of G.zones) if (z.style !== 'bladestorm') { ctx.fillStyle = 'rgba(122,184,255,.18)'; gcircle(z.x, z.y, z.r); ctx.fill(); }
+  for (const z of G.zones) if (z.style !== 'bladestorm') { ctx.fillStyle = z.color || 'rgba(122,184,255,.18)'; gcircle(z.x, z.y, z.r); ctx.fill(); }
   for (const z of G.zones) if (z.style === 'bladestorm') drawBladestormGround(z);
   for (const t of G.towers) if (t.cat === 'aura') { t.m3 = auraModel(t); if (!t.m3) drawAuraGround(t, now); }   // 光环塔：原版光环模型，画不了才程序绘制地面光环
   for (const t of G.towers) if (t.cat !== 'aura' && t.cat !== 'summon' && !t.isHero) drawTierGround(t, now);   // 塔的等级光圈
@@ -1767,7 +2462,7 @@ function drawTower(t) {
     ctx.strokeStyle = ATK_COLOR[atk] || '#6fd17a'; ctx.lineWidth = 2 * DPR;
     if (t.isHero || t.cat === 'main') { ctx.beginPath(); ctx.arc(x, y, s * 0.62, 0, 7); ctx.fill(); ctx.stroke(); }
     else { ctx.fillRect(x - s / 2, y - s / 2, s, s); ctx.strokeRect(x - s / 2, y - s / 2, s, s); }
-    const name = t.isHero ? t.heroName : t.cat === 'summon' ? '魔' : t.fam.replace('光环', '').replace('塔', '');
+    const name = t.isHero ? t.heroName : t.cat === 'summon' ? t.label || '魔' : t.fam.replace('光环', '').replace('塔', '');
     const small = s < 26 * DPR;
     ctx.font = `bold ${Math.round(s * (small ? 0.62 : 0.36))}px sans-serif`; ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(small ? name.slice(0, 1) : name.slice(0, 2), x, y + 1);
@@ -1979,13 +2674,14 @@ function renderInfo() {
       <span>成长属性</span><b>${statCN(e.growth)}（每杀精英 +1）</b></div>
       <div class="skills">${hd.skills.slice(0, 4).map((s, i) => `<span class="${e.learned.includes(i) ? 'on' : ''}">${s.name}</span>`).join('')}</div>`;
   } else if (e.fam) {
-    if (e.cat === 'summon') { box.innerHTML = `<div class="col-l">${portrait(null, '魔', '#7a2a10')}</div><div class="col-m"><div class="nm">炎魔</div><div class="sub">召唤物 · 剩余 ${Math.ceil(e.until - G.t)} 秒</div></div>`; return; }
+    if (e.cat === 'summon') { box.innerHTML = `<div class="col-l">${portrait(null, e.label || '魔', '#7a2a10')}</div><div class="col-m"><div class="nm">${e.title || '炎魔'}</div><div class="sub">召唤物 · 剩余 ${Math.ceil(e.until - G.t)} 秒</div></div>`; return; }
     const lv = curLevel(e), st = towerStats(e);
-    left = portrait(e, e.fam, e.cat === 'aura' ? '#2f7a3b' : '#2a3a4e') + bar('hp', 1, 1, '无敌的') + bar('mp', e.lv + 1, e.levels.length, `等级 ${e.lv + 1}/${e.levels.length}`);
+    left = portrait(e, e.fam, e.cat === 'aura' ? '#2f7a3b' : '#2a3a4e') + bar('hp', 1, 1, '无敌的') +
+      (e.maxMana ? bar('mp', e.mana, e.maxMana, `${Math.floor(e.mana)} / ${e.maxMana}`) : bar('mp', e.lv + 1, e.levels.length, `等级 ${e.lv + 1}/${e.levels.length}`));
     mid = `<div class="nm">${lv.name}</div><div class="sub">${CAT_CN[e.cat]}${e.branch ? ' · ' + e.branch + '分支' : ''} ${e.cat === 'aura' ? atkTag('aura') : atkTag(lv.atk)}</div><div class="kv">`;
     if (e.cat === 'aura') { const ab = auraAb(e) || {}; mid += `<span>光环</span><b>${auraText(e.fam, ab)}${e.talent ? '（基础天赋）' : ''}</b><span>范围</span><b>${ab.area}</b>`; }
-    else mid += `<span>攻击力</span><b>${fmt(st.dmg)}${e.buffDmg ? ` <em>+${Math.round(e.buffDmg * 100)}%</em>` : ''}</b><span>攻击间隔</span><b>${st.cd}s${e.buffAS ? ` <em>攻速+${Math.round(e.buffAS * 100)}%</em>` : ''}</b><span>射程</span><b>${st.range}</b>`;
-    mid += `<span>击杀/伤害</span><b>${e.kills} / ${fmt(e.dealt || 0)}</b><span>已投入</span><b class="gold">${e.spent} 金</b></div><div class="tip">${(lv.tip || '').replace(/\n/g, ' ')}</div>`;
+    else mid += `<span>攻击力</span><b>${fmt(st.dmg)}${bonusTxt(towerAtk(e))}</b><span>攻击间隔</span><b>${st.cd}s${bonusTxt(towerAS(e), '攻速')}</b><span>射程</span><b>${st.range}</b>`;
+    mid += `<span>击杀/伤害</span><b>${e.kills} / ${fmt(e.dealt || 0)}</b><span>已投入</span><b class="gold">${e.spent} 金</b></div>${towerInfo(e)}<div class="tip">${(lv.tip || '').replace(/\n/g, ' ')}</div>`;
   } else {
     const ar = effArmor(e);
     left = portrait(e, e.name, ARMOR_COLOR[e.type]) + bar('hp', e.hp, e.maxHp, `${fmt(e.hp)} / ${fmt(e.maxHp)}`);
@@ -2036,19 +2732,19 @@ function renderCard(e) {
       <div class="tip">攻击间隔 ${st.cd.toFixed(2)}s · 射程 ${st.range} · 成长属性 ${statCN(e.growth)} · 击杀 ${e.kills}</div>`;
     hp = '无敌的'; mp = `${Math.floor(e.mana)} / ${e.maxMana()}`;
   } else if (e.fam) {
-    if (e.cat === 'summon') { name = '炎魔'; sub = `召唤物 · 剩余 ${Math.ceil(e.until - G.t)} 秒`; }
+    if (e.cat === 'summon') { name = e.title || '炎魔'; sub = `召唤物 · 剩余 ${Math.ceil(e.until - G.t)} 秒`; }
     else {
       const lv = curLevel(e), st = towerStats(e);
       name = lv.name; sub = `${CAT_CN[e.cat]}${e.branch ? ' · ' + e.branch + '分支' : ''} · 等级 ${e.lv + 1}/${e.levels.length}`;
       if (e.cat === 'aura') { const ab = auraAb(e) || {}; c1 = stat('armor-fortified', '护甲', INVULN); c2 = `<div class="st"><div><span>光环：</span><b>${auraText(e.fam, ab)}${e.talent ? '（基础天赋）' : ''}</b><br><span>范围：</span><b>${ab.area}</b></div></div>`; }
       else {
-        c1 = stat(ATK_ICON[lv.atk] || 'attack-melee', '攻击力', fmt(st.dmg) + (e.buffDmg ? ` <em>+${Math.round(e.buffDmg * 100)}%</em>` : '')) + stat('armor-fortified', '护甲', INVULN);
-        c2 = `<div class="st"><div><span>攻击间隔：</span><b>${st.cd}s</b>${e.buffAS ? ` <em>攻速+${Math.round(e.buffAS * 100)}%</em>` : ''}<br><span>射程：</span><b>${st.range}</b><br>
+        c1 = stat(ATK_ICON[lv.atk] || 'attack-melee', '攻击力', fmt(st.dmg) + bonusTxt(towerAtk(e))) + stat('armor-fortified', '护甲', INVULN);
+        c2 = `<div class="st"><div><span>攻击间隔：</span><b>${st.cd}s</b>${bonusTxt(towerAS(e), '攻速')}<br><span>射程：</span><b>${st.range}</b><br>
           <span>击杀 / 伤害：</span><b>${e.kills} / ${fmt(e.dealt || 0)}</b><br><span>已投入：</span><b class="gold">${e.spent} 金</b></div></div>`;
       }
-      extra = `<div class="tip">${(lv.tip || '').replace(/\n/g, ' ')}</div>`;
+      extra = towerInfo(e) || `<div class="tip">${(lv.tip || '').replace(/\n/g, ' ')}</div>`;   // 有技能状态就显示技能状态（信息卡放不下两段）
     }
-    hp = '无敌的'; mp = '';
+    hp = '无敌的'; mp = e.maxMana ? `${Math.floor(e.mana)} / ${e.maxMana}` : '';
   } else {
     const ar = effArmor(e);
     name = e.name + (e.boss ? ' <em style="color:#ff5a4f;font-style:normal">BOSS</em>' : '') + (e.elite ? ' <em style="color:#ff4fd8;font-style:normal">精英</em>' : '');
@@ -2090,6 +2786,23 @@ function drawPortrait() {
   const k = Math.max(W / m.w, H / m.h), dw = m.w * k, dh = m.h * k;      // 铺满窗口（cover）
   g.drawImage(src, f * m.w, 0, m.w, m.h, (W - dw) / 2, (H - dh) / 2, dw, dh);
 }
+// 攻击 / 攻速加成的显示（只算加在基础攻击上的那部分）
+function bonusTxt(mul, label = '') {
+  if (Math.abs(mul - 1) < 0.005) return '';
+  return mul > 1 ? ` <em>${label}+${Math.round((mul - 1) * 100)}%</em>` : ` <em style="color:#ff8f86">${label}-${Math.round((1 - mul) * 100)}%</em>`;
+}
+// 塔的技能状态（技能包的 info）、原始战速 / 战力、身上的增益
+function towerInfo(t) {
+  const kit = KITS[t.fam], lines = kit && kit.info ? kit.info(t).slice() : [];
+  if (t.cat === 'raw' && isMax(t) && (hasAbil(t, 'A082') || hasAbil(t, 'A073'))) {
+    const n = G.towers.filter(o => o.cat === 'raw' && isMax(o)).length, spd = hasAbil(t, 'A082');
+    lines.push(`原始${spd ? '战速' : '战力'}：MAX 原始塔 ${n} 座，` + (n < 2 ? '再有一座 MAX 原始塔才生效' : `${spd ? '攻速' : '攻击'} +${pctTxt(spd ? primalSpd(n) : primalPow(n))}`));
+  }
+  const bufs = [['bloodlust', '嗜血术 攻速'], ['fire', '火速 攻速'], ['roar', '咆哮 攻击'], ['divine', '神力 攻击']].filter(([k]) => bv(t, k)).map(([k, n]) => `${n} +${pctTxt(bv(t, k))}`);
+  if (bufs.length) lines.push('状态：' + bufs.join('，'));
+  if (t.talent && t.cat !== 'aura') lines.push('<b style="color:#9fffb0">已激活天赋</b>');
+  return lines.length ? `<div class="tip">${lines.join('<br>')}</div>` : '';
+}
 function auraText(fam, ab) {
   const v = Math.abs(ab.A || 0);
   return { 加速光环: `范围内塔攻速 +${Math.round(v * 100)}%`, 攻击光环: `范围内塔攻击 +${Math.round(v * 100)}%`, 减防光环: `范围内敌人护甲 -${v}`, 减速光环: `范围内敌人移速 -${Math.round(v * 100)}%` }[fam];
@@ -2097,6 +2810,7 @@ function auraText(fam, ab) {
 
 // 命令面板：4×3，和 WC3 一样每个按钮有热键
 function cmd(key, icon, name, tip, fn, opt = {}) { return { key, icon, name, tip, fn, ...opt }; }
+const SVG_CATS = new Set(['main', 'raw', 'sup', 'aura', 'alt']);     // 这几类塔有 assets/icons/tower-*.svg 图标
 function buildCmds() {
   const e = G.selected, out = [];
   const back = cmd('Esc', '↩', '返回', '返回上一级', () => { G.menu = 'main'; G.placing = null; G.pending = null; uiDirty(); }, { ico: 'back' });
@@ -2125,12 +2839,12 @@ function buildCmds() {
     if (G.menu === 'build') {
       const keys = ['Q', 'W', 'E', 'R', 'A', 'S', 'D'];
       G.build.forEach((fam, i) => {
-        const d = D.towers[fam], l = d.levels[0];
-        const blocked = (d.cat === 'main' && G.towers.some(t => t.cat === 'main')) || (d.cat === 'aura' && G.towers.filter(t => t.fam === fam).length >= RULE.maxAuraPerKind);
-        out.push(cmd(keys[i], fam.slice(0, 2), fam, `<b>${fam}</b> ${d.cat === 'aura' ? atkTag('aura') : atkTag(l.atk)}<br>${CAT_CN[d.cat]} · <span class="gold">${l.gold} 金</span> · ${l.food || 0} 人口<br>${l.tip}${blocked ? '<br><b style="color:#ff5a4f">' + (d.cat === 'main' ? '只能建造一个主塔' : '每种光环限制 2 个') + '</b>' : ''}`,
-          () => { G.placing = fam; G.pending = null; uiDirty(); }, { cat: d.cat, atk: d.cat === 'aura' ? 'aura' : l.atk, active: G.placing === fam, disabled: blocked || G.gold < l.gold, iconKey: 'icon:' + fam, ico: 'tower-' + fam, cost: l.gold }));
+        const d = D.towers[fam], l = d.levels[0], blocked = buildBlock(fam);
+        out.push(cmd(keys[i], fam.slice(0, 2), fam, `<b>${fam}</b> ${d.cat === 'aura' ? atkTag('aura') : atkTag(l.atk)}<br>${CAT_CN[d.cat]} · <span class="gold">${l.gold} 金</span> · ${l.food || 0} 人口<br>${l.tip.replace(/\n/g, '<br>')}${blocked ? '<br><b style="color:#ff5a4f">' + blocked + '</b>' : ''}`,
+          () => { G.placing = fam; G.pending = null; uiDirty(); }, { cat: d.cat, atk: d.cat === 'aura' ? 'aura' : l.atk, active: G.placing === fam, disabled: !!blocked || G.gold < l.gold, iconKey: 'icon:' + fam,
+            ico: SVG_CATS.has(d.cat) ? 'tower-' + fam : null, cost: l.gold }));
       });
-      if (G.heroChoice) { const h = D.heroes[G.heroChoice]; out.push(cmd('D', h.name, h.name + '（英雄塔）', `<b>${h.name}</b> ${atkTag(h.atk)}<br>英雄塔 · 唯一 · <span class="gold">${h.gold} 金</span> · 1 人口<br>${h.title}`, () => { G.placing = 'hero'; uiDirty(); }, { atk: h.atk, active: G.placing === 'hero', disabled: !!G.hero || G.gold < h.gold, hero: true, iconKey: 'icon:hero:' + h.name, ico: 'hero-' + h.name, cost: h.gold })); }
+      if (G.heroChoice) { const h = D.heroes[G.heroChoice]; out.push(cmd('F', h.name, h.name + '（英雄塔）', `<b>${h.name}</b> ${atkTag(h.atk)}<br>英雄塔 · 唯一 · <span class="gold">${h.gold} 金</span> · 1 人口<br>${h.title}`, () => { G.placing = 'hero'; uiDirty(); }, { atk: h.atk, active: G.placing === 'hero', disabled: !!G.hero || G.gold < h.gold, hero: true, iconKey: 'icon:hero:' + h.name, ico: 'hero-' + h.name, cost: h.gold })); }
       while (out.length < 11) out.push(null);
       out.push(back); return out;
     }
@@ -2144,8 +2858,8 @@ function buildCmds() {
     out.push(cmd('F', '✦', '闪烁', '全图闪烁：瞬间移动到目标点，冷却 1 秒', () => { G.pending = 'blink'; G.placing = null; uiDirty(); }, { active: G.pending === 'blink', ico: 'blink' }));
     out.push(cmd('T', '兔', '兔子卷轴', `——需要 <b style="color:#ff9ad5">${RULE.rabbitScrollAch} 点当局成就</b>（当前 ${G.ach}）<br>额外召唤一次兔子，每局只能额外召唤 1 次${G.rabbitScroll ? '<br><b style="color:#ff5a4f">本局已经召唤过了</b>' : G.rabbit ? '<br><b style="color:#ff5a4f">兔子已经在场上了</b>' : ''}`,
       rabbitScroll, { disabled: G.rabbitScroll || !!G.rabbit || G.ach < RULE.rabbitScrollAch, ico: 'item-I00S' }));
-    out.push(cmd('B', '建', '建造', '打开建造栏（当前随机给出的 6 个塔 + 英雄塔）', () => { G.menu = 'build'; uiDirty(); }, { ico: 'build' }));
-    out.push(cmd('R', '🎲', '随机建造', `重新随机建造栏：1 主塔、1 原始塔、1 光环塔、2 辅助塔、1 另类塔<br>${G.rerolls === 0 ? '首次免费' : `需要 ${RULE.rerollWood} 木材`}`, () => rerollBuild(false), { disabled: G.rerolls > 0 && G.wood < RULE.rerollWood, ico: 'reroll' }));
+    out.push(cmd('B', '建', '建造', '打开建造栏（当前随机给出的 7 个塔 + 英雄塔）', () => { G.menu = 'build'; uiDirty(); }, { ico: 'build' }));
+    out.push(cmd('R', '🎲', '随机建造', `重新随机建造栏：1 主塔、1 原始塔、1 光环塔、1 新辅助（大辅助 / 巫系）、1 小辅助、1 另类塔、1 全场唯一<br>${G.rerolls === 0 ? '首次免费' : `需要 ${RULE.rerollWood} 木材`}`, () => rerollBuild(false), { disabled: G.rerolls > 0 && G.wood < RULE.rerollWood, ico: 'reroll' }));
     out.push(cmd('U', '木', '使用木材', '购买人口（12 木）、兑换金币（1 木 → 300 金）。买木材去地图中央的商店', () => { G.menu = 'wood'; uiDirty(); }, { ico: 'woodmenu' }));
     const fw = fodBlock();
     out.push(cmd('X', '指', '死亡之指', `<span class="atk atk-magic">主动</span> 射程 ${FOD.range} · 冷却 ${FOD.cd} 秒 · <span style="color:#7ab8ff">${FOD.mana} 魔法</span><br>选择一个敌人：直接杀死它。<br>BOSS 只损失一部分生命（大红牛 7000、大骷髅 2.5 万、直升机 / 游艇 / 魔王 10 万、龙 / 狗头人 BOSS 生命高于 15 万时 10 万，按模式缩放）${fw ? `<br><b style="color:#ff5a4f">${fw}</b>` : ''}`,
@@ -2187,13 +2901,10 @@ function buildCmds() {
     return out;
   }
   if (e.fam && e.cat !== 'summon') {
-    const f = famOf(e);
+    const f = famOf(e), kit = KITS[e.fam];
+    if (kit && kit.cmds) out.push(...kit.cmds(e));
     if (f.branches && e.lv === 0) Object.keys(f.branches).forEach((k, i) => { const n = f.branches[k][0]; out.push(cmd(['Q', 'W', 'E', 'R'][i], k, k + '分支', `<b>${n.name}</b> ${atkTag(n.atk)}<br><span class="gold">${n.gold} 金</span> · 攻击 ${n.dmg} · 弹射 ${n.targets} 个`, () => upgradeTower(e, k), { atk: n.atk, disabled: G.gold < n.gold, ico: 'branch-' + n.atk, cost: n.gold })); });
     else if (e.levels[e.lv + 1]) { const n = e.levels[e.lv + 1]; out.push(cmd('U', '↑', '升级', `升级到 <b>${n.name}</b><br><span class="gold">${n.gold} 金</span>${e.cat === 'aura' ? '' : ` · 攻击 ${fmt(n.dmg)} · 间隔 ${n.cd}s · 射程 ${n.range}`}<br>${n.tip || ''}`, () => upgradeTower(e), { disabled: G.gold < n.gold, ico: 'upgrade', iconKey: `portrait:tower:${e.fam}:${e.lv + 2}`, cost: n.gold })); }
-    if (e.fam === '天神塔') out.push(cmd('T', '换', '切换伤害类型', `当前：${(e.godTypes || ['normal', 'magic']).map(a => ATK_CN[a]).join(' + ')}`, () => {
-      const combos = [['normal', 'magic'], ['pierce', 'chaos'], ['normal', 'chaos'], ['pierce', 'magic'], ['normal', 'pierce'], ['magic', 'chaos']];
-      const i = combos.findIndex(c => c.join() === (e.godTypes || ['normal', 'magic']).join()); e.godTypes = combos[(i + 1) % combos.length]; uiDirty();
-    }, { ico: 'switchdmg' }));
     while (out.length < 7) out.push(null);
     out.push(cmd('Y', '回', '回收', `返还建造和升级花费的 100% 金币：<b>${e.spent}</b>`, () => sellTower(e), { ico: 'sell' }));
   }
@@ -2506,5 +3217,5 @@ newGame('solo');
 showStart();
 requestAnimationFrame(frame);
 window.__G = () => G;   // 调试用
-window.__dbg = { get G() { return G; }, NODES, EDGES, kill, spawnMonster, FXS, buildTower, upgradeTower, learnSkill, heroLevelUp, step, canPlace, newGame, monstersAlive, towerStats, rerollBuild, orderBuild, orderMove, castSkill, spawnRabbit, buyRabbit, RABBIT_SHOP, SHOP, SHOP_ITEMS, buyShop, orderFinger };
+window.__dbg = { get G() { return G; }, NODES, EDGES, kill, spawnMonster, FXS, buildTower, upgradeTower, learnSkill, heroLevelUp, step, canPlace, newGame, monstersAlive, towerStats, rerollBuild, orderBuild, orderMove, castSkill, spawnRabbit, buyRabbit, RABBIT_SHOP, SHOP, SHOP_ITEMS, buyShop, orderFinger, KITS, towerAS, towerAtk, effArmor, applyAuras, sellTower, select, hurt, buildCmds, newTower, attack };
 })();
