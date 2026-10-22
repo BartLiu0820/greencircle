@@ -18,7 +18,8 @@ const RULE = {
   // 兔子 = 原图单位 nshe「成就商店」：每个 BOSS 波刷在地图随机位置，60 秒后消失（UnitApplyTimedLife 60），用当局成就买道具。
   // 原图的当局成就大多来自平台账号（至尊等级开局送 1~10 点、各种成就），这里改成开局送 5 点 + 每次 Perfect 1 点
   startAch: 5, achPerPerfect: 1, rabbitLife: 60, rabbitReach: 600, rabbitScrollAch: 20,
-  rabbitWaves: [10, 20, 30, 40, 49], rabbitDelay: 20,
+  rabbitWaves: [10, 20, 30, 40, 48], rabbitDelay: 20,
+  rerollWood: 6,             // 随机建造：第一次免费，之后每次 6 木材（A03C 的触发器 nY / nZ）
   shopReach: 600,            // 商店（u00L，原图摆在地图中央 (0,128)）：守卫者要走到旁边才能买
 };
 const MODES = {
@@ -110,10 +111,13 @@ function newGame(mode) {
     cam: { x: NODES.L[0] + 600, y: NODES.L[1] - 300, zoom: 2.4 },
     menu: 'main', pending: null,
     ach: RULE.startAch, rabbit: null, rabbitScroll: false, buys: {}, itemCd: {},
+    waveVars: {}, next: null, carryHint: null, sc: null, curUnit: null, waveHook: null, waveNote: '', finalCountdown: false,
+    k7: rint(1, 2),          // 原图开局随机：30 波出亡灵飞艇（1）还是地精飞艇（2）
   };
   G.selected = G.builder;
   FXS.clear();
   rerollBuild(true);
+  rollFn(WR.start); refreshHint();                 // 准备阶段就预告第 1 波
   if (MODES[mode].hero) G.heroChoice = MODES[mode].hero;
   SFX.startMusic();
 }
@@ -123,8 +127,8 @@ const FAM = Object.values(D.towers);
 const byCat = c => FAM.filter(f => f.cat === c).map(f => f.name);
 function rerollBuild(free) {
   if (!free) {
-    if (G.rerolls > 0 && G.wood < 1) return msg('木材不足（随机建造需要 1 木材，首次免费）');
-    if (G.rerolls > 0) G.wood -= 1;
+    if (G.rerolls > 0 && G.wood < RULE.rerollWood) return msg(`木材不足（随机建造需要 ${RULE.rerollWood} 木材，首次免费）`);
+    if (G.rerolls > 0) G.wood -= RULE.rerollWood;
     G.rerolls++;
   }
   const sups = byCat('sup').sort(() => Math.random() - 0.5);
@@ -186,9 +190,10 @@ function spawnMonster(id, opt = {}) {
     auraArmor: 0, auraSlow: 0, auraSpeed: 0, auraRegen: 0, burn: null, dots: [],
     boss: !!opt.boss, r: opt.boss ? 90 : 55, elite: null,
   };
-  if (!opt.boss && !opt.noElite && G.wave < 50 && Math.random() < RULE.eliteChance) makeElite(m);
+  if (!opt.noElite && !NO_ELITE.has(id) && Math.random() < RULE.eliteChance) makeElite(m);
   m.cr = colRadius(m);
   G.monsters.push(m);
+  if (G.waveHook && G.waveHook.onSpawn) G.waveHook.onSpawn(m);
   return m;
 }
 const ELITE_AURAS = [
@@ -484,7 +489,7 @@ function attack(t, target, st) {
   // 主目标命中后的范围效果（目标在飞行途中死了，就以落点为中心）
   const area = (hit, x, y) => {
     const c = hit || { x, y };
-    if (t.fam === '牛头塔') splash(t, c, 300, dmg, st.atk);
+    if (t.fam === '牛头塔') splash(t, c, (abil(lv, 'Aroc') || {}).area || 500, dmg, st.atk);     // 粉碎（分裂）A0A9：500 范围
     if (t.fam === '群攻塔') { splash(t, c, 300, dmg, st.atk); stunArea(c, 300, 0.1); }
     if (t.fam === '寒冰塔') {                                                          // 爆冰术：300 范围混乱伤害 + 减速 30%
       const ice = [250, 1000, 2250, 4000, 6250][t.lv];
@@ -763,21 +768,46 @@ function applyAuras() {
   }
 }
 
-// ---------------------------------------------------------------- 波次
+// ---------------------------------------------------------------- 波次（waves.js：tools/wave_rolls.py 从原图脚本枚举出的每一波所有随机分支和概率）
+// 原图的波次是一条触发器链：第 N 波的函数在第 N-1 波开始时就执行，先定下第 N 波的提示词（倒计时期间就显示，相当于预告），
+// 等一个波次间隔后"第 N 波开始"，再设置出怪单位、打开出怪器。三个出怪器（多 / 中 / 少）刷的都是"当前出怪单位"，
+// 出怪单位中途换了，还没刷完的出怪器也跟着换（30 波飞艇每秒换一种、40 波坦克后面换成维修工都是这样）。
+const WR = window.WAVE_ROLLS;
+// 原图精英怪的排除名单（war3map.j 精英触发器的条件）：只有这些不会变精英，BOSS 波的其他单位照样可能变
+const NO_ELITE = new Set(['Nfir', 'Nalc', 'Ntin', 'Npbm', 'hhdl', 'nhef', 'njks', 'nhew', 'nsqt', 'nsko', 'nrdr', 'nrdk', 'nbzd', 'ngrd', 'ngst', 'nkob', 'nkot', 'nkog',
+  'nglm', 'nfgl', 'ndrl', 'ndrt', 'ndrn', 'nogo', 'nsw2', 'nogn', 'noga', 'ndsa', 'Udea', 'nbal', 'nchw', 'nchg', 'njga', 'njgb', 'nskg', 'nanm', 'h08S']);
+const HINT_ARMOR = { '物理': 'small', '抗性': 'medium', '魔法': 'large', '神圣': 'divine' };
 function monstersAlive() { return G.monsters.filter(m => !m.dead).length; }
 function cap() { return G.final && G.final.endless ? 15 : RULE.capPerPlayer; }
-function startSpawner(id, word) {
+function startSpawner(word) {
+  if (G.spawners.some(s => s.word === word)) return;            // 出怪器是周期触发器：已经开着，再打开一次没有效果
   const s = SPAWNER[word] || SPAWNER['中'];
-  G.spawners.push({ id, every: s.every, left: s.count, next: 0 });
+  G.spawners.push({ word, every: s.every, left: s.count, next: s.every });   // 第一只在一个周期后出
 }
-// 由提示里的"多/中/少"选怪：多→有效生命（生命×护甲系数）最低的，少→最高的
-function pickMonster(pool, word) {
-  const ehp = i => D.units[i].hp * (1 + 0.02 * Math.max(0, D.units[i].armor));
-  const ps = pool.filter(i => D.units[i]).sort((a, b) => ehp(a) - ehp(b));
-  if (!ps.length) return null;
-  if (word === '多') return ps[0];
-  if (word === '少') return ps[ps.length - 1];
-  return ps[Math.floor((ps.length - 1) / 2)];
+// 抽第 N 波函数的一条执行路径（只在"进入时要求的变量"和当前一致的路径里抽），并定下它的预告
+function rollFn(name) {
+  const f = WR.fns[name], vars = G.waveVars;
+  let rows = f.rows.filter(r => Object.entries(r.req).every(([k, v]) => vars[k] === v));
+  if (!rows.length) rows = f.rows;
+  let x = Math.random() * rows.reduce((s, r) => s + r.p, 0), row = rows[rows.length - 1];
+  for (const r of rows) if ((x -= r.p) <= 0) { row = r; break; }
+  Object.assign(vars, row.set);
+  // 11 / 21 / 41 波的提示词是上一个 BOSS 波函数里定的
+  G.next = { fn: name, row, hint: row.hint || G.carryHint || '' };
+  G.carryHint = row.nextHint;
+}
+// 从这一波开始到下一波开始的秒数：本波函数里执行下一波函数的时刻 + 下一波函数等到"开始"的时间（含波次间隔）
+function waveLen(row) {
+  const nf = WR.fns[row.next];
+  return row.nextAt + nf.pre + (nf.dm ? G.interval : 0);
+}
+function waveOp(op, id, n, life) {
+  if (op === 'sc') { G.sc = id; if (!G.curUnit) { G.curUnit = id; refreshHint(); } }
+  if (op === 'sp') startSpawner(id);
+  if (op === 'mk') for (let i = 0; i < n; i++) {
+    const m = spawnMonster(id, { boss: D.units[id] && D.units[id].hp >= 3000 });
+    if (m && life) m.until = G.t + life;
+  }
 }
 function startWave() {
   const lastWave = MODES[G.mode].waves;
@@ -790,94 +820,110 @@ function startWave() {
   if (alive === 0) { G.perfect++; G.ach += RULE.achPerPerfect; msg(`Perfect +1（当前 ${G.perfect}），当局成就 +${RULE.achPerPerfect}`); }
   G.score -= alive;
   G.gold += 8 + G.wave * 2;                 // 排名序号*8 + 波数*2 (单人排名 1)
-  G.bossRule = null;
-  let dur = G.interval;
-  const n = G.wave;
+  G.bossRule = null; G.waveHook = null; G.waveNote = ''; G.curUnit = null;
+  const n = G.wave, { fn, row } = G.next;
   SFX.stinger(n);                                  // 原图每波开始放一段音乐（war3map.j 的 PlaySoundBJ）
-  if (n <= 47) {
-    const variant = pick(D.waves[String(n)]);
-    const hint = pick(variant.hints);
-    const [word, armor] = hint.split(' ');
-    if (n === 10) dur = wave10(variant);
-    else if (n === 20) dur = wave20(variant);
-    else if (n === 30) dur = wave30();
-    else if (n === 40) dur = wave40(variant);
-    else {
-      const id = pickMonster(variant.pool, word);
-      if (id) startSpawner(id, word);
-      for (const d of variant.direct) later(rnd(2, 10), () => spawnMonster(d, { boss: true }));
-      setHint(n, hint, id);
-    }
-  } else if (n === 48) dur = wave48();
-  else if (n === 49) dur = finalWave();
-  if (RULE.rabbitWaves.includes(n)) later(RULE.rabbitDelay, () => spawnRabbit());     // 原图：BOSS 波中途 TriggerExecute(Sr) 放出兔子
-  G.timer = dur;
-}
-function setHint(n, hint, id) {
-  const [word, armor] = (hint || '').split(' ');
-  const u = id && D.units[id];
-  const counter = COUNTER[armor];
-  G.hint = `第 ${n} 波：<span class="tag" style="background:#333">${word || ''}</span>` +
-    (armor ? `<span class="tag" style="background:${ARMOR_COLOR[u ? u.armorType : 'none']};color:#111">${armor}护甲</span>` : '') +
-    (u ? ` ${u.name}（生命 ${fmt(u.hp * (1 + RULE.hpPerWave * G.wave) * G.hpScale)}，护甲 ${u.armor}，移速 ${u.speed}，赏金 ${u.bounty}）` : '') +
-    (counter ? ` → 克制：<b style="color:${ATK_COLOR[counter]}">${ATK_CN[counter]}攻击</b>` : '');
-}
-function wave10(variant) {
-  if (variant.pool.includes('nsqo')) {
-    setHint(10, 'BOSS 魔法', 'nsqt');
-    G.hint += '　坚持 60 秒，未杀死的 BOSS 会自动消失；每杀 1 只大红牛 +100 金';
-    startSpawner('nsqo', '中');
-    let killed = 0;
-    for (let i = 0; i < 3; i++) later(i * 8, () => { const b = spawnMonster('nsqt', { boss: true }); if (b) b.onDeath = () => { killed++; }; });
-    later(60, () => { for (const m of G.monsters) if (m.uid === 'nsqt' && !m.dead) { m.dead = true; } G.gold += killed * 100; msg(`BOSS 波通关！大红牛死亡 ${killed} 个，获得 ${killed * 100} 金币`); });
-    return 80;
+  if (RULE.rabbitWaves.includes(n)) later(RULE.rabbitDelay, () => spawnRabbit());     // 原图：BOSS 波中途 TriggerExecute(U0) 放出兔子
+  if (!row.next) {                                 // 最后一个函数（原图第 47 波之后）：最终 BOSS 波，先倒计时 30 秒
+    G.spawners = []; G.next = null;               // 原图在这里关掉三个出怪器
+    G.finalCountdown = true; G.timer = 30;
+    G.waveNote = '　<b>30 秒后最终 BOSS 波——龙 开启</b>';
+    msg('30 秒后最终 BOSS 波——龙 开启');
+    return refreshHint();
   }
-  setHint(10, 'BOSS 魔法', 'nsqa');
-  startSpawner('nsqa', '少');
-  later(16, () => startSpawner('nsty', '多'));
-  return 60;
+  if (BOSS_WAVES[fn]) BOSS_WAVES[fn]();
+  for (const [t, op, id, k, life] of row.ev) later(t, () => waveOp(op, id, k, life));
+  rollFn(row.next);
+  G.timer = waveLen(row);
+  refreshHint();
 }
-function wave20(variant) {
-  const bossId = variant.pool.includes('n06Z') ? 'n071' : 'nsko';
-  setHint(20, 'BOSS 抗性', bossId);
-  G.hint += '　<b style="color:#ff5a4f">100 秒内杀死所有 BOSS，否则游戏失败</b>';
-  startSpawner(variant.pool.includes('n06Z') ? 'n06Z' : 'nsog', '少');
-  const b = spawnMonster(bossId, { boss: true });
-  G.bossRule = { killBy: G.t + 100, ids: [b] };
-  return 100;
+// 提示栏：本波实际出的怪 + 下一波的预告（原图的提示词就是倒计时期间给出的预告）
+function hintTags(hint) {
+  const [word, armor] = (hint || '').split(' ');
+  if (!HINT_ARMOR[armor]) return `<b>${word || ''}</b>`;
+  const counter = COUNTER[armor];
+  return `<span class="tag" style="background:#333">${word}</span><span class="tag" style="background:${ARMOR_COLOR[HINT_ARMOR[armor]]};color:#111">${armor}护甲</span>` +
+    ` → 克制：<b style="color:${ATK_COLOR[counter]}">${ATK_CN[counter]}攻击</b>`;
 }
-function wave30() {
-  G.hint = '第 30 波：飞艇 BOSS 波　坚持 80 秒！击杀 8 艘以上飞艇奖励 20 木材';
-  let killed = 0;
-  for (let i = 0; i < 15; i++) later(i * 3, () => { const b = spawnMonster('ncim', { boss: true }); if (b) b.onDeath = () => { killed++; }; });
-  later(78, () => { if (killed >= 8) { G.wood += 20; msg(`杀死 ${killed} 艘飞艇，获得 20 木材奖励`); } });
-  return 80;
+function refreshHint() {
+  let cur;
+  if (G.phase === 'prep') cur = '准备阶段：选中守卫者，在出怪口附近建塔！';
+  else {
+    const u = G.curUnit && D.units[G.curUnit];
+    cur = `第 ${G.wave} 波` + (u ? `：${u.name}（${ARMOR_CN[u.armorType]}护甲，生命 ${fmt(u.hp * (1 + RULE.hpPerWave * G.wave) * G.hpScale)}，护甲 ${u.armor}，移速 ${u.speed}，赏金 ${u.bounty}）` : '');
+  }
+  const nx = G.next && G.next.hint;
+  G.hint = cur + (G.waveNote || '') + (nx ? `　<span style="opacity:.85">下一波预告：</span>${hintTags(nx)}` : '');
 }
-function wave40(variant) {
-  const tank = pick(['nerw', 'nfor', 'nfod', 'nfot']);
-  setHint(40, 'BOSS ' + ARMOR_CN[D.units[tank].armorType], tank);
-  G.hint += '　坦克 + 嚣张的大游艇 + 疯狂的直升机';
-  startSpawner(tank, '少');
-  later(5, () => spawnMonster('n06Y', { boss: true }));
-  later(10, () => spawnMonster('ndrj', { boss: true }));
-  return G.interval + 30;
-}
-function wave48() {
-  const id = pick(['Nalc', 'Nfir', 'Npbm', 'Ntin']);
-  setHint(48, '熊猫BOSS ' + ARMOR_CN[D.units[id].armorType], id);
-  G.hint += '　熊猫 BOSS 波（每秒回血 1000）';
-  startSpawner(id, '少');
-  return G.interval + 10;
-}
-function finalWave() {
-  const dragon = pick(['nrdk', 'nrdr', 'nbzd', 'ngrd']);    // 单人 (容怪数 ≤ 50)：随机 1 条龙
-  G.final = { left: 0, deadline: G.t + 300 };
-  const reg = b => { if (!b) return; G.final.left++; b.onDeath = () => { G.final.left--; }; };
-  setHint('最终', 'BOSS ' + ARMOR_CN[D.units[dragon].armorType], dragon);
-  G.hint = '<b>最终 BOSS 波</b>：' + G.hint.replace(/^第 最终 波：/, '') + '　40 秒后魔王降临，300 秒内杀死所有龙和魔王即可通关！';
-  reg(spawnMonster(dragon, { boss: true }));
-  later(40, () => { msg('魔王：翻滚吧！'); reg(spawnMonster('Udea', { boss: true })); });
-  return 300;
+// BOSS 波的额外规则（出怪本身来自 waves.js）。key 是原图的函数名（8.6.6 脚本），同一波有两种随机版本时各写一个
+const AIRSHIPS = { 1: ['ncen', 'ncim', 'ncnk', 'ncks'], 2: ['n07R', 'n07S', 'n07T', 'n07U'] };
+const BOSS_WAVES = {
+  // 10 波大红牛：坚持 60 秒不会失败；60 秒时没杀死的大红牛自动消失，每杀 1 只全员 +100 金；80 秒后下一波
+  xH() {
+    let killed = 0;
+    G.waveNote = '　坚持 60 秒，未杀完 BOSS 不会失败；杀死的大红牛越多，结束后金币越多（每只 +100），60 秒时没杀死的自动消失';
+    G.waveHook = { onSpawn(m) { if (m.uid === 'nsqt') m.onDeath = () => { killed++; }; } };
+    later(60, () => { for (const m of G.monsters) if (m.uid === 'nsqt') m.dead = true; G.gold += killed * 100; msg(`BOSS 波通关，20 秒后下波开始。大红牛死亡 ${killed} 个，获得 ${killed * 100} 金币`); });
+  },
+  // 10 波大豪猪：同上，奖励是木材（死亡个数 ÷ 7）
+  xK() {
+    let killed = 0;
+    G.waveNote = '　坚持 60 秒，未杀完 BOSS 不会失败；杀死的大豪猪越多，结束后木材越多（每 7 只 +1），60 秒时没杀死的自动消失';
+    G.waveHook = { onSpawn(m) { if (m.uid === 'nsqa' || m.uid === 'n09B') m.onDeath = () => { killed++; }; } };
+    later(60, () => { for (const m of G.monsters) if (m.uid === 'nsqa' || m.uid === 'n09B') m.dead = true; const w = Math.floor(killed / 7); G.wood += w; msg(`BOSS 波通关，20 秒后下波开始。大豪猪死亡 ${killed} 个，获得 ${w} 木材`); });
+  },
+  // 20 波骷髅：100 秒内杀死 BOSS，否则失败
+  xf() { BOSS_WAVES.xi(); },
+  xi() {
+    G.waveNote = '　<b style="color:#ff5a4f">100 秒内杀死所有 BOSS，否则游戏失败</b>';
+    G.bossRule = { killBy: G.t + 100, ids: [] };
+    G.waveHook = { onSpawn(m) { if (m.uid === 'nsko' || m.uid === 'n071') G.bossRule && G.bossRule.ids.push(m); } };
+  },
+  // 30 波飞艇：出怪单位每秒在 4 种护甲的飞艇里随机换（开局定下是亡灵飞艇还是地精飞艇）；63 秒出怪结束，杀得最多的玩家 +20 木
+  x3() {
+    let killed = 0;
+    G.waveNote = '　坚持 80 秒！飞艇每只护甲随机；杀死最多飞艇的玩家奖励 20 木材';
+    const kinds = AIRSHIPS[G.k7];
+    G.waveHook = { onSpawn(m) { if (kinds.includes(m.uid)) m.onDeath = () => { killed++; }; } };
+    for (let s = 0; s < 63; s++) later(s, () => { G.sc = pick(kinds); });
+    later(63, () => {
+      if (killed > 0) { G.wood += 20; msg(`出怪结束：杀死 ${killed} 艘飞艇，杀死最多飞艇，获得 20 木材奖励`); }
+      else { G.wood += 5; msg('出怪结束：多个玩家杀死同样最多飞艇，全体玩家获得 5 木材奖励'); }
+    });
+  },
+  yO() { G.waveNote = '　坦克 + 嚣张的大游艇 + 疯狂的直升机，之后出维修工'; },
+};
+// 最终 BOSS 波（原图 yo）：倒计时 300 秒。先出熊猫（第 34 波定下的那种），20 秒后出 1 条龙（四色等概率，一半概率护甲改成 200），
+// 每条龙进场带 4 只狗头人；59 秒出魔王（单人带 +22 护甲的物品）并开始刷耐瑟龙，同时出巨龙，之后每 55 秒补魔龙、速龙。
+// 杀死所有龙和魔王即通关；杀龙 +20 木，杀狗头人 +5 木
+const PANDA = { 1: 'Ntin', 2: 'Npbm', 3: 'Nalc', 4: 'Nfir' };
+const KOBOLDS = ['nkob', 'nkot', 'nkog', 'ngst'];
+function startFinal() {
+  G.finalCountdown = false;
+  G.final = { need: [], check: false };
+  G.timer = 300;
+  G.waveNote = '　<b>最终 BOSS 波</b>：300 秒内杀死所有龙和魔王即可通关！';
+  msg('杀死所有龙 BOSS 和魔王后会通关');
+  G.sc = PANDA[G.waveVars.HI] || pick(Object.values(PANDA)); G.curUnit = G.sc; startSpawner('少');
+  refreshHint();
+  const need = m => { if (m) G.final.need.push(m); return m; };
+  later(20, () => {
+    const d = need(spawnMonster(pick(['nbzd', 'nrdr', 'nrdk', 'ngrd']), { boss: true }));
+    if (d) {
+      if (Math.random() < 0.5) d.armor = 200;
+      d.onDeath = () => { G.wood += 20; msg('你杀死了一条龙，获得 20 点木材'); };
+      for (const k of KOBOLDS) { const g = spawnMonster(k, { boss: true }); if (g) g.onDeath = () => { G.wood += 5; msg('你杀死了一只狗，获得 5 点木材'); }; }
+      msg(`${d.name}出现了，带着 4 只狗头人`);
+    }
+  });
+  later(59.3, () => {
+    G.sc = 'nndr';
+    const u = need(spawnMonster('Udea', { boss: true }));
+    if (u) u.armor += 22;                                       // A0EO 能提高护甲的物品（AIde，+22）
+    msg('魔王：翻滚吧！');
+    G.final.check = true;
+  });
+  [[59.3, 'njga'], [114.3, 'n07W'], [169.3, 'n07V']].forEach(([t, id]) => later(t, () => { startSpawner('少'); spawnMonster(id, { boss: true }); }));
 }
 
 // ---------------------------------------------------------------- 兔子（成就商店）
@@ -1038,8 +1084,9 @@ function step(dt) {
   G.timer -= dt;
   if (G.timer <= 0) {
     if (G.phase === 'prep') { G.phase = 'run'; startWave(); }
-    else if (G.wave < 49) startWave();
-    else return gameOver('时间到，未能击杀最终 BOSS');
+    else if (G.final) return gameOver('300 秒内没有杀死所有龙和魔王');
+    else if (G.finalCountdown) startFinal();
+    else startWave();
   }
   // 延时事件
   const due = G.timeouts.filter(x => x.at <= G.t);
@@ -1048,7 +1095,7 @@ function step(dt) {
   // 出怪
   for (const s of G.spawners) {
     s.next -= dt;
-    while (s.next <= 0 && s.left > 0) { spawnMonster(s.id); s.left--; s.next += s.every; }
+    while (s.next <= 0 && s.left > 0) { if (G.sc) spawnMonster(G.sc); s.left--; s.next += s.every; }   // 刷的是"当前出怪单位"（原图的 Ul）
   }
   G.spawners = G.spawners.filter(s => s.left > 0);
   builderUpdate(dt);
@@ -1069,6 +1116,7 @@ function step(dt) {
   // 怪物
   for (const m of G.monsters) {
     if (m.dead) continue;
+    if (m.until && G.t >= m.until) { m.dead = true; continue; }     // 限时单位到时间消失（不给赏金）
     moveMonster(m, dt);
     if (m.burn) hurt(m, m.burn.dps * dt, 'magic', m.burn.src, { ignoreArmor: true });
     for (const d of m.dots) if (d.until > G.t) hurt(m, d.dps * dt, d.atk, d.src);
@@ -1086,7 +1134,7 @@ function step(dt) {
     G.bossRule = null;
   }
   if (G.bossRule && G.bossRule.ids.every(b => !b || b.dead)) { msg('BOSS 已全部击杀！'); G.bossRule = null; }
-  if (G.final && G.final.left === 0 && G.t > G.final.deadline - 300 + 41) return victory();
+  if (G.final && G.final.check && G.final.need.every(m => m.dead)) return victory();
   // 特效
   for (const f of G.fx) f.life -= dt;
   FXS.update(dt);
@@ -1189,11 +1237,11 @@ function metaOf(e) {
 }
 // ---------------------------------------------------------------- 实时 3D（units3d.js）：魔兽原版模型，拉近了也清楚；画不了时调用方退回精灵图
 const U3 = window.Units3D && window.Units3D.create(document.getElementById('gl3d'), SHEETS);
-// 打开页面就按出场顺序（第 1 波 → 第 47 波，再到 BOSS 波直接刷的怪）在后台预载怪物模型（没有原版模型的预载精灵图），
+// 打开页面就按出场顺序（waves.js 里第 1 波 → 最终波）在后台预载怪物模型（没有原版模型的预载精灵图），
 // 不然每种怪第一次出场时还在下载，那几帧只能画成色块圆点
 {
   const order = new Set();
-  for (let n = 1; D.waves[String(n)]; n++) for (const v of D.waves[String(n)]) for (const id of [...v.pool, ...v.direct]) order.add(id);
+  for (const f of Object.values(WR.fns)) for (const r of f.rows) for (const e of r.ev) if (e[1] === 'sc' || e[1] === 'mk') order.add(e[2]);
   for (const id of Object.keys(D.units)) order.add(id);
   for (const id of order) {
     const m = SHEETS['unit:' + id]; if (!m) continue;
@@ -1875,7 +1923,7 @@ function renderTop() {
   $('r-food').textContent = foodUsed() + '/' + G.foodCap;
   $('r-ach').textContent = G.ach;
   $('r-mode').textContent = MODES[G.mode].name;
-  $('w-title').textContent = G.phase === 'prep' ? '准备阶段' : G.wave >= 49 ? '最终BOSS' : `第${G.wave}波`;
+  $('w-title').textContent = G.phase === 'prep' ? '准备阶段' : G.wave >= 48 ? '最终BOSS' : `第${G.wave}波`;
   const t = Math.max(0, Math.ceil(G.timer));
   $('w-timer').textContent = `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
   const c = monstersAlive(), cp = cap();
@@ -2097,7 +2145,7 @@ function buildCmds() {
     out.push(cmd('T', '兔', '兔子卷轴', `——需要 <b style="color:#ff9ad5">${RULE.rabbitScrollAch} 点当局成就</b>（当前 ${G.ach}）<br>额外召唤一次兔子，每局只能额外召唤 1 次${G.rabbitScroll ? '<br><b style="color:#ff5a4f">本局已经召唤过了</b>' : G.rabbit ? '<br><b style="color:#ff5a4f">兔子已经在场上了</b>' : ''}`,
       rabbitScroll, { disabled: G.rabbitScroll || !!G.rabbit || G.ach < RULE.rabbitScrollAch, ico: 'item-I00S' }));
     out.push(cmd('B', '建', '建造', '打开建造栏（当前随机给出的 6 个塔 + 英雄塔）', () => { G.menu = 'build'; uiDirty(); }, { ico: 'build' }));
-    out.push(cmd('R', '🎲', '随机建造', `重新随机建造栏：1 主塔、1 原始塔、1 光环塔、2 辅助塔、1 另类塔<br>${G.rerolls === 0 ? '首次免费' : '需要 1 木材'}`, () => rerollBuild(false), { disabled: G.rerolls > 0 && G.wood < 1, ico: 'reroll' }));
+    out.push(cmd('R', '🎲', '随机建造', `重新随机建造栏：1 主塔、1 原始塔、1 光环塔、2 辅助塔、1 另类塔<br>${G.rerolls === 0 ? '首次免费' : `需要 ${RULE.rerollWood} 木材`}`, () => rerollBuild(false), { disabled: G.rerolls > 0 && G.wood < RULE.rerollWood, ico: 'reroll' }));
     out.push(cmd('U', '木', '使用木材', '购买人口（12 木）、兑换金币（1 木 → 300 金）。买木材去地图中央的商店', () => { G.menu = 'wood'; uiDirty(); }, { ico: 'woodmenu' }));
     const fw = fodBlock();
     out.push(cmd('X', '指', '死亡之指', `<span class="atk atk-magic">主动</span> 射程 ${FOD.range} · 冷却 ${FOD.cd} 秒 · <span style="color:#7ab8ff">${FOD.mana} 魔法</span><br>选择一个敌人：直接杀死它。<br>BOSS 只损失一部分生命（大红牛 7000、大骷髅 2.5 万、直升机 / 游艇 / 魔王 10 万、龙 / 狗头人 BOSS 生命高于 15 万时 10 万，按模式缩放）${fw ? `<br><b style="color:#ff5a4f">${fw}</b>` : ''}`,

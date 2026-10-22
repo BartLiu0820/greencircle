@@ -152,3 +152,8 @@ model:hero:Units/Human/Jaina/Jaina	ok	高 2.20 m | ppm 40 | 缺贴图 0 | 动作
 model:builder:Units/Critters/VillagerKid/VillagerKid	ok	高 0.89 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,death
 model:fx:Units/Orc/HeroBladeMaster/HeroBladeMaster	ok	高 3.40 m | ppm 24 | 缺贴图 0 | 动作 idle,walk,attack,death,spell,spin | 光效 有
 model:tower:Doodads/Cinematic/RockinArthas/RockinArthas	ok	高 2.32 m | ppm 40 | 缺贴图 0 | 动作 idle | 光效 有
+model:monster:Units/Creeps/GoblinZeppelin/GoblinZeppelin	ok	高 2.53 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,death | 光效 无
+model:monster:Units/Creeps/DragonSpawnGreen/DragonSpawnGreen	ok	高 3.57 m | ppm 24 | 缺贴图 0 | 动作 idle,walk,death,spell | 光效 无
+model:monster:Units/Creeps/DragonSpawnPurple/DragonSpawnPurple	ok	高 3.57 m | ppm 24 | 缺贴图 0 | 动作 idle,walk,death,spell | 光效 无
+model:monster:Units/Creeps/KoboldGeomancer/KoboldGeomancer	ok	高 0.83 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,death | 光效 无
+model:monster:Units/Creeps/NetherDragon/NetherDragon	ok	高 0.64 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 有
