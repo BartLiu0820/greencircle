@@ -136,16 +136,26 @@ html, body, button, button:disabled, #minimap, #cv { cursor: url(assets/cursors/
 .atk-chaos { background: #c48bff; color: #111 !important; } .atk-hero { background: #ffd257; color: #111 !important; } .atk-aura { background: #6fd17a; color: #111 !important; }
 .cb .ic.atk-normal, .cb .ic.atk-pierce, .cb .ic.atk-magic, .cb .ic.atk-chaos, .cb .ic.atk-hero, .cb .ic.atk-aura { font-size: 13px; }
 
-/* ---------- 弹窗 ---------- */
-#modal { position: fixed; inset: 0; background: rgba(0,0,0,.65); display: flex; align-items: center; justify-content: center; z-index: 10; padding: 16px; }
-#modal-box { background: #141a14; border: 2px solid var(--edge2); border-radius: 8px; max-width: 760px; width: 100%;
-  max-height: 90vh; overflow-y: auto; padding: 16px 18px; user-select: text; }
-#modal-box h2 { margin: 0 0 8px; color: #ffe8a0; }
+/* ---------- 弹窗：原版对话框的样子（暗夜精灵皮肤：大理石底 + 藤蔓边框，绿色大理石按钮 + 金边；assets/ui/dialog-*.png，tools/war3_icons.py 导出） ---------- */
+#modal { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 10; padding: 16px; }
+#modal-box { position: relative; max-width: 760px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 30px 34px; user-select: text;
+  background: url(assets/ui/dialog-bg.png) 0 0 / 256px rgba(6,10,6,.6); background-clip: border-box; background-origin: border-box;   /* 原版底图本身 75% 不透明，再垫一层暗色，压住后面花哨的地图 */
+  border: 36px solid transparent; border-image: url(assets/ui/dialog-border.png) 64 / 36px / 8px round; }
+#modal-box::-webkit-scrollbar { width: 8px; } #modal-box::-webkit-scrollbar-thumb { background: #4c5a3c; border-radius: 4px; }
+#modal-box h2 { margin: 0 0 8px; color: #fcd20d; text-shadow: 0 1px 2px #000; }
 #modal-box table { border-collapse: collapse; margin: 6px 0; }
 #modal-box td, #modal-box th { border: 1px solid #3a4a3a; padding: 3px 8px; text-align: center; }
+#modal-box button { color: #fcd20d; text-shadow: 1px 1px 1px #000; padding: 7px 16px; border-radius: 0; cursor: pointer; position: relative;
+  background: url(assets/ui/dialog-btn.png) center / 256px; border: 6px solid transparent; border-image: url(assets/ui/dialog-btn-border.png) 16 / 6px stretch; }
+#modal-box button::after { content: ''; position: absolute; inset: 0; background: url(assets/ui/dialog-btn-hl.png) center / 100% 100%; opacity: 0; mix-blend-mode: screen; pointer-events: none; }
+#modal-box button:hover::after { opacity: .9; }
+#modal-box button:hover { color: #fff; }
+#modal-box button:active { background-image: url(assets/ui/dialog-btn-down.png); border-image-source: url(assets/ui/dialog-btn-border-down.png); padding: 8px 15px 6px 17px; }
+#modal-box.dlg { max-width: 420px; padding: 14px 18px 10px; user-select: none; }
+.w3dlg h2 { text-align: center; font-size: 19px; letter-spacing: 2px; margin-bottom: 14px !important; }
+.w3dlg .w3btn { display: block; width: 100%; margin: 0 0 10px; font-size: 15px; font-weight: 600; letter-spacing: 1px; }
+.w3hint { min-height: 3.2em; margin-top: 4px; color: #c9d3b8; font-size: 12px; line-height: 1.55; text-align: center; text-shadow: 0 1px 1px #000; }
 .row { display: flex; gap: 6px; margin: 6px 0; flex-wrap: wrap; }
-.hero-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; margin: 10px 0; }
-.hero-grid button { text-align: left; padding: 8px; }
 
 /* ---------- 手机竖屏：控制台变两行（小地图 + 信息 / 命令面板） ---------- */
 @media (max-width: 820px) {

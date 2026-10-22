@@ -81,6 +81,24 @@
         "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/c4485119-916c-4ff2-9e29-288550aac890/scratchpad/h5srv && exec python3 -m http.server 8796"
       ],
       "port": 8796
+    },
+    {
+      "name": "h5-cam3d",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/7b65f93a-d929-4f08-9806-7cf2487ef66d/scratchpad/h5srv && exec python3 -m http.server 8797"
+      ],
+      "port": 8797
+    },
+    {
+      "name": "h5-dialog",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/145e787b-0fb9-4736-82c2-4031688e407f/scratchpad/h5srv && exec python3 -m http.server 8799"
+      ],
+      "port": 8799
     }
   ]
 }

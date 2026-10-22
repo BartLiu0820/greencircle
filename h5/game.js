@@ -22,9 +22,9 @@ const RULE = {
   shopReach: 600,            // 商店（u00L，原图摆在地图中央 (0,128)）：守卫者要走到旁边才能买
 };
 const MODES = {
-  solo: { name: '单人推荐', interval: 38, hp: 0.35, food: 8, desc: '38 秒/波，怪物生命 ×0.35，起手人口 8' },
-  origin: { name: '原版数值', interval: 33, hp: 1, food: 6, desc: '33 秒/波，原图数值（原图为 8 人合作设计，单人极难）' },
-  relax: { name: '休闲', interval: 50, hp: 0.2, food: 10, desc: '50 秒/波（旧版节奏），怪物生命 ×0.2，起手人口 10' },
+  solo: { name: '单人推荐', interval: 38, hp: 0.35, food: 8, short: '怪物生命 ×0.35', desc: '38 秒/波，怪物生命 ×0.35，起手人口 8' },
+  origin: { name: '原版数值', interval: 33, hp: 1, food: 6, short: '8 人合作难度', desc: '33 秒/波，原图数值（原图为 8 人合作设计，单人极难）' },
+  relax: { name: '休闲', interval: 50, hp: 0.2, food: 10, short: '50 秒一波', desc: '50 秒/波（旧版节奏），怪物生命 ×0.2，起手人口 10' },
   demo: { name: '演示', interval: 38, hp: 0.35, food: 20, desc: '只打前 2 波；固定英雄剑神和 5 种塔，开局 60000 金方便演示升级', hidden: true,
           gold: 60000, wood: 10, prep: 30, waves: 2, hero: '剑神', build: ['魔幻塔', '闪电塔', '攻击光环', '冰霜塔', '灵魂塔'] },
 };
@@ -45,8 +45,8 @@ const NODES_RAW = {
   L: [-3856, 3888], Z: [0, 3888], Y: [3888, 3840], k: [3888, 16], j: [3840, -3888], P: [0, -3888], O: [-3888, -3840], M: [-3888, 0],
   // 内环
   S: [-2864, 2848], l: [0, 2768], W: [2832, 2880], h: [2768, 0], g: [2864, -2864], d: [-16, -2768], c: [-2880, -2880], T: [-2768, 0],
-  // 出怪口 (红色玩家：左上角 I → K → L)
-  I: [-4864, 5216], K: [-4864, 3776],
+  // 四角出怪口：左上 I → K → L（红色玩家），右上 p → X → Y，右下 m → i → j，左下 o → N → O
+  I: [-4864, 5216], K: [-4864, 3776], p: [5216, 4880], X: [3744, 4864], m: [4832, -5264], i: [4800, -3744], o: [-5248, -4832], N: [-3808, -4768],
 };
 // 缩放后对齐到建造网格：路的中线都落在格子中心（64 的倍数），并且全部横平竖直，
 // 这样路两侧的可建造区是整齐的矩形。内外环中线相距 11 格 = 路占 5 格 + 两排塔（每座 3×3 格）。
@@ -57,7 +57,8 @@ const NODES = (() => {
   return {
     L: [-o, o], Z: [0, o], Y: [o, o], k: [o, 0], j: [o, -o], P: [0, -o], O: [-o, -o], M: [-o, 0],
     S: [-i, i], l: [0, i], W: [i, i], h: [i, 0], g: [i, -i], d: [0, -i], c: [-i, -i], T: [-i, 0],
-    I: [-42 * CELL, 45 * CELL], K: [-42 * CELL, o],
+    I: [-42 * CELL, 45 * CELL], K: [-42 * CELL, o], p: [45 * CELL, 42 * CELL], X: [o, 42 * CELL],
+    m: [42 * CELL, -45 * CELL], i: [42 * CELL, -o], o: [-45 * CELL, -42 * CELL], N: [-o, -42 * CELL],
   };
 })();
 const EDGES = [
@@ -65,10 +66,13 @@ const EDGES = [
   ['S', 'l'], ['l', 'W'], ['W', 'h'], ['h', 'g'], ['g', 'd'], ['d', 'c'], ['c', 'T'], ['T', 'S'],
   ['M', 'T'], ['Z', 'l'], ['k', 'h'], ['P', 'd'],
 ];
-const SPAWN_PATH = ['I', 'K', 'L'];
+// 原图 8 个出怪口：四角各一个进外环、中心四个进内环。单人只开左上角那个；另外三个角先摆出来，留给以后多人联机
+const SPAWN_GATES = [['I', 'K', 'L'], ['p', 'X', 'Y'], ['m', 'i', 'j'], ['o', 'N', 'O']];
+const SPAWN_PATH = SPAWN_GATES[0];
 const ADJ = {};
 for (const [a, b] of EDGES) { (ADJ[a] = ADJ[a] || []).push(b); (ADJ[b] = ADJ[b] || []).push(a); }
-const ROAD_SEGS = EDGES.concat([['I', 'K'], ['K', 'L']]).map(([a, b]) => [NODES[a], NODES[b]]);
+const ROAD_SEGS = EDGES.concat(SPAWN_GATES.flatMap(([a, b, c]) => [[a, b], [b, c]])).map(([a, b]) => [NODES[a], NODES[b]]);
+const GATE_POS = SPAWN_GATES.map(g => NODES[g[0]]);
 const ROAD_HALF = 110;   // 路宽一半
 const SHOP = { isShop: true, x: 0, y: 64 };             // 原图 CreateUnit(Player(15),'u00L',0,128)，按 MAP_SCALE 缩放后对齐网格
 const WORLD = Math.round(6000 * MAP_SCALE);
@@ -290,8 +294,7 @@ function cellBuildable(cx, cy) {
     if (cx + h > Math.min(a[0], b[0]) - ROAD_BLOCK && cx - h < Math.max(a[0], b[0]) + ROAD_BLOCK &&
         cy + h > Math.min(a[1], b[1]) - ROAD_BLOCK && cy - h < Math.max(a[1], b[1]) + ROAD_BLOCK) return false;
   }
-  const [sx0, sy0] = NODES.I;
-  if (Math.abs(cx - sx0) < 352 && Math.abs(cy - sy0) < 352) return false;
+  for (const [sx0, sy0] of GATE_POS) if (Math.abs(cx - sx0) < 352 && Math.abs(cy - sy0) < 352) return false;
   if (Math.abs(cx - SHOP.x) < 160 && Math.abs(cy - SHOP.y) < 160) return false;     // 中央商店
   return true;
 }
@@ -863,7 +866,7 @@ const RABBIT_SHOP = [
 function spawnRabbit(by) {
   const lim = BUILD_LIM - 150;
   let x, y;
-  do { x = rnd(-lim, lim); y = rnd(-lim, lim); } while (dist2(x, y, NODES.I[0], NODES.I[1]) < 700 * 700);   // 不刷进出怪口的围栏里
+  do { x = rnd(-lim, lim); y = rnd(-lim, lim); } while (GATE_POS.some(([gx, gy]) => dist2(x, y, gx, gy) < 700 * 700));   // 不刷进出怪口的围栏里
   G.rabbit = { isRabbit: true, id: G.nextId++, x, y, hx: x, hy: y, t0: G.t, until: G.t + RULE.rabbitLife, face: rnd(0, TAU), next: G.t + 1 };
   SFX.ui('hint');
   msg(by ? `${by}召唤了一次兔子，大家快找呀！` : `兔子：${pick(RABBIT_TALK)}`);
@@ -1260,7 +1263,13 @@ function clampCam() {
   const c = G.cam; c.zoom = clamp(c.zoom, ZMIN, ZMAX); S = BASE * c.zoom;
   const hw = W / 2 / S, hh = H / 2 / S, lim = WORLD + 150;
   c.x = hw >= lim ? 0 : clamp(c.x, -lim + hw, lim - hw);
-  c.y = hh >= lim ? 0 : clamp(c.y, -lim + hh, lim - hh);
+  // 往南拉的极限按真正看得到的下边缘算：桌面上底部控制台盖在地图上（藤蔓之下的实心部分挡住了），3D 时近处看到的地面也比平面画法短。
+  // 和魔兽一样让镜头能多往南走一点，下边两个角的出怪口才露得出来
+  camera();
+  const r = cv.getBoundingClientRect(), cr = $('console').getBoundingClientRect();
+  const dn = Math.min(hh, c.y - groundAt(W / 2 / DPR, Math.min(r.height, cr.top - r.top + cr.height * 60 / 342))[1]);
+  const lo = -lim + dn, hi = lim - hh;
+  c.y = lo > hi ? (lo + hi) / 2 : clamp(c.y, lo, hi);
   camera();
 }
 // ---------------------------------------------------------------- 3D 镜头（有 WebGL 时）：和魔兽一样的透视相机，镜头朝北
@@ -1317,7 +1326,7 @@ function centerOn(e) { zoomTo = null; G.cam.x = e.x; G.cam.y = e.y; clampCam(); 
 
 // ================================================================ 渲染
 let mouse = null, HOV = null;
-const TER = window.Terrain.create({ world: WORLD, roadSegs: ROAD_SEGS, roadHalf: ROAD_HALF, spawn: NODES.I, center: [0, 0] });
+const TER = window.Terrain.create({ world: WORLD, roadSegs: ROAD_SEGS, roadHalf: ROAD_HALF, spawns: GATE_POS, center: [0, 0] });
 // 3D 时树墙用原版树模型（tools/war3_terrain.py 的 TREES：哪种树用哪个模型的第几个变体，费伍德树是灰谷树换贴图）
 const TREE_MDX = {
   ATtr: ['doodads/terrain/ashentree/ashentree', [0, 3, 6]], CTtr: ['doodads/terrain/ashentree/ashentree', [1, 4], ['ashentree.blp', 'felwoodtree.blp']],
@@ -1340,7 +1349,7 @@ function draw() {
   if (CAM) gctx.clearRect(0, 0, W, H);            // 3D：地面画布是透明的贴地层，地块在 GL 里画
   if (U3) U3.frame(view, TER.glSource());
   TER.drawGround(ctx, view, now);                 // 原版地块铺的地面、中央法阵、出怪口（terrain.js）
-  label('出怪口', NODES.I[0], NODES.I[1] + 300, '#ffb0a8', 12);
+  GATE_POS.forEach(([x, y], k) => label(k ? '出怪口（联机）' : '出怪口', x, y + 300, k ? '#c9a39e' : '#ffb0a8', 12));
   for (const z of G.zones) if (z.style !== 'bladestorm') { ctx.fillStyle = 'rgba(122,184,255,.18)'; gcircle(z.x, z.y, z.r); ctx.fill(); }
   for (const z of G.zones) if (z.style === 'bladestorm') drawBladestormGround(z);
   for (const t of G.towers) if (t.cat === 'aura') drawAuraGround(t, now);          // 光环塔：地面光环（在单位下面）
@@ -1757,7 +1766,7 @@ function drawMinimap() {
       mctx.stroke();
     }
   }
-  mctx.fillStyle = '#ff4a3a'; mctx.beginPath(); mctx.arc(mx(NODES.I[0]), my(NODES.I[1]), Math.max(3, 200 * k), 0, 7); mctx.fill();
+  GATE_POS.forEach(([x, y], i) => { mctx.fillStyle = i ? '#9a4038' : '#ff4a3a'; mctx.beginPath(); mctx.arc(mx(x), my(y), Math.max(3, 200 * k), 0, 7); mctx.fill(); });
   mctx.strokeStyle = '#6dff6d'; mctx.lineWidth = Math.max(1, 30 * k); mctx.beginPath(); mctx.arc(mx(0), my(0), 300 * k, 0, 7); mctx.stroke();
   const dot = (x, y, c, s) => { mctx.fillStyle = c; mctx.fillRect(mx(x) - s / 2, my(y) - s / 2, s, s); };
   for (const t of G.towers) dot(t.x, t.y, t.isHero ? '#ffd257' : '#3cdc3c', 4 * DPR);
@@ -2247,25 +2256,43 @@ $('q-hero').onclick = () => { if (G.hero) { select(G.hero); centerOn(G.hero); } 
 window.addEventListener('resize', resize);
 
 // ================================================================ 弹窗
-function showModal(html) { $('modal-box').innerHTML = html; $('modal').classList.remove('hidden'); }
+function showModal(html) { $('modal-box').innerHTML = html; $('modal-box').classList.remove('dlg'); $('modal').classList.remove('hidden'); }
 function hideModal() { $('modal').classList.add('hidden'); }
+// 开局菜单：照原图的对话框（DialogCreate）——标题 + 一列按钮，一屏放不下就分几轮：先选模式，再选英雄塔
+function showDialog(title, buttons, foot = '') {
+  showModal(`<div class="w3dlg"><h2>${title}</h2>${buttons.map((b, i) => `<button class="w3btn" data-i="${i}">${b.text}</button>`).join('')}
+    <div class="w3hint">${foot}</div></div>`);
+  $('modal-box').classList.add('dlg');
+  const hint = $('modal-box').querySelector('.w3hint');
+  $('modal-box').querySelectorAll('.w3btn').forEach(el => {
+    const b = buttons[+el.dataset.i];
+    el.onmouseenter = () => { hint.innerHTML = b.hint || foot; };
+    el.onmouseleave = () => { hint.innerHTML = foot; };
+    el.onclick = () => { SFX.ui('bigClick'); b.fn(); };
+  });
+}
 function showStart() {
-  const heroes = Object.values(D.heroes);
-  showModal(`<h2>绿色循环圈外传 · H5 复刻</h2>
-    <p>怪物沿"回"字形双环路线<b>永远绕圈</b>，不会漏到基地。<b>场上怪物超过 40 只即失败</b>。每波按时出怪，不管上一波清没清完。</p>
-    <p>选中<b>守卫者</b>（F1），点击地面让它移动；在右下角命令面板里打开<b>建造</b>，选塔后点地面，守卫者会走过去建造。拖动画面或点击小地图移动镜头，滚轮缩放。</p>
-    <div class="row"><button class="primary" id="m-demo">▶ 演示：前两波<br><small>${MODES.demo.desc}</small></button></div>
-    <h3>选择模式</h3><div class="row" id="m-modes">${Object.entries(MODES).filter(([, m]) => !m.hidden).map(([k, m]) => `<button data-m="${k}" class="${k === 'solo' ? 'primary' : ''}">${m.name}<br><small>${m.desc}</small></button>`).join('')}</div>
-    <h3>选择英雄塔（英雄旗帜：4 选 1）</h3><div class="hero-grid">${heroes.map(h => `<button data-h="${h.name}"><b>${h.name}</b> ${atkTag(h.atk)}<br><small>${h.title}</small><br><small>射程 ${h.range} · 攻击间隔 ${h.cd}s</small><br><small style="color:#8fa797">${h.skills.slice(0, 4).map(s => s.name).join(' / ')}</small></button>`).join('')}</div>`);
-  let mode = 'solo';
-  document.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { mode = b.dataset.m; document.querySelectorAll('[data-m]').forEach(x => x.classList.toggle('primary', x === b)); });
-  $('m-demo').onclick = () => { newGame('demo'); hideModal(); resize(); clampCam(); uiDirty(); };
-  document.querySelectorAll('[data-h]').forEach(b => b.onclick = () => { newGame(mode); G.heroChoice = b.dataset.h; hideModal(); resize(); clampCam(); uiDirty(); });
+  const start = (mode, hero) => { newGame(mode); if (hero) G.heroChoice = hero; hideModal(); resize(); clampCam(); uiDirty(); };
+  const pickHero = mode => showDialog('选择英雄塔', Object.values(D.heroes).map(h => ({
+    text: `${h.name}（${ATK_CN[h.atk]} · 射程 ${h.range}）`,
+    hint: `${h.title}<br>攻击间隔 ${h.cd}s · 技能：${h.skills.slice(0, 4).map(s => s.name).join(' / ')}`,
+    fn: () => start(mode, h.name),
+  })).concat([{ text: '返回', fn: pickMode }]), `${MODES[mode].name} · 英雄旗帜 4 选 1`);
+  const intro = () => showDialog('玩法简介', [{ text: '返回', fn: pickMode }],
+    `怪物沿"回"字形双环路线<b>永远绕圈</b>，不会漏到基地。<b>场上怪物超过 40 只即失败</b>。每波按时出怪，不管上一波清没清完。<br><br>
+    选中<b>守卫者</b>（F1），点击地面让它移动；在右下角命令面板里打开<b>建造</b>，选塔后点地面，守卫者会走过去建造。拖动画面或点击小地图移动镜头，滚轮缩放。`);
+  const pickMode = () => showDialog('选择游戏模式', Object.entries(MODES).filter(([, m]) => !m.hidden).map(([k, m]) => ({
+    text: `${m.name}（${m.short}）`, hint: m.desc, fn: () => pickHero(k),
+  })).concat([
+    { text: '演示：前两波', hint: MODES.demo.desc, fn: () => start('demo') },
+    { text: '玩法简介', hint: '怎么玩、怎么操作', fn: intro },
+  ]), '把鼠标移到选项上查看说明');
+  pickMode();
 }
 function showHelp() {
   const rows = Object.entries({ 普通: 'normal', 穿刺: 'pierce', 魔法: 'magic', 混乱: 'chaos' }).map(([cn, k]) => {
     const r = D.damage[k];
-    return `<tr><th>${cn}</th><td>${r[1] * 100}</td><td>${r[2] * 100}</td><td>${r[0] * 100}</td><td>${r[6] * 100}</td></tr>`;
+    return `<tr><th>${cn}</th>${[1, 2, 0, 6].map(i => `<td>${Math.round(r[i] * 100)}</td>`).join('')}</tr>`;
   }).join('');
   const was = G.paused; G.paused = true;
   showModal(`<h2>说明</h2>

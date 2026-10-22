@@ -1,12 +1,12 @@
 /* 地图美术：照原图（war3map.w3e / war3map.doo）的地块规则铺地面，贴图和树都是魔兽原版资源（tools/war3_terrain.py 导出，见 assets/w3terrain.js）。
  *   - 底色 Lgrd 暗草地；路面 Arck 灰绿岩石（3 格宽）；路两侧 1、3 格外各一条 Zvin 遗迹暗草的细纹（原图每条路都这样）
- *   - 出怪口：原图四角的围栏——Arck 岩石地面、外面一圈 2 格宽的 Crck 费伍德岩石，再围一圈树墙，路从一侧开口出去
+ *   - 出怪口（spawns，可以有多个）：原图四角的围栏——Arck 岩石地面、外面一圈 2 格宽的 Crck 费伍德岩石，再围一圈树墙，路从一侧开口出去
  *   - 中央：原图中心的 cZc1 十字地面，上面是"循环圈"法阵
  *   - 地图边缘一圈原版树墙
  * 地块和魔兽一样定义在格点上（每 64 单位一个，和建造网格的格子中心重合），每个格子按四个角的地块从低到高叠图：
  * 最低的一层画整块（偶尔用带花草碎石的变体），更高的每层按"哪几个角是这种地块"取图集左边 4×4 里对应的过渡遮罩。
  * 地面按 16×16 格分块，用到时才画、画好缓存；镜头拉远时改用一张低分辨率的整图。
- * 用法：const T = Terrain.create({ world, roadSegs, roadHalf, spawn, center });
+ * 用法：const T = Terrain.create({ world, roadSegs, roadHalf, spawns, center });
  *       每帧 T.drawGround(ctx, view, t)；T.drawTrees(ctx, view)（在单位之前画）；T.drawOverlay(ctx, view)（最后画）
  *       view = { W, H, S, cx, cy }：画布像素尺寸、每世界单位的像素数、镜头中心（世界坐标，y 朝上）
  *       3D 镜头时 view 还带 sx(x, y, z) / sy(y, z) / k(y)（透视投影、y 处每世界单位的像素数）：地块和树由 units3d.js 画
@@ -25,7 +25,7 @@ const LO = 12;                                   // 低清整图：每格像素
 const PRIO = ['Zvin', 'Crck', 'cZc1', 'Lgrd', 'Arck'];   // 叠放顺序（原图 w3e 地块表的顺序，后面的盖在前面上）
 const PLAIN = [0, 15, 16, 17, 20, 21];           // 整块时常用的几格（较素）；其余变体（花草、碎石）偶尔用
 
-function create({ world, roadSegs, roadHalf, spawn, center = [0, 0] }) {
+function create({ world, roadSegs, roadHalf, spawns = [], center = [0, 0] }) {
   const R = rng(1234);
   // 横平竖直的路段：到路中线的"方形距离"（切比雪夫距离），让拐角是方的，和原图一样
   const roadDist = (x, y) => {
@@ -45,7 +45,7 @@ function create({ world, roadSegs, roadHalf, spawn, center = [0, 0] }) {
   const vt = new Uint8Array(NV * NV);
   const K = Object.fromEntries(PRIO.map((k, i) => [k, i]));
   for (let j = 0; j < NV; j++) for (let i = 0; i < NV; i++) {
-    const x = (i - N) * T, y = (j - N) * T, d = roadDist(x, y), ds = spawn ? cheb(x, y, spawn) : Infinity;
+    const x = (i - N) * T, y = (j - N) * T, d = roadDist(x, y), ds = Math.min(Infinity, ...spawns.map(p => cheb(x, y, p)));
     const ax = Math.abs(x - center[0]), ay = Math.abs(y - center[1]);
     let k = 'Lgrd';
     if (d <= T + 1 || ds <= 3 * T) k = 'Arck';
@@ -135,7 +135,7 @@ function create({ world, roadSegs, roadHalf, spawn, center = [0, 0] }) {
       addTree(x + (R() - 0.5) * 40, y + (R() - 0.5) * 40);
     }
     // 出怪口围栏：Crck 那一圈上种树，路出去的那边留口子
-    if (spawn) for (const r of [4.5 * T, 5.5 * T]) {
+    for (const spawn of spawns) for (const r of [4.5 * T, 5.5 * T]) {
       for (let a = -r; a < r; a += T * 0.9) for (const [x, y] of [[a, r], [r, -a], [-a, -r], [-r, a]]) {
         const X = spawn[0] + x, Y = spawn[1] + y;
         if (roadDist(X, Y) < roadHalf + 70 || (r > 5 * T && R() < 0.35)) continue;
@@ -158,7 +158,7 @@ function create({ world, roadSegs, roadHalf, spawn, center = [0, 0] }) {
         ctx.save(); ctx.setTransform(k, 0, 0, -k * v.q(center[1]), px(v, center[0], center[1]), py(v, center[1])); ctx.translate(-center[0], -center[1]);
         drawEmblem(ctx, center, t); ctx.restore();
       }
-      if (spawn) drawPortal(ctx, v, spawn, t);
+      for (const p of spawns) drawPortal(ctx, v, p, t);
       return;
     }
     ctx.save();
@@ -183,7 +183,7 @@ function create({ world, roadSegs, roadHalf, spawn, center = [0, 0] }) {
     ctx.save(); ctx.scale(1, -1); ctx.drawImage(shade, -L, -L, 2 * L, 2 * L); ctx.restore();   // 低分辨率图的 y 朝下
     if (center) drawEmblem(ctx, center, t);
     ctx.restore();
-    if (spawn) drawPortal(ctx, v, spawn, t);
+    for (const p of spawns) drawPortal(ctx, v, p, t);
   }
 
   // 中央"循环圈"法阵：缓慢旋转的绿色符文环（画在 cZc1 十字地面上，世界坐标下绘制）

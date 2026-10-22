@@ -70,8 +70,39 @@ def ui():
     print(f'控制台贴图 + {n} 个信息卡图标 → h5/assets/ui/')
 
 
+ESC = 'UI/Widgets/EscMenu/{}.blp'
+
+
+def dialog():
+    """原版对话框（DialogCreate，暗夜精灵皮肤）：背景、按钮底图 / 按下 / 高亮直接导出；
+    边框是 8 格横条（左 右 上 下 左上 右上 左下 右下，上下两格是竖着存的，顺时针转 90° 才是横的），拼成 3×3 九宫格给 CSS border-image 用"""
+    import numpy as np
+    from PIL import Image
+    def load(n, opaque=False):
+        a = blp.decode_blp(open(INDEX[ESC.format(n).lower()], 'rb').read())
+        if opaque: a = a.copy(); a[..., 3] = 255       # 按钮底图没有 alpha 通道，解出来是全透明
+        return Image.fromarray(a)
+    def nine(strip, out):
+        c = strip.height
+        cell = [strip.crop((i * c, 0, (i + 1) * c, c)) for i in range(8)]
+        im = Image.new('RGBA', (3 * c, 3 * c))
+        for img, (x, y) in [(cell[0], (0, 1)), (cell[1], (2, 1)), (cell[2].rotate(-90), (1, 0)), (cell[3].rotate(-90), (1, 2)),
+                            (cell[4], (0, 0)), (cell[5], (2, 0)), (cell[6], (0, 2)), (cell[7], (2, 2))]:
+            im.paste(img, (x * c, y * c))
+        im.save(os.path.join(UI, out))
+    load('NightElf/nightelf-options-menu-background').save(os.path.join(UI, 'dialog-bg.png'))
+    nine(load('NightElf/nightelf-options-menu-border'), 'dialog-border.png')
+    load('NightElf/nightelf-options-button-background', True).save(os.path.join(UI, 'dialog-btn.png'))
+    load('NightElf/nightelf-options-button-background-down', True).save(os.path.join(UI, 'dialog-btn-down.png'))
+    load('NightElf/nightelf-options-button-highlight').save(os.path.join(UI, 'dialog-btn-hl.png'))
+    nine(load('Human/human-options-button-border-up'), 'dialog-btn-border.png')      # 暗夜精灵皮肤的按钮边框沿用人族的金边
+    nine(load('Human/human-options-button-border-down'), 'dialog-btn-border-down.png')
+    print('对话框贴图 → h5/assets/ui/dialog-*.png')
+
+
 def main():
     ui()
+    dialog()
     os.makedirs(OUT, exist_ok=True)
     reg, miss = {}, []
 
