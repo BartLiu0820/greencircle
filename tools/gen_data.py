@@ -80,12 +80,15 @@ for b in (u['h01Y'].get('Upgrade') or '').split(','):
 towers['弹跳塔'] = dict(name='弹跳塔', cat='main', levels=[bounce_base], branches=branches)
 
 # heroes (skills are implemented in game.js; we export text + base stats)
-HERO_IDS = {'剑神': 'H03Q', '枪神': 'H05K', '邪冰': 'H033', '火魂': 'H04Z'}
+# 英雄单位（H03Q 等）表里的 425 金 + 100 木没有用到：原图是守卫者先建"英雄塔"建筑（h03R 等，1500 金 + 5 木 + 4 人口），
+# 建成时触发器把它换成英雄单位。所以造价、人口取建筑的；攻击是 msplash 的英雄取 Farea1 作溅射范围
+HERO_IDS = {'剑神': ('H03Q', 'h03R'), '枪神': ('H05K', 'h05M'), '邪冰': ('H033', 'h035'), '火魂': ('H04Z', 'h050')}
 heroes = {}
-for nm, hid in HERO_IDS.items():
+for nm, (hid, bid) in HERO_IDS.items():
     h = heroes_all[hid]
     heroes[nm] = dict(id=hid, name=nm, title=h['title'], atk=h['attackType'], cd=h['cooldown'], range=h['range'], mana=f(u[hid], 'manaN', 1000),
-                      gold=h['gold'] or 425, skills=[dict(name=re.sub(r'^(js|xx|--|-|\s)+', '', s['name']).replace('xx', '').strip(), desc=s['desc']) for s in h['skillPool']])
+                      gold=f(u[bid], 'goldcost', 1500), wood=f(u[bid], 'lumbercost', 5), food=f(u[bid], 'fused', 4),
+                      splash=f(u[hid], 'Farea1') if u[hid].get('weapTp1') == 'msplash' else 0, skills=[dict(name=re.sub(r'^(js|xx|--|-|\s)+', '', s['name']).replace('xx', '').strip(), desc=s['desc']) for s in h['skillPool']])
 # 枪神的技能在地图里只叫 QS1~QS4，按技能说明起名
 for s, nm in zip(heroes['枪神']['skills'], ['穿刺致命', '火焰喷射', '混乱致命', '急速枪魂']):
     s['name'] = nm

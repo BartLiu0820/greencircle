@@ -119,13 +119,12 @@ function newGame(mode) {
   FXS.clear();
   rerollBuild(true);
   rollFn(WR.start); refreshHint();                 // 准备阶段就预告第 1 波
-  if (MODES[mode].hero) G.heroChoice = MODES[mode].hero;
   SFX.startMusic();
 }
 
 // ---------------------------------------------------------------- 建造栏
 // 原图随机建造（war3map.j 里 Qf / Hd / He / Hf / Hh / Hg / H7 七个随机数）：1 主塔、1 原始塔、1 光环塔、1 新辅助（4 大辅助 + 4 巫系）、
-// 1 小辅助、1 另类塔、1 全场唯一塔
+// 1 小辅助、1 另类塔、1 全场唯一塔；另外 Hc 从 17 个英雄塔里随机放开 1 个（有"英雄赞助"是 34 个）。本复刻只做了 4 个英雄，就在这 4 个里抽
 const FAM = Object.values(D.towers);
 const byCat = c => FAM.filter(f => f.cat === c).map(f => f.name);
 const SLOT_POOL = { main: ['main'], raw: ['raw'], aura: ['aura'], newsup: ['big', 'witch'], sup: ['sup'], alt: ['alt'], uniq: ['uniq'] };
@@ -140,6 +139,7 @@ function rerollBuild(free) {
   }
   if (MODES[G.mode].build) G.build = MODES[G.mode].build.slice();      // 演示模式：固定建造栏
   else G.build = SLOTS.map(s => pick(slotPool(s)));
+  G.heroChoice = MODES[G.mode].hero || pick(Object.keys(D.heroes));
   G.placing = null;
   uiDirty();
 }
@@ -320,7 +320,7 @@ function separateMonsters() {
 // ---------------------------------------------------------------- 塔
 function famOf(t) { return D.towers[t.fam]; }
 function curLevel(t) { return t.levels[t.lv]; }
-function towerFood(fam) { return fam === 'hero' ? 1 : Math.max(0, D.towers[fam].levels[0].food || 0); }
+function towerFood(fam) { return fam === 'hero' ? D.heroes[G.heroChoice].food : Math.max(0, D.towers[fam].levels[0].food || 0); }
 function foodUsed() { return G.towers.reduce((s, t) => s + (t.food || 0), 0); }
 // 建造网格：格子中心在 64 的倍数上；塔占 3×3 格，中心对齐格子中心
 const FOOT_HALF = TOWER_CELLS * CELL / 2;                         // 96
@@ -406,10 +406,11 @@ function giveOrder(o, queue) { const b = G.builder; if (queue && b.order) (b.que
 function orderMove(x, y, queue) { giveOrder({ kind: 'move', x, y }, queue); addFx({ kind: 'mark', x, y, life: 0.6, color: '#6fd17a' }); }
 function orderBuild(fam, x, y, queue) {
   const cost = fam === 'hero' ? D.heroes[G.heroChoice].gold : D.towers[fam].levels[0].gold;
-  const food = fam === 'hero' ? 1 : D.towers[fam].levels[0].food || 0;
+  const food = towerFood(fam);
   if (G.gold < cost) return msg('金币不足'), false;
+  if (fam === 'hero' && G.wood < D.heroes[G.heroChoice].wood) return msg('木材不足'), false;
   if (foodUsed() + food > G.foodCap) return msg('人口不足（12 木材可买 1 人口）'), false;
-  const why = fam !== 'hero' && buildBlock(fam);
+  const why = fam === 'hero' ? heroBlock() : buildBlock(fam);
   if (why) return msg(why), false;
   giveOrder({ kind: 'build', fam, x, y }, queue);
   return true;
@@ -479,6 +480,12 @@ function towerStats(t) {
   const targets = t.fam === '弹跳塔' || t.fam === '通灵塔' ? lv.targets || 1 : 1;
   return { dmg: lv.dmg, cd: lv.cd, range: lv.range, atk: lv.atk, targets };
 }
+// WC3 的塔锁定目标：一直打同一个，直到它死掉或走出射程才重新找最近的（腐蚀、减速、重击就集中在一个目标上）
+function lockTarget(t, r) {
+  const m = t.target;
+  if (m && !m.dead && dist2(t.x, t.y, m.x, m.y) <= r * r) return m;
+  return (t.target = nearest(t.x, t.y, r));
+}
 function inRange(x, y, r) { return G.monsters.filter(m => !m.dead && dist2(x, y, m.x, m.y) <= r * r); }
 function nearest(x, y, r) {
   let best = null, bd = r * r;
@@ -524,7 +531,7 @@ function towerUpdate(t, dt) {
   if (t.fam === '扫射塔') return sweepUpdate(t, dt, st);
   t.cdLeft -= dt * towerAS(t);
   if (t.cdLeft > 0) return;
-  const target = nearest(t.x, t.y, st.range);
+  const target = lockTarget(t, st.range);
   if (!target) { t.cdLeft = 0; return; }
   t.cdLeft += st.cd;
   t.attacks++; t.atkT = G.t;
@@ -1263,36 +1270,15 @@ const HERO_KITS = {
     { onAttack(h, tg) { if (Math.random() < 0.2 && G.zones.filter(z => z.owner === h && z.r === 180).length < 5) zone(h, tg.x, tg.y, 180, 3, lerpStat(10, 20000, h.stat.agi, 200), 'magic', () => ({ dmg: h.stat.str * lerpStat(20, 800, h.stat.str, 400), atk: 'pierce' }), 'bladestorm'); } },
     { init(h) { h.asBonus += 1.0; }, critChance: 0.05, critMul: 50 },
   ],
-  枪神: [
-    { critChance: 0.06, critMul: 9, onAttack(h, tg) { if (Math.random() < 0.06) hurt(tg, h.stat.str * h.level, 'pierce', h); } },
-    { critChance: 0.09, critMul: 6, onAttack(h, tg) {
-      const crit = Math.random() < 0.02 ? 10 : 1;
-      aoe(h, tg, 300, lerpStat(20, 15000, h.stat.int, 300) * crit, 'magic', true, '#ff8a3c');
-      if (Math.random() < 0.09) hurt(tg, h.stat.agi * h.level, 'magic', h);
-    } },
-    { critChance: 0.12, critMul: 3, onAttack(h, tg) { if (Math.random() < 0.12) hurt(tg, h.stat.int * h.level, 'chaos', h); } },
-    { init(h) { h.asBonus += 0.8; }, critChance: 0.03, critMul: 12, onAttack(h, tg) { if (Math.random() < 0.03) hurt(tg, 3000 * h.level, 'hero', h, { ignoreArmor: true }); } },
-  ],
+  // 枪神：技能本身只有学习次数（Hy：1 学会、2 再次学习）和致命一击，每次攻击的效果在 HERO_ATTACK.枪神 里
+  枪神: [0, 1, 2, 3].map(i => ({ relearn: true, init(h) { qsLearn(h, i, 1); }, crit: h => [QS_CRIT[i][h.qs[i] - 1], QS_CRIT[i][2]] })),
+  // 邪冰：巨型冰雹 / 疯狂爆冰 / 邪恶冰冻都是"攻击时"触发（原图 BPw，EVENT_PLAYER_UNIT_ATTACKED），各自有计数器当冷却：
+  // 触发时设为 2 / 3 / 4，每秒减 1（BGU），小于 0 才能再触发。触发后放出一个限时马甲单位，由马甲反复攻击造成伤害
   邪冰: [
-    { cd: 5, cast(h, tg) {
-      const X = h.stat.str > 400 ? 40 : h.stat.str > 300 ? 120 : h.stat.str > 200 ? 80 : h.stat.str > 100 ? 40 : 10, x = tg.x, y = tg.y;
-      for (let i = 0; i < 6; i++) later(i * 0.15, () => {
-        const hx = x + rnd(-60, 60), hy = y + rnd(-60, 60);
-        FXS.fall(hx, hy, { z: 800, dur: 0.3, color: '#bfefff', core: '#ffffff', size: 22, rock: 'rgba(220,245,255,.9)', onEnd: () => {
-          for (const m of inRange(x, y, 150)) { hurt(m, h.stat.str * X, 'normal', h, { ignoreArmor: h.stat.str > 400 }); m.armorDown = 160; m.armorDownUntil = G.t + 4; }
-          FXS.snow(hx, hy, 20, 1.2); FXS.nova(hx, hy, 170, '#bfefff', 0.3); SFX.spell('iceFall', { x: hx, y: hy });
-        } });
-      });
-    } },
+    { onLaunch(h, tg) { if (h.xb.hail < 0) { h.xb.hail = 2; xbHail(h, tg.x, tg.y); } } },
     { init(h) { h.stat.str += 20; h.stat.agi += 30; h.stat.int += 40; }, critChance: 0.2, critMul: 40 },
-    { cd: 6, cast(h, tg) {
-      const a = h.stat.agi, X = a > 400 ? 90 : a > 300 ? 240 : a > 200 ? 120 : a > 100 ? 60 : 15, x = tg.x, y = tg.y;
-      for (let i = 0; i < 5; i++) later(i * 0.3, () => { for (const m of inRange(x, y, 300)) { hurt(m, a * X, 'chaos', h, { ignoreArmor: a > 400 }); slowM(m, 0.3, 2.5); } FXS.flash(x, y, 40, '#c48bff', 160); FXS.nova(x, y, 300, '#c48bff', 0.35); FXS.snow(x, y, 30, 0.8); SFX.spell('frostPulse', { x, y }); });
-    } },
-    { cd: 4, cast(h) {
-      for (const m of inRange(h.x, h.y, 900)) { stun(m, 0.5); hurt(m, lerpStat(50, 36000, h.stat.int, 320), 'magic', h); slowM(m, 0.45, 4); FXS.snow(m.x, m.y, 40, 0.5); }
-      FXS.nova(h.x, h.y, 900, '#7ab8ff', 0.6); SFX.spell('frostNova', { x: h.x, y: h.y }); addFx({ kind: 'ring', x: h.x, y: h.y, r: 900, life: 0.5, color: '#bfefff' });
-    } },
+    { onLaunch(h) { if (h.xb.burst < 0) { h.xb.burst = 3; xbBurst(h); } } },
+    { onLaunch(h) { if (h.xb.freeze < 0) { h.xb.freeze = 4; xbFreeze(h); } } },
   ],
   火魂: [
     { onAttack(h, tg) { tg.burn = { dps: lerpStat(40, 150000, h.stat.str, 350), src: h }; } },
@@ -1321,15 +1307,101 @@ const HERO_KITS = {
     } },
   ],
 };
+// ---- 枪神（原图触发器 BSu 学习 / BSx 每次攻击 / BS0 连击）
+const QS_CRIT = [[0.06, 0.09, 9], [0.09, 0.12, 6], [0.12, 0.15, 3], [0.03, 0.06, 12]];   // 致命一击 1~4（AOcr）：学会 / 再次学习时的概率，倍数
+const QS_NB = [[2, 2], [0, 3], [1, 1], [0, 0]];       // 学会 / 再次学习时火焰喷射暴击率（Nb）增加的百分点
+const QS_RELEARN = 10000;                             // 再次学习的金币
+// 火焰喷射 = 喷火马甲（KLFZ）放的震荡波 A0LK，1~10 级按智力，暴击时 +10 级
+const QS_WAVE = [20, 100, 300, 600, 1000, 1500, 3000, 6000, 9000, 15000, 200, 1000, 3000, 6000, 10000, 15000, 30000, 60000, 90000, 150000];
+function qsLearn(h, i, n) {
+  h.qs[i] = n; h.nb += QS_NB[i][n - 1];
+  if (i === 3 && n === 1) h.asBonus += 0.8;           // 增加 80% 攻击速度（A059）
+}
+const popText = (x, y, text, color) => addFx({ kind: 'text', x, y, text, life: 0.8, color });
+// 震荡波：从施法者出发直线 600，起点宽 150、终点宽 300，速度 1050，每个敌人只打一次
+function shockwave(src, dx, dy, dmg, crit) {
+  const L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, x0 = src.x, y0 = src.y, color = crit ? '#ffd257' : '#ff8a3c';
+  for (const m of G.monsters) {
+    if (m.dead) continue;
+    const ax = m.x - x0, ay = m.y - y0, along = ax * ux + ay * uy, side = Math.abs(ax * uy - ay * ux);
+    if (along < 0 || along > 600 || side > 150 + 150 * along / 600) continue;
+    later(along / 1050, () => { if (!m.dead) hurt(m, dmg, 'magic', src, { ignoreArmor: true }); });
+  }
+  for (let d = 0; d <= 600; d += 100) later(d / 1050, () => FXS.explosion(x0 + ux * d, y0 + uy * d, (0.35 + d / 1200) * (crit ? 1.4 : 1), color));
+}
+// 每次攻击（攻击开始时）：火焰喷射、[魔法值×2] 范围穿刺，四种致命里按顺序最多触发一种，再判定一次连击
+const HERO_ATTACK = {
+  枪神(h, tg) {
+    const { str, agi, int } = h.stat, lv = h.level, hy = h.qs, roll = n => rint(1, n), x = tg.x, y = tg.y;
+    const at = (dmg, atk, ign, txt, color) => { aoe(h, { x, y }, 150, dmg, atk, ign, color); if (txt) popText(x, y + 40, txt, color); };
+    if (hy[1]) {     // 原图喷火马甲朝 (英雄 x-15, y-200) 放，也就是固定朝南喷
+      const fire = roll(100) <= h.nb + 3, lvW = clamp((int <= 300 ? Math.floor(int / 30) : 10) + (fire ? 10 : 0), 1, 20);
+      if (fire) popText(h.x, h.y + 80, '火焰×10', '#7fffd4');
+      shockwave(h, -15, -200, QS_WAVE[lvW - 1], fire);
+    }
+    if (hy[0]) aoe(h, { x, y }, 150, h.mana * 2, 'pierce', false, '#ffb347');
+    if (hy[0] && roll(150) <= hy[0] * 3) { at(str * lv, 'pierce', false, '穿刺致命', '#ff5a4f'); h.last.p = 1; }
+    else if (hy[1] && roll(150) <= 3 + hy[1] * 3) { at(agi * lv, 'magic', false, '魔法致命', '#6fd17a'); h.last.m = 1; }
+    else if (hy[3] && roll(100) <= hy[3] * 3) { hurt(tg, lv * 3000, 'hero', h, { ignoreArmor: true }); popText(x, y + 40, '通用致命', '#9fb8ff'); }
+    else if (hy[2] && roll(150) <= 6 + hy[2] * 3) { at(int * lv, 'chaos', false, '混乱致命', '#c48bff'); h.last.c = 1; }
+    // 连击：上次是对应的致命时再判定一次，造成强化伤害（无视护甲）并清掉标记
+    if (hy[0] && h.last.m && roll(150) <= hy[0] * 3) { at(str * lv * (str >= 400 ? 18 : 12), 'pierce', true, '穿刺连击', '#7fffd4'); h.last.m = 0; }
+    else if (hy[1] && h.last.p && roll(150) <= 3 + hy[1] * 3) { at(agi * lv * (agi >= 400 ? 12 : 8), 'magic', true, '魔法连击', '#7fffd4'); h.last.p = 0; }
+    else if (hy[3] && h.last.c && roll(150) <= hy[3] * 2) { at(lv * (lv >= 30 ? 4500 : 3000), 'hero', true, '通用连击', '#7fffd4'); h.last.c = 0; }
+    else if (hy[2] && h.last.c && roll(150) <= 6 + hy[2] * 3) { at(int * lv * (int >= 400 ? 15 : 10), 'chaos', true, '混乱连击', '#7fffd4'); h.last.c = 0; }
+  },
+};
+// ---- 邪冰的三个马甲（原图 h036 冰雹 / n04Z 爆冰 / h038 冰冻）
+const tierX = (v, xs) => v >= 400 ? xs[0] : v >= 300 ? xs[1] : v >= 200 ? xs[2] : v >= 100 ? xs[3] : xs[4];
+// 冰雹：在目标处存在 3 秒，每 0.15 秒攻击 500 范围内的敌人：命中减 160 护甲 3 秒（腐蚀攻击，不和腐蚀塔叠加），
+// 落点 150 范围 [力量×X] 普通伤害（力量 ≥ 400 无视护甲）
+function xbHail(h, x, y) {
+  const d = { x, y, target: null };
+  for (let k = 0; k * 0.15 < 3; k++) later(k * 0.15, () => {
+    const m = lockTarget(d, 500); if (!m) return;
+    const hx = m.x, hy = m.y, str = h.stat.str;
+    FXS.fall(hx, hy, { z: 700, dur: 0.3, color: '#bfefff', core: '#ffffff', size: 18, rock: 'rgba(220,245,255,.9)', onEnd: () => {
+      if (!m.dead) { m.shred = Math.max(m.shredUntil > G.t ? m.shred : 0, 160); m.shredUntil = G.t + 3; }
+      for (const o of inRange(hx, hy, 150)) hurt(o, str * tierX(str, [60, 160, 80, 40, 10]), 'normal', h, { ignoreArmor: str >= 400 });
+      FXS.snow(hx, hy, 20, 0.8); if (k % 3 === 0) SFX.spell('iceFall', { x: hx, y: hy });
+    } });
+  });
+}
+// 爆冰：在英雄处存在 2 秒，每 0.3 秒对 800 范围内的敌人放霜冻新星：300 范围 [敏捷×X] 混乱伤害（敏捷 ≥ 400 无视护甲），减速 30% 3 秒
+function xbBurst(h) {
+  const d = { x: h.x, y: h.y, target: null };
+  for (let k = 0; k * 0.3 < 2; k++) later(k * 0.3, () => {
+    const m = lockTarget(d, 800); if (!m) return;
+    const x = m.x, y = m.y, agi = h.stat.agi;
+    for (const o of inRange(x, y, 300)) { hurt(o, agi * tierX(agi, [90, 240, 120, 60, 15]), 'chaos', h, { ignoreArmor: agi >= 400 }); slowM(o, 0.3, 3); }
+    FXS.flash(x, y, 40, '#c48bff', 160); FXS.nova(x, y, 300, '#c48bff', 0.35); FXS.snow(x, y, 30, 0.8); SFX.spell('frostPulse', { x, y });
+  });
+}
+// 冰冻：在英雄处存在 4.2 秒，放流星雨（A0G8，等级 = 智力 / 32，最高 10 级）：每 0.18 秒对 1000 范围造成一波魔法伤害；
+// 身上的邪恶光环让 900 范围内的敌人减速 45%
+const XB_STAR = [50, 350, 750, 1250, 1850, 2550, 5000, 12000, 20000, 36000];
+function xbFreeze(h) {
+  const x = h.x, y = h.y, dmg = XB_STAR[clamp(Math.floor(h.stat.int / 32), 1, 10) - 1];
+  SFX.spell('frostNova', { x, y }); FXS.nova(x, y, 1000, '#7ab8ff', 0.6);
+  for (let k = 0; k * 0.18 < 4.2; k++) later(k * 0.18, () => {
+    for (const m of inRange(x, y, 1000)) { hurt(m, dmg, 'magic', h); if (dist2(x, y, m.x, m.y) <= 900 * 900) slowM(m, 0.45, 0.5); }
+    const a = rnd(0, TAU), r = rnd(0, 800);
+    FXS.snow(x + Math.cos(a) * r, y + Math.sin(a) * r, 40, 0.5);
+  });
+}
 const statCN = s => ({ str: '力量', agi: '敏捷', int: '智力' })[s];
+// 原图英雄塔是建筑（h03R 剑神等：1500 金 + 5 木 + 4 人口），建成后触发器把它换成英雄单位；全场唯一，建造后不能回收
+const heroBlock = () => G.hero ? '英雄塔全场只能建造一个' : !G.heroChoice ? '建造栏里没有英雄塔' : null;
 function buildHero(x, y) {
-  if (G.hero) return msg('英雄塔只能建造一个');
-  const hd = D.heroes[G.heroChoice];
+  const hd = D.heroes[G.heroChoice], why = heroBlock();
+  if (why) return msg(why);
   if (G.gold < hd.gold) return msg('金币不足');
-  if (foodUsed() + 1 > G.foodCap) return msg('人口不足');
-  G.gold -= hd.gold;
-  const h = { id: G.nextId++, isHero: true, fam: 'hero', heroName: hd.name, cat: 'hero', x, y, lv: 0, level: 1, spent: hd.gold, food: 1,
+  if (G.wood < hd.wood) return msg('木材不足');
+  if (foodUsed() + hd.food > G.foodCap) return msg('人口不足');
+  G.gold -= hd.gold; G.wood -= hd.wood;
+  const h = { id: G.nextId++, isHero: true, fam: 'hero', heroName: hd.name, cat: 'hero', x, y, lv: 0, level: 1, spent: hd.gold, food: hd.food,
     stat: { str: 10, agi: 10, int: 10 }, growth: 'str', points: 0, mana: 0, learned: [], cdLeft: 0, cds: {}, auto: {}, asBonus: 0,
+    qs: [0, 0, 0, 0], nb: 0, last: { p: 0, m: 0, c: 0 }, xb: { hail: 0, burst: 0, freeze: 0 },   // 枪神学习次数 / 火焰暴击率 / 上次致命；邪冰技能计数器
     kills: 0, dealt: 0, attacks: 0, buff: {}, buffAS: 0, buffDmg: 0, eliteAS: 0, eliteWeak: 0, levels: [{}],
     maxMana() { return D.heroes[this.heroName].mana || 1000; } };
   G.towers.push(h); G.hero = h;
@@ -1341,6 +1413,8 @@ function heroStats(h) {
 }
 function heroTick(h, dt) {
   h.mana = Math.min(h.maxMana(), h.mana + dt * h.stat.int * 0.01);   // IntRegenBonus = 0.01
+  const sec = Math.floor(G.t) - Math.floor(G.t - dt);                 // 原图每秒一次的计时器（BGU）把邪冰的计数器减 1
+  if (sec) for (const k in h.xb) h.xb[k] -= sec;
   for (const i of h.learned) {
     const s = HERO_KITS[h.heroName][i];
     if (s.tick) s.tick(h, dt);
@@ -1363,16 +1437,24 @@ function castSkill(h, i, auto) {
   if (!auto) addFx({ kind: 'text', x: h.x, y: h.y + 60, text: D.heroes[h.heroName].skills[i].name, life: 0.8, color: '#9fe3ff' });
 }
 function heroAttack(h, tg, st) {
+  const kit = HERO_KITS[h.heroName], splash = D.heroes[h.heroName].splash;
   let dmg = st.dmg * h.atkMul;                      // 光环等加成只加普通攻击，技能伤害不加
-  for (const i of h.learned) { const s = HERO_KITS[h.heroName][i]; if (s.critChance && Math.random() < s.critChance) { dmg *= s.critMul; SFX.spell('crit', { x: tg.x, y: tg.y }); addFx({ kind: 'text', x: tg.x, y: tg.y, text: s.critMul + '倍', life: 0.7, color: '#ffd257' }); break; } }
+  for (const i of h.learned) {
+    const s = kit[i], c = s.crit ? s.crit(h) : s.critChance && [s.critChance, s.critMul];
+    if (c && Math.random() < c[0]) { dmg *= c[1]; SFX.spell('crit', { x: tg.x, y: tg.y }); popText(tg.x, tg.y, c[1] + '倍', '#ffd257'); break; }
+  }
   shot(h, tg);
+  // 原图的"攻击时"触发器（EVENT_PLAYER_UNIT_ATTACKED）在出手时就判定，不等投射物命中
+  if (HERO_ATTACK[h.heroName]) HERO_ATTACK[h.heroName](h, tg);
+  for (const i of h.learned) if (kit[i].onLaunch) kit[i].onLaunch(h, tg);
   const style = missileOf(h);
   SFX.ent(sndKey(h), 'launch', { x: h.x, y: h.y });
   FXS.launch(style, muzzle(h, style), tg, (hit, x, y) => {
     SFX.ent(sndKey(h), 'hit', { x, y });
-    if (!hit) return;
-    hurt(hit, dmg, st.atk, h);
-    for (const i of h.learned) { const s = HERO_KITS[h.heroName][i]; if (s.onAttack) s.onAttack(h, hit); }
+    // 剑神 / 枪神 / 邪冰的攻击是溅射（msplash）：落点 Farea1 范围内全额伤害；火魂是单体
+    if (splash) for (const m of inRange(x, y, splash)) hurt(m, dmg, st.atk, h);
+    else if (hit) hurt(hit, dmg, st.atk, h);
+    if (hit) for (const i of h.learned) { const s = kit[i]; if (s.onAttack) s.onAttack(h, hit); }
   }, { scale: 1.3, ...w3opt(h) });
 }
 function aoe(h, c, r, dmg, atk, ignoreArmor, color) {
@@ -1386,6 +1468,7 @@ function zone(owner, x, y, r, dur, dps, atk, endFn, style, extra) {
 function later(s, fn) { G.timeouts.push({ at: G.t + s, fn }); }
 const LEARN_COST = [{ wood: 0, str: 0 }, { wood: 18, str: 80 }, { wood: 36, str: 160 }, { wood: 54, str: 240 }];
 function learnSkill(h, i) {
+  if (h.learned.includes(i) && HERO_KITS[h.heroName][i].relearn) return relearnSkill(h, i);
   if (h.learned.length >= 4 && !h.learned.includes(i)) return msg('最多学习 4 个技能');
   const c = LEARN_COST[h.learned.length];
   if (!c) return msg('最多学习 4 个技能');
@@ -1396,6 +1479,14 @@ function learnSkill(h, i) {
   const s = HERO_KITS[h.heroName][i]; if (s.init) s.init(h);
   msg(`学会了 ${D.heroes[h.heroName].skills[i].name}` + (s.cast ? `，按 ${['Q', 'W', 'E', 'R'][i]} 施放` : '（被动）'));
   G.menu = 'main';                                   // 学完回到英雄面板，技能就在第一行
+  uiDirty();
+}
+// 枪神的技能可以再学一次：10000 金，致命一击升到 2 级（概率 +3%），触发几率 +3%
+function relearnSkill(h, i) {
+  if (h.qs[i] >= 2) return msg('已经再次学习过了');
+  if (G.gold < QS_RELEARN) return msg(`金币不足（再次学习需要 ${QS_RELEARN} 金币）`);
+  G.gold -= QS_RELEARN; qsLearn(h, i, 2);
+  msg(`再次学习了 ${D.heroes[h.heroName].skills[i].name}`);
   uiDirty();
 }
 function heroLevelUp(h) {
@@ -2844,7 +2935,9 @@ function buildCmds() {
           () => { G.placing = fam; G.pending = null; uiDirty(); }, { cat: d.cat, atk: d.cat === 'aura' ? 'aura' : l.atk, active: G.placing === fam, disabled: !!blocked || G.gold < l.gold, iconKey: 'icon:' + fam,
             ico: SVG_CATS.has(d.cat) ? 'tower-' + fam : null, cost: l.gold }));
       });
-      if (G.heroChoice) { const h = D.heroes[G.heroChoice]; out.push(cmd('F', h.name, h.name + '（英雄塔）', `<b>${h.name}</b> ${atkTag(h.atk)}<br>英雄塔 · 唯一 · <span class="gold">${h.gold} 金</span> · 1 人口<br>${h.title}`, () => { G.placing = 'hero'; uiDirty(); }, { atk: h.atk, active: G.placing === 'hero', disabled: !!G.hero || G.gold < h.gold, hero: true, iconKey: 'icon:hero:' + h.name, ico: 'hero-' + h.name, cost: h.gold })); }
+      if (G.heroChoice) { const h = D.heroes[G.heroChoice], blocked = heroBlock();
+        out.push(cmd('F', h.name, h.name + '（英雄塔）', `<b>${h.name}</b> ${atkTag(h.atk)}<br>英雄塔 · 全场唯一 · 建造后不能回收<br><span class="gold">${h.gold} 金</span> · ${h.wood} 木材 · ${h.food} 人口<br>${h.title}${blocked ? '<br><b style="color:#ff5a4f">' + blocked + '</b>' : ''}`,
+          () => { G.placing = 'hero'; uiDirty(); }, { atk: h.atk, active: G.placing === 'hero', disabled: !!blocked || G.gold < h.gold || G.wood < h.wood, hero: true, iconKey: 'icon:hero:' + h.name, ico: 'hero-' + h.name, cost: h.gold })); }
       while (out.length < 11) out.push(null);
       out.push(back); return out;
     }
@@ -2858,8 +2951,8 @@ function buildCmds() {
     out.push(cmd('F', '✦', '闪烁', '全图闪烁：瞬间移动到目标点，冷却 1 秒', () => { G.pending = 'blink'; G.placing = null; uiDirty(); }, { active: G.pending === 'blink', ico: 'blink' }));
     out.push(cmd('T', '兔', '兔子卷轴', `——需要 <b style="color:#ff9ad5">${RULE.rabbitScrollAch} 点当局成就</b>（当前 ${G.ach}）<br>额外召唤一次兔子，每局只能额外召唤 1 次${G.rabbitScroll ? '<br><b style="color:#ff5a4f">本局已经召唤过了</b>' : G.rabbit ? '<br><b style="color:#ff5a4f">兔子已经在场上了</b>' : ''}`,
       rabbitScroll, { disabled: G.rabbitScroll || !!G.rabbit || G.ach < RULE.rabbitScrollAch, ico: 'item-I00S' }));
-    out.push(cmd('B', '建', '建造', '打开建造栏（当前随机给出的 7 个塔 + 英雄塔）', () => { G.menu = 'build'; uiDirty(); }, { ico: 'build' }));
-    out.push(cmd('R', '🎲', '随机建造', `重新随机建造栏：1 主塔、1 原始塔、1 光环塔、1 新辅助（大辅助 / 巫系）、1 小辅助、1 另类塔、1 全场唯一<br>${G.rerolls === 0 ? '首次免费' : `需要 ${RULE.rerollWood} 木材`}`, () => rerollBuild(false), { disabled: G.rerolls > 0 && G.wood < RULE.rerollWood, ico: 'reroll' }));
+    out.push(cmd('B', '建', '建造', '打开建造栏（当前随机给出的 7 个塔 + 1 个英雄塔）', () => { G.menu = 'build'; uiDirty(); }, { ico: 'build' }));
+    out.push(cmd('R', '🎲', '随机建造', `重新随机建造栏：1 主塔、1 原始塔、1 光环塔、1 新辅助（大辅助 / 巫系）、1 小辅助、1 另类塔、1 全场唯一、1 英雄塔<br>${G.rerolls === 0 ? '首次免费' : `需要 ${RULE.rerollWood} 木材`}`, () => rerollBuild(false), { disabled: G.rerolls > 0 && G.wood < RULE.rerollWood, ico: 'reroll' }));
     out.push(cmd('U', '木', '使用木材', '购买人口（12 木）、兑换金币（1 木 → 300 金）。买木材去地图中央的商店', () => { G.menu = 'wood'; uiDirty(); }, { ico: 'woodmenu' }));
     const fw = fodBlock();
     out.push(cmd('X', '指', '死亡之指', `<span class="atk atk-magic">主动</span> 射程 ${FOD.range} · 冷却 ${FOD.cd} 秒 · <span style="color:#7ab8ff">${FOD.mana} 魔法</span><br>选择一个敌人：直接杀死它。<br>BOSS 只损失一部分生命（大红牛 7000、大骷髅 2.5 万、直升机 / 游艇 / 魔王 10 万、龙 / 狗头人 BOSS 生命高于 15 万时 10 万，按模式缩放）${fw ? `<br><b style="color:#ff5a4f">${fw}</b>` : ''}`,
@@ -2872,9 +2965,11 @@ function buildCmds() {
     if (G.menu === 'skills') {
       const c = LEARN_COST[h.learned.length];
       hd.skills.slice(0, 4).forEach((s, i) => {
-        const learned = h.learned.includes(i);
-        out.push(cmd(['Q', 'W', 'E', 'R'][i], s.name.slice(0, 2), s.name, `<b>${s.name}</b>${learned ? ' ✓ 已学习' : ''}<br>${s.desc.replace(/\n/g, '<br>')}${!learned && c ? `<br><b>需要：木材 ${c.wood}，力量 ≥ ${c.str}</b>` : ''}`,
-          () => learned ? msg('已经学会了，回到上一级按 ' + ['Q', 'W', 'E', 'R'][i] + ' 施放') : learnSkill(h, i), { learned, disabled: !learned && (!c || h.stat.str < c.str || G.wood < c.wood), iconKey: 'icon:skill:' + h.heroName + ':' + i, ico: 'skill-' + h.heroName + '-' + i }));
+        const learned = h.learned.includes(i), re = learned && HERO_KITS[h.heroName][i].relearn && h.qs[i] < 2;   // 枪神：可以再次学习
+        const need = re ? `<br><b>再次学习：${QS_RELEARN} 金币</b>` : !learned && c ? `<br><b>需要：木材 ${c.wood}，力量 ≥ ${c.str}</b>` : '';
+        out.push(cmd(['Q', 'W', 'E', 'R'][i], s.name.slice(0, 2), s.name, `<b>${s.name}</b>${learned ? ' ✓ 已学习' + (h.qs[i] >= 2 ? '（已再次学习）' : '') : ''}<br>${s.desc.replace(/\n/g, '<br>')}${need}`,
+          () => re ? relearnSkill(h, i) : learned ? msg('已经学会了') : learnSkill(h, i),
+          { learned: learned && !re, disabled: re ? G.gold < QS_RELEARN : !learned && (!c || h.stat.str < c.str || G.wood < c.wood), iconKey: 'icon:skill:' + h.heroName + ':' + i, ico: 'skill-' + h.heroName + '-' + i, cost: re ? QS_RELEARN : 0 }));
       });
       while (out.length < 11) out.push(null); out.push(back); return out;
     }
@@ -2895,10 +2990,9 @@ function buildCmds() {
     // 第三行：升级、学习技能、回收
     const maxed = h.level >= 30, g = maxed ? 500 : h.level * 100, mp = maxed ? 400 : 200;
     out.push(cmd('U', '↑', '升级', `需要 <b>${g} 金币 + ${mp} 魔法</b><br>${maxed ? '满级后：所选属性 +3' : '等级 +1，全属性 +1，所选属性额外 +2'}`, () => heroLevelUp(h), { disabled: G.gold < g || h.mana < mp, ico: 'upgrade', cost: g }));
-    out.push(cmd('L', '书', '学习技能', `最多 4 个。第 1 个免费，第 2/3/4 个需要木材 18/36/54，力量 ≥ 80/160/240`, () => { G.menu = 'skills'; uiDirty(); }, { ico: 'learn', disabled: h.learned.length >= 4 }));
-    while (out.length < 11) out.push(null);
-    out.push(cmd('Y', '回', '回收', `返还 <b>${h.spent}</b> 金币`, () => sellTower(h), { ico: 'sell' }));
-    return out;
+    const relearn = h.learned.some(i => HERO_KITS[h.heroName][i].relearn && h.qs[i] < 2);
+    out.push(cmd('L', '书', '学习技能', `最多 4 个。第 1 个免费，第 2/3/4 个需要木材 18/36/54，力量 ≥ 80/160/240${HERO_KITS[h.heroName][0].relearn ? `<br>学会的技能可以花 ${QS_RELEARN} 金币再次学习一次` : ''}`, () => { G.menu = 'skills'; uiDirty(); }, { ico: 'learn', disabled: h.learned.length >= 4 && !relearn }));
+    return out;                                      // 英雄塔建造后不能回收（原图英雄塔说明）
   }
   if (e.fam && e.cat !== 'summon') {
     const f = famOf(e), kit = KITS[e.fam];
@@ -3119,7 +3213,7 @@ window.addEventListener('resize', resize);
 // ================================================================ 弹窗
 function showModal(html) { $('modal-box').innerHTML = html; $('modal-box').classList.remove('dlg'); $('modal').classList.remove('hidden'); }
 function hideModal() { $('modal').classList.add('hidden'); }
-// 开局菜单：照原图的对话框（DialogCreate）——标题 + 一列按钮，一屏放不下就分几轮：先选模式，再选英雄塔
+// 开局菜单：照原图的对话框（DialogCreate）——标题 + 一列按钮。英雄塔不在这里选，和原图随机模式一样由随机建造给出
 function showDialog(title, buttons, foot = '') {
   showModal(`<div class="w3dlg"><h2>${title}</h2>${buttons.map((b, i) => `<button class="w3btn" data-i="${i}">${b.text}</button>`).join('')}
     <div class="w3hint">${foot}</div></div>`);
@@ -3144,17 +3238,12 @@ function fitDialog() {
 }
 window.addEventListener('resize', () => { if (!$('modal').classList.contains('hidden')) fitDialog(); });
 function showStart() {
-  const start = (mode, hero) => { newGame(mode); if (hero) G.heroChoice = hero; hideModal(); resize(); clampCam(); uiDirty(); };
-  const pickHero = mode => showDialog('选择英雄塔', Object.values(D.heroes).map(h => ({
-    text: `${h.name}（${ATK_CN[h.atk]} · 射程 ${h.range}）`,
-    hint: `${h.title}<br>攻击间隔 ${h.cd}s · 技能：${h.skills.slice(0, 4).map(s => s.name).join(' / ')}`,
-    fn: () => start(mode, h.name),
-  })).concat([{ text: '返回', fn: pickMode }]), `${MODES[mode].name} · 英雄旗帜 4 选 1`);
+  const start = mode => { newGame(mode); hideModal(); resize(); clampCam(); uiDirty(); };
   const intro = () => showDialog('玩法简介', [{ text: '返回', fn: pickMode }],
     `怪物沿"回"字形双环路线<b>永远绕圈</b>，不会漏到基地。<b>场上怪物超过 40 只即失败</b>。每波按时出怪，不管上一波清没清完。<br><br>
     选中<b>守卫者</b>（F1），点击地面让它移动；在右下角命令面板里打开<b>建造</b>，选塔后点地面，守卫者会走过去建造。拖动画面或点击小地图移动镜头，滚轮缩放。`);
   const pickMode = () => showDialog('选择游戏模式', Object.entries(MODES).filter(([, m]) => !m.hidden).map(([k, m]) => ({
-    text: `${m.name}（${m.short}）`, hint: m.desc, fn: () => pickHero(k),
+    text: `${m.name}（${m.short}）`, hint: m.desc, fn: () => start(k),
   })).concat([
     { text: '演示：前两波', hint: MODES.demo.desc, fn: () => start('demo') },
     { text: '玩法简介', hint: '怎么玩、怎么操作', fn: intro },
@@ -3178,7 +3267,7 @@ function showHelp() {
     <p><b>死亡之指</b>：守卫者的技能（热键 X），对 800 范围内的一个敌人使用，直接杀死它；BOSS 只扣一部分生命。冷却 90 秒，耗 5 点魔法（守卫者魔法上限 10）。</p>
     <p><b>商店</b>：地图中央，守卫者走到 ${RULE.shopReach} 范围内选中商店购买：1 个木材（500 金，冷却 30 秒）、10 个木材（5000 金，冷却 300 秒）、魔力卷轴（英雄塔 +120 魔法）、知识之书（英雄塔随机属性 +10）、天赋卷轴（15 木，MAX 光环塔激活基础天赋，开局 1200 秒后开放）。三种卷轴买下后放进守卫者的<b>物品栏</b>（6 格），选中守卫者点物品（或小键盘 7 8 4 5 1 2），再点目标塔，守卫者走到施法距离内使用。复制 / 收购卷轴要对队友使用，单人用不了。</p>
     <p><b>兔子</b>：每个 BOSS 波（10/20/30/40 波、最终波）开始 ${RULE.rabbitDelay} 秒后，地图随机位置出现一只兔子（小地图粉点），${RULE.rabbitLife} 秒后消失。守卫者走到它 ${RULE.rabbitReach} 范围内，选中兔子就能用<b>当局成就</b>买道具：4 种塔类之球（重新随机建造栏的某一类塔）、5 个木材、魔法药水、知识药水。当局成就开局 ${RULE.startAch} 点，每次 Perfect +${RULE.achPerPerfect}；守卫者的<b>兔子卷轴</b>（${RULE.rabbitScrollAch} 成就）可以额外召唤一次兔子。</p>
-    <p><b>英雄塔</b>：升级要 等级×100 金 + 200 魔法（英雄每击杀 +2 魔法）。学技能：第 1 个免费；第 2/3/4 个分别要 18/36/54 木材，且力量 ≥ 80/160/240。</p>
+    <p><b>英雄塔</b>：每次随机建造给出 1 个英雄塔（和原图随机模式一样），1500 金 + 5 木材 + 4 人口，全场唯一，建造后不能回收。升级要 等级×100 金 + 200 魔法（英雄每击杀 +2 魔法）。学技能：第 1 个免费；第 2/3/4 个分别要 18/36/54 木材，且力量 ≥ 80/160/240。</p>
     <p style="color:#7f9483;font-size:11px">命令图标的图形来自 <a href="https://game-icons.net" target="_blank" style="color:#9fc4a6">game-icons.net</a>（Lorc、Delapouite 等，CC BY 3.0）。</p>
     <div class="row"><button class="primary" id="m-close">继续游戏</button></div>`);
   $('m-close').onclick = () => { hideModal(); G.paused = was; };
