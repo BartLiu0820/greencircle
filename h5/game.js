@@ -1334,10 +1334,10 @@ const HERO_ATTACK = {
   枪神(h, tg) {
     const { str, agi, int } = h.stat, lv = h.level, hy = h.qs, roll = n => rint(1, n), x = tg.x, y = tg.y;
     const at = (dmg, atk, ign, txt, color) => { aoe(h, { x, y }, 150, dmg, atk, ign, color); if (txt) popText(x, y + 40, txt, color); };
-    if (hy[1]) {     // 原图喷火马甲朝 (英雄 x-15, y-200) 放，也就是固定朝南喷
+    if (hy[1]) {     // 原图喷火马甲固定朝 (英雄 x-15, y-200) 放（朝南）；这里改成朝攻击目标喷
       const fire = roll(100) <= h.nb + 3, lvW = clamp((int <= 300 ? Math.floor(int / 30) : 10) + (fire ? 10 : 0), 1, 20);
       if (fire) popText(h.x, h.y + 80, '火焰×10', '#7fffd4');
-      shockwave(h, -15, -200, QS_WAVE[lvW - 1], fire);
+      shockwave(h, x - h.x || 0.01, y - h.y, QS_WAVE[lvW - 1], fire);
     }
     if (hy[0]) aoe(h, { x, y }, 150, h.mana * 2, 'pierce', false, '#ffb347');
     if (hy[0] && roll(150) <= hy[0] * 3) { at(str * lv, 'pierce', false, '穿刺致命', '#ff5a4f'); h.last.p = 1; }
@@ -1404,6 +1404,10 @@ function buildHero(x, y) {
     qs: [0, 0, 0, 0], nb: 0, last: { p: 0, m: 0, c: 0 }, xb: { hail: 0, burst: 0, freeze: 0 },   // 枪神学习次数 / 火焰暴击率 / 上次致命；邪冰技能计数器
     kills: 0, dealt: 0, attacks: 0, buff: {}, buffAS: 0, buffDmg: 0, eliteAS: 0, eliteWeak: 0, levels: [{}],
     maxMana() { return D.heroes[this.heroName].mana || 1000; } };
+  // 建成时随机成长值（原图 DR / DS / DT：力量 0~7，敏捷 0~剩余，智力补足 7）。每次升级英雄自带全属性 +1，再按成长值加，所以显示时各 +1，合计 10
+  const r = rint(0, 7), a = rint(0, 7 - r);
+  h.grow = { str: r + 1, agi: a + 1, int: 7 - r - a + 1 };
+  msg(`${hd.name} 英雄成长值（每次升级自动加属性）：力量 ${h.grow.str} · 敏捷 ${h.grow.agi} · 智力 ${h.grow.int}`, 8);
   G.towers.push(h); G.hero = h;
   return h;
 }
@@ -1496,7 +1500,7 @@ function heroLevelUp(h) {
   if (h.mana < mana) return msg('魔法值不足（升级需要 ' + mana + ' 魔法）');
   G.gold -= gold; h.mana -= mana; h.spent += gold;
   if (max) h.stat[h.growth] += 3;
-  else { h.level++; h.stat.str += 1; h.stat.agi += 1; h.stat.int += 1; h.stat[h.growth] += 2; }
+  else { h.level++; for (const k in h.grow) h.stat[k] += h.grow[k]; }
   SFX.ui('levelup', { x: h.x, y: h.y });
   uiDirty();
 }
@@ -2698,10 +2702,10 @@ function uiDirty() { dirty = true; }
 // 提示语音：和 WC3 一样资源不足 / 不能建造时有语音，其余失败提示只响一声
 const MSG_SND = [[/^金币不足/, 'noGold'], [/^木材不足/, 'noLumber'], [/^人口不足/, 'noFood'], [/不能建造|已被占用/, 'cantBuild'],
   [/冷却中|射程内没有敌人|只能|限制|最多|太远|召唤失败|已经在场上|已经学习|需要力量|魔法值不足/, 'error']];
-function msg(text) {
+function msg(text, sec = 6) {
   const snd = MSG_SND.find(([re]) => re.test(text)); if (snd) SFX.ui(snd[1]);
   const d = document.createElement('div'); d.textContent = text; $('msgs').appendChild(d);
-  setTimeout(() => d.remove(), 6000);
+  setTimeout(() => d.remove(), sec * 1000);
   while ($('msgs').children.length > 6) $('msgs').firstChild.remove();
 }
 function renderTop() {
@@ -2762,7 +2766,7 @@ function renderInfo() {
       <div class="kv"><span>攻击力</span><b>${fmt(st.dmg)}</b><span>攻击间隔</span><b>${st.cd.toFixed(2)}s</b>
       <span>射程</span><b>${st.range}</b><span>击杀/伤害</span><b>${e.kills} / ${fmt(e.dealt || 0)}</b>
       <span style="color:#ff6b5f">力量</span><b>${e.stat.str}</b><span style="color:#ffd257">敏捷</span><b>${e.stat.agi}</b><span style="color:#7ab8ff">智力</span><b>${e.stat.int}</b>
-      <span>成长属性</span><b>${statCN(e.growth)}（每杀精英 +1）</b></div>
+      <span>成长值</span><b>力 ${e.grow.str} · 敏 ${e.grow.agi} · 智 ${e.grow.int}</b><span>属性选择</span><b>${statCN(e.growth)}（每杀精英 +1）</b></div>
       <div class="skills">${hd.skills.slice(0, 4).map((s, i) => `<span class="${e.learned.includes(i) ? 'on' : ''}">${s.name}</span>`).join('')}</div>`;
   } else if (e.fam) {
     if (e.cat === 'summon') { box.innerHTML = `<div class="col-l">${portrait(null, e.label || '魔', '#7a2a10')}</div><div class="col-m"><div class="nm">${e.title || '炎魔'}</div><div class="sub">召唤物 · 剩余 ${Math.ceil(e.until - G.t)} 秒</div></div>`; return; }
@@ -2820,7 +2824,7 @@ function renderCard(e) {
     c2 = `<div class="attr"><img src="${ui('heroattributes-' + HERO_PRIMARY)}">${at('str', '力量')}${at('agi', '敏捷')}${at('int', '智力')}</div>`;
     const sk = e.learned.map(i => { const im = img('icon:skill:' + e.heroName + ':' + i); return im ? `<img src="${im.src}" title="${hd.skills[i].name}">` : ''; }).join('');
     extra = `<div class="buffs">状态：${sk || '<b style="color:#999;font-weight:400">还没有学习技能</b>'}</div>
-      <div class="tip">攻击间隔 ${st.cd.toFixed(2)}s · 射程 ${st.range} · 成长属性 ${statCN(e.growth)} · 击杀 ${e.kills}</div>`;
+      <div class="tip">攻击间隔 ${st.cd.toFixed(2)}s · 射程 ${st.range} · 成长值 力 ${e.grow.str} / 敏 ${e.grow.agi} / 智 ${e.grow.int} · 属性选择 ${statCN(e.growth)} · 击杀 ${e.kills}</div>`;
     hp = '无敌的'; mp = `${Math.floor(e.mana)} / ${e.maxMana()}`;
   } else if (e.fam) {
     if (e.cat === 'summon') { name = e.title || '炎魔'; sub = `召唤物 · 剩余 ${Math.ceil(e.until - G.t)} 秒`; }
@@ -2985,11 +2989,11 @@ function buildCmds() {
     });
     // 第二行：成长属性
     for (const [k, st, nm] of [['A', 'str', '力量'], ['S', 'agi', '敏捷'], ['D', 'int', '智力']])
-      out.push(cmd(k, nm.slice(0, 1), '属性选择：' + nm, `成长属性切换为<b>${nm}</b>：每杀死 1 个精英怪，${nm} +1；升级时 ${nm} 额外 +2`, () => { h.growth = st; uiDirty(); }, { active: h.growth === st, ico: st }));
+      out.push(cmd(k, nm.slice(0, 1), '属性选择：' + nm, `属性选择<b>${nm}</b>：每杀死 1 个精英怪，${nm} +1；满级后再升级 ${nm} +3`, () => { h.growth = st; uiDirty(); }, { active: h.growth === st, ico: st }));
     out.push(null);
     // 第三行：升级、学习技能、回收
     const maxed = h.level >= 30, g = maxed ? 500 : h.level * 100, mp = maxed ? 400 : 200;
-    out.push(cmd('U', '↑', '升级', `需要 <b>${g} 金币 + ${mp} 魔法</b><br>${maxed ? '满级后：所选属性 +3' : '等级 +1，全属性 +1，所选属性额外 +2'}`, () => heroLevelUp(h), { disabled: G.gold < g || h.mana < mp, ico: 'upgrade', cost: g }));
+    out.push(cmd('U', '↑', '升级', `需要 <b>${g} 金币 + ${mp} 魔法</b><br>${maxed ? '满级后：所选属性 +3' : `等级 +1，按成长值加属性：力量 +${h.grow.str} · 敏捷 +${h.grow.agi} · 智力 +${h.grow.int}`}`, () => heroLevelUp(h), { disabled: G.gold < g || h.mana < mp, ico: 'upgrade', cost: g }));
     const relearn = h.learned.some(i => HERO_KITS[h.heroName][i].relearn && h.qs[i] < 2);
     out.push(cmd('L', '书', '学习技能', `最多 4 个。第 1 个免费，第 2/3/4 个需要木材 18/36/54，力量 ≥ 80/160/240${HERO_KITS[h.heroName][0].relearn ? `<br>学会的技能可以花 ${QS_RELEARN} 金币再次学习一次` : ''}`, () => { G.menu = 'skills'; uiDirty(); }, { ico: 'learn', disabled: h.learned.length >= 4 && !relearn }));
     return out;                                      // 英雄塔建造后不能回收（原图英雄塔说明）
@@ -3267,7 +3271,7 @@ function showHelp() {
     <p><b>死亡之指</b>：守卫者的技能（热键 X），对 800 范围内的一个敌人使用，直接杀死它；BOSS 只扣一部分生命。冷却 90 秒，耗 5 点魔法（守卫者魔法上限 10）。</p>
     <p><b>商店</b>：地图中央，守卫者走到 ${RULE.shopReach} 范围内选中商店购买：1 个木材（500 金，冷却 30 秒）、10 个木材（5000 金，冷却 300 秒）、魔力卷轴（英雄塔 +120 魔法）、知识之书（英雄塔随机属性 +10）、天赋卷轴（15 木，MAX 光环塔激活基础天赋，开局 1200 秒后开放）。三种卷轴买下后放进守卫者的<b>物品栏</b>（6 格），选中守卫者点物品（或小键盘 7 8 4 5 1 2），再点目标塔，守卫者走到施法距离内使用。复制 / 收购卷轴要对队友使用，单人用不了。</p>
     <p><b>兔子</b>：每个 BOSS 波（10/20/30/40 波、最终波）开始 ${RULE.rabbitDelay} 秒后，地图随机位置出现一只兔子（小地图粉点），${RULE.rabbitLife} 秒后消失。守卫者走到它 ${RULE.rabbitReach} 范围内，选中兔子就能用<b>当局成就</b>买道具：4 种塔类之球（重新随机建造栏的某一类塔）、5 个木材、魔法药水、知识药水。当局成就开局 ${RULE.startAch} 点，每次 Perfect +${RULE.achPerPerfect}；守卫者的<b>兔子卷轴</b>（${RULE.rabbitScrollAch} 成就）可以额外召唤一次兔子。</p>
-    <p><b>英雄塔</b>：每次随机建造给出 1 个英雄塔（和原图随机模式一样），1500 金 + 5 木材 + 4 人口，全场唯一，建造后不能回收。升级要 等级×100 金 + 200 魔法（英雄每击杀 +2 魔法）。学技能：第 1 个免费；第 2/3/4 个分别要 18/36/54 木材，且力量 ≥ 80/160/240。</p>
+    <p><b>英雄塔</b>：每次随机建造给出 1 个英雄塔（和原图随机模式一样），1500 金 + 5 木材 + 4 人口，全场唯一，建造后不能回收。建成时随机给出力量 / 敏捷 / 智力的成长值（合计 10），每次升级按成长值加属性；属性选择决定杀精英怪 +1 的属性和满级后升级 +3 的属性。升级要 等级×100 金 + 200 魔法（英雄每击杀 +2 魔法）。学技能：第 1 个免费；第 2/3/4 个分别要 18/36/54 木材，且力量 ≥ 80/160/240。</p>
     <p style="color:#7f9483;font-size:11px">命令图标的图形来自 <a href="https://game-icons.net" target="_blank" style="color:#9fc4a6">game-icons.net</a>（Lorc、Delapouite 等，CC BY 3.0）。</p>
     <div class="row"><button class="primary" id="m-close">继续游戏</button></div>`);
   $('m-close').onclick = () => { hideModal(); G.paused = was; };
