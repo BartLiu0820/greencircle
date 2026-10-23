@@ -126,6 +126,26 @@
         "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/f27c4e97-8999-4911-af1d-8f89d375e226/scratchpad/h5srv && exec python3 -m http.server 8823"
       ],
       "port": 8823
+    },
+    {
+      "name": "h5-multi",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/9ab3abde-2254-4ec9-a60e-a3ed4de0c014/scratchpad/h5srv && exec python3 -m http.server 8831"
+      ],
+      "port": 8831,
+      "autoPort": false
+    },
+    {
+      "name": "h5-rookie",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/9044fabe-04f6-49c8-84dc-3d934a73ce99/scratchpad/h5srv && exec python3 -m http.server 8841"
+      ],
+      "port": 8841,
+      "autoPort": false
     }
   ]
 }

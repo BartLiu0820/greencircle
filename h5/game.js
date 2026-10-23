@@ -26,7 +26,10 @@ const RULE = {
   shopReach: 600,            // 商店（u00L，原图摆在地图中央 (0,128)）：守卫者要走到旁边才能买
 };
 const MODES = {
-  solo: { name: '单人推荐', interval: 38, hp: 0.35, food: 8, short: '怪物生命 ×0.35', desc: '38 秒/波，怪物生命 ×0.35，起手人口 8' },
+  // 新人随机模式（原图 JI = 1，BcR：半数以上玩家荣誉少于 30 时自动开启）：BcQ 每人 +2000 金、+7 木、+2 人口；
+  // wX 每波 38 秒、发金 名次×12 + 波数×4（普通是 ×8 + ×2）；最终波魔王不带按人数加的物品。怪物生命不变
+  rookie: { name: '新人随机', interval: 38, hp: 1, gold: 4000, wood: 12, food: 8, waveGold: [12, 4], plainBoss: true, short: '原图新人模式',
+            desc: '原图的新人随机模式：起手多 2000 金、7 木、2 人口；38 秒/波，每波发金翻倍（名次×12 + 波数×4）；魔王降低血量。怪物生命是原图数值' },
   origin: { name: '原版数值', interval: 33, hp: 1, food: 6, short: '8 人合作难度', desc: '33 秒/波，原图数值（原图为 8 人合作设计，单人极难）' },
   relax: { name: '休闲', interval: 50, hp: 0.2, food: 10, short: '50 秒一波', desc: '50 秒/波（旧版节奏），怪物生命 ×0.2，起手人口 10' },
   demo: { name: '演示', interval: 38, hp: 0.35, food: 20, desc: '只打前 2 波；固定英雄剑神和 5 种塔，开局 60000 金方便演示升级', hidden: true,
@@ -171,6 +174,7 @@ function newGame(mode, players = 1, player = null, bots = false) {     // player
     msg(`完成成就：拒绝逃跑　当局成就 +${RULE.startAch}`, 10);
     if (tier.lv) msg(`${player} 完成成就：${tier.name}　当局成就 +${tier.lv}`, 10);
   }
+  if (MODES[mode].waveGold) msg('新人随机模式：起手多 2000 金币、7 木材、2 人口；全局金币给予量翻倍；魔王降低血量', 10);
 }
 
 // ---------------------------------------------------------------- 建造栏
@@ -249,6 +253,7 @@ function kill(m, src) {
     if (bm && bm.bolt < BOUNCE.bolt.length && Math.random() < 0.2) { bm.bolt++; msg(`弹跳塔 MAX 灵魂重击升到 ${bm.bolt} 级`); }
   }
   if (m.onDeath) m.onDeath(src);
+  if (!m.neutral) monsterDrop(m);
   bossStone(m);
   SFX.ent('unit:' + m.uid, 'death', { x: m.x, y: m.y });
   const a = (metaOf(m) || {}).actions?.death;       // 按登记判断，不等精灵图加载（3D 模型画尸体时精灵图可能从没请求过）
@@ -3942,8 +3947,9 @@ function startWave() {
   if (G.player && G.mode !== 'demo') { const p = profileOf(G.player); if (G.wave > p.best) p.best = G.wave; }
   earnAch(PROFILE.wave);
   G.score -= alive;
-  // 每波发金：排行榜名次 ×8 + 波数 ×2（原图 wX：LeaderboardGetPlayerIndexBJ，按杀敌数排，名次越靠后拿得越多；只有你一人时是第 1 名）
-  for (const p of activePlayers()) addGold(p, rankOf(p.slot) * 8 + G.wave * 2);
+  // 每波发金：排行榜名次 ×8 + 波数 ×2（原图 wX：LeaderboardGetPlayerIndexBJ，按杀敌数排，名次越靠后拿得越多；只有你一人时是第 1 名）；新人随机模式 ×12 + ×4
+  const [gr, gw] = MODES[G.mode].waveGold || [8, 2];
+  for (const p of activePlayers()) addGold(p, rankOf(p.slot) * gr + G.wave * gw);
   G.bossRule = null; G.waveHook = null; G.waveNote = ''; G.curUnit = null;
   const n = G.wave, { fn, row } = G.next;
   SFX.stinger(n);                                  // 原图每波开始放一段音乐（war3map.j 的 PlaySoundBJ）
@@ -4074,8 +4080,8 @@ function startFinal() {
   });
   later(59.3, () => {
     G.sc = 'nndr';
-    // 魔王的物品按人数（原图 CountPlayersInForceBJ）：≤2 人护甲 +22；≤4 人 +52、生命 +20 万；≤6 人 +82、+40 万；8 人 +122、+80 万
-    const [arm, hp] = G.players <= 2 ? [22, 0] : G.players <= 4 ? [52, 2e5] : G.players <= 6 ? [82, 4e5] : [122, 8e5];
+    // 魔王的物品按人数（原图 CountPlayersInForceBJ）：≤2 人护甲 +22；≤4 人 +52、生命 +20 万；≤6 人 +82、+40 万；8 人 +122、+80 万。新人随机模式（JI = 1）不带物品
+    const [arm, hp] = MODES[G.mode].plainBoss ? [0, 0] : G.players <= 2 ? [22, 0] : G.players <= 4 ? [52, 2e5] : G.players <= 6 ? [82, 4e5] : [122, 8e5];
     for (const u of spawnAt([1, 8], 'Udea', { boss: true })) { need(u); u.armor += arm; u.maxHp += hp * G.hpScale; u.hp += hp * G.hpScale; }
     msg('魔王：翻滚吧！');
     G.final.check = true;
@@ -4504,6 +4510,14 @@ const ITEMS = {
 ITEMS.I00Y = { ...ITEMS.I00W, id: 'I00Y', name: '糖果(小)', charges: 2 };
 ITEMS.I028 = Object.assign(Object.create(SHOP_ITEMS.find(i => i.id === 'I028')), { pawn: { gold: 1100 } });
 ITEMS.I01T = Object.assign(Object.create(RABBIT_SHOP.find(i => i.id === 'I01U')), { id: 'I01T', pawn: { gold: 1250 } });
+// 魔法药水（小）（I03Z，怪物掉落）：原图 BKR 和魔法药水同样的目标 +50 魔法，但没有天神塔 +600 那一支（天神塔用不了）；3 个自动合成魔法药水（oO）
+ITEMS.I03Z = Object.assign(Object.create(ITEMS.I01T), {
+  id: 'I03Z', name: '魔法药水(小)', pawn: { gold: 1250 }, pick: '魔法药水(小)：选择有魔法功勋的塔（Esc 取消）',
+  tip: '对一座有魔法功勋的塔（魔幻、剑圣、寒冰、神圣、扫射、银行、弹跳塔 MAX 等）使用，获得 50 点魔法<br>天神塔、英雄塔不能使用<br>3 个魔法药水(小)会自动合成魔法药水',
+  ok: t => !t || t.isHero || !(MP_POTION_FAMS.has(t.fam) && t.maxMana > 0 && (t.fam !== '弹跳塔' || t.bmax)) ? '添加失败，该单位无魔法功勋' : null,
+  use: t => { addMana(t, 50); msg(`${curLevel(t).name} 魔法 +50`); },
+  onPick() { const s = G.inv.filter(x => x && x.id === 'I03Z'); if (s.length >= 3) { s.slice(0, 3).forEach(invRemove); invAdd(ITEMS.I01T); msg('3 个魔法药水(小)合成了魔法药水'); } },
+});
 // 许愿石（原图 bD[1..36]，BOSS 死亡时掉）：使用后把建造栏里同类那一格换成这座塔；出售得 5 许愿点
 const STONES = { I015: '地精塔', I01B: '精灵塔', I019: '巨箭塔', I012: '科技塔', I010: '灵魂塔', I017: '燃烧塔', I01J: '魔石塔', I018: '炎魔塔', I01A: '死亡塔', I016: '深渊塔',
   I01G: '毒塔', I01D: '混乱塔', I02C: '箭塔', I01K: '牛头塔', I01E: '破坏塔', I01H: '群攻塔', I01F: '闪电塔', I01L: '通灵塔', I02Q: '暴击塔', I02T: '冰霜塔', I02P: '腐蚀塔',
@@ -4516,6 +4530,15 @@ function dropItem(id, x, y, charges) {
   const def = ITEMS[id]; if (!def) return null;
   const it = { isItem: true, id: G.nextId++, def, x: x + rnd(-40, 40), y: y + rnd(-40, 40), charges: charges ?? def.charges ?? 0, t0: G.t };
   G.items.push(it); return it;
+}
+// 怪物死亡掉落（原图 wa：Player(11) 的单位死亡，龙鹰骑士除外）：C0 = 1~5000，
+// 50~55 木、90~100 钱、155 上、359 有、799 马、1500 光环碎片、4500 且 1/5 梦、25~29 魔法药水（小）
+function monsterDrop(m) {
+  if (m.uid === 'hdhw') return;
+  const c = rint(1, 5000);
+  const id = c >= 50 && c <= 55 ? 'I008' : c >= 90 && c <= 100 ? 'I005' : c === 155 ? 'I006' : c === 359 ? 'I007' : c === 799 ? 'I004'
+    : c === 1500 ? 'I01R' : rint(1, 5) === 5 && c === 4500 ? 'I03Y' : c >= 25 && c < 30 ? 'I03Z' : null;
+  if (id && dropItem(id, m.x, m.y)) msg(`${m.name || '怪物'}掉下了${ITEMS[id].name}（地上，让守卫者去捡）`);
 }
 function orderPick(it, queue) { giveOrder({ kind: 'pick', target: it, x: it.x, y: it.y, reach: 100 }, queue); }
 function pickUp(it) {
@@ -6482,7 +6505,7 @@ function refreshCmdState() {
   if (fresh.map(sig).join() !== CMDS.map(sig).join()) renderCmds();
 }
 resize();
-newGame('solo');
+newGame('rookie');
 showStart();
 requestAnimationFrame(frame);
 window.__G = () => G;   // 调试用
