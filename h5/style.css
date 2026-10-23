@@ -293,3 +293,7 @@ html, body, button, button:disabled, #minimap, #cv { cursor: url(assets/cursors/
   #inv .cb { width: 100%; height: 100%; border-radius: 0; }
   #inv .cb.none { background: transparent; border: 0; box-shadow: none; }
 }
+/* 开局输入玩家名称 */
+.w3input { display: block; width: 100%; box-sizing: border-box; margin: 0 0 10px; padding: 7px 10px; font: 600 15px/1.3 inherit; font-family: inherit; color: #fff;
+  background: rgba(0, 0, 0, .55); border: 1px solid #8a7a4a; border-radius: 2px; outline: none; }
+.w3input:focus { border-color: #ffd257; box-shadow: 0 0 0 1px rgba(255, 210, 87, .35); }

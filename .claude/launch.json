@@ -117,6 +117,15 @@
         "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/ed9d1260-d72f-48e6-9e8d-2ae47ed50bcb/scratchpad/h5srv && exec python3 -m http.server 8821"
       ],
       "port": 8821
+    },
+    {
+      "name": "h5-ach",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/f27c4e97-8999-4911-af1d-8f89d375e226/scratchpad/h5srv && exec python3 -m http.server 8823"
+      ],
+      "port": 8823
     }
   ]
 }

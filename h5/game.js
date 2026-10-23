@@ -16,8 +16,10 @@ const RULE = {
   foodPrice: 12, woodToGold: 300,
   maxAuraPerKind: 2,
   // 兔子 = 原图单位 nshe「成就商店」：每个 BOSS 波刷在地图随机位置，60 秒后消失（UnitApplyTimedLife 60），用当局成就买道具。
-  // 原图的当局成就大多来自平台账号（至尊等级开局送 1~10 点、各种成就），这里改成开局送 5 点 + 每次 Perfect 1 点
+  // 原图的当局成就：开局「拒绝逃跑」+5、按平台账号的至尊积分 +1~10（至尊菜鸟~至尊王者），每次 Perfect +1。
+  // 这里用本地玩家档案代替平台账号（见下面的 PROFILE），账号成就点数按档位换开局当局成就
   startAch: 5, achPerPerfect: 1, rabbitLife: 60, rabbitReach: 600, rabbitScrollAch: 20,
+  heroAch: 10,               // 英雄塔（随机模式 17 个）要 10 点当局成就才能建，建成扣 10 点（BMX / BQx 等建造触发器：H3 >= 10，H3 - 10）
   rabbitWaves: [10, 20, 30, 40, 48], rabbitDelay: 20,
   rerollWood: 6,             // 随机建造：第一次免费，之后每次 6 木材（A03C 的触发器 nY / nZ）
   shopReach: 600,            // 商店（u00L，原图摆在地图中央 (0,128)）：守卫者要走到旁边才能买
@@ -94,10 +96,34 @@ function segDist2(px, py, [ax, ay], [bx, by]) {
 }
 const abil = (lv, code) => (lv.abils || []).find(a => a.code === code);
 
+// ---------------------------------------------------------------- 玩家档案（代替原图的平台存档）
+// 开局先输入玩家名称，每个名称一份档案存在本机（localStorage），记账号成就点数、局数、通关数、最高波数。
+// 账号成就随游戏进展获得：每到达新的一波 +1、每次 Perfect 再 +1、通关 +30（演示模式不算），获得时立即存档，中途退出也不丢。
+// 开局当局成就 = 拒绝逃跑 5 + 档位加成，档位名沿用原图的至尊称号（原图按平台至尊积分 50~8000 给 +1~+10）
+const PROFILE = { key: 'gc.profiles', wave: 1, perfect: 1, clear: 30 };
+const ACH_TIERS = [[10, '至尊菜鸟'], [30, '至尊学徒'], [60, '至尊达人'], [100, '至尊新秀'], [150, '至尊精英'],
+  [220, '至尊高手'], [300, '至尊宗师'], [400, '至尊大神'], [520, '至尊无双'], [660, '至尊王者']];
+const profiles = { all: {}, last: '' };
+try { Object.assign(profiles, JSON.parse(localStorage.getItem(PROFILE.key) || '{}')); } catch (e) { /* 隐私模式等：只在本局内存里记 */ }
+const saveProfiles = () => { try { localStorage.setItem(PROFILE.key, JSON.stringify(profiles)); } catch (e) { /* 忽略 */ } };
+const profileOf = name => profiles.all[name] || (profiles.all[name] = { pts: 0, games: 0, clears: 0, best: 0 });
+// 档位：返回 { lv: 0~10, name, next }，lv 就是开局额外的当局成就
+function achTier(pts) {
+  let lv = 0;
+  while (lv < ACH_TIERS.length && pts >= ACH_TIERS[lv][0]) lv++;
+  return { lv, name: lv ? ACH_TIERS[lv - 1][1] : '无称号', next: ACH_TIERS[lv] ? ACH_TIERS[lv][0] : null };
+}
+function earnAch(n, why) {
+  if (!G || !G.player || G.mode === 'demo' || n <= 0) return;
+  const p = profileOf(G.player);
+  p.pts += n; G.earned += n; saveProfiles();
+  if (why) msg(`${why}：账号成就 +${n}（${G.player} 共 ${p.pts} 点）`);
+}
+
 // ---------------------------------------------------------------- 游戏状态
 let G;
 // players：参与人数（1~8）。单人是 1；以后接联机时由房间里的玩家数决定。人数决定开几个出怪口（GATES 的前 N 个）和场上怪物上限（每人 40）
-function newGame(mode, players = 1) {
+function newGame(mode, players = 1, player = null) {     // player：开局输入的玩家名称（页面打开时背景里那局是 null，不记档案）
   const np = clamp(Math.round(players), 1, MAX_PLAYERS), [sx0, sy0, sx1, sy1] = W3MAP.rects.s, bx = rnd(sx0, sx1), by = rnd(sy0, sy1);
   G = {
     mode, players: np, gates: GATES.slice(0, np).map((g, k) => k),
@@ -113,17 +139,25 @@ function newGame(mode, players = 1) {
     inv: Array(6).fill(null),
     cam: { x: bx, y: by - 600, zoom: 2.4 },
     menu: 'main', pending: null,
-    ach: RULE.startAch, rabbit: null, rabbitScroll: false, buys: {}, itemCd: {},
+    player, earned: 0, ach: RULE.startAch, rabbit: null, rabbitScroll: false, buys: {}, itemCd: {},
     waveVars: {}, next: null, carryHint: null, sc: null, curUnit: null, waveHook: null, waveNote: '', finalCountdown: false,
     k7: rint(1, 2),          // 原图开局随机：30 波出亡灵飞艇（1）还是地精飞艇（2）
     mem: {},                 // 主塔回收时记下的技能等级和魔法，再建同一种主塔时恢复（原图 D1~D7、DK/DL/DM 等全局变量）
     bounce: { atk: 0, as: 0, talent: false, bolt: 1 },   // 弹跳塔的玩家科技：提升攻击 R000 / 攻速 R001、弹跳天赋 R00P、MAX 回收时记下的灵魂重击等级（Oq）
   };
   G.selected = G.builder;
+  // 开局当局成就：拒绝逃跑 +5，再按账号成就档位 +0~10（原图 qi：至尊称号 +1~10、拒绝逃跑 +5）。演示模式固定剑神，直接给够建英雄的成就
+  const tier = player && mode !== 'demo' ? achTier(profileOf(player).pts) : { lv: 0 };
+  G.ach += mode === 'demo' ? RULE.heroAch : tier.lv;
+  if (player && mode !== 'demo') { const p = profileOf(player); p.games++; saveProfiles(); }
   FXS.clear();
   rerollBuild(true);
   rollFn(WR.start); refreshHint();                 // 准备阶段就预告第 1 波
   SFX.startMusic();
+  if (player && mode !== 'demo') {
+    msg(`完成成就：拒绝逃跑　当局成就 +${RULE.startAch}`, 10);
+    if (tier.lv) msg(`${player} 完成成就：${tier.name}　当局成就 +${tier.lv}`, 10);
+  }
 }
 
 // ---------------------------------------------------------------- 建造栏
@@ -2258,15 +2292,17 @@ function heroAuraList(h) {
   return out;
 }
 const statCN = s => ({ str: '力量', agi: '敏捷', int: '智力' })[s];
-// 原图英雄塔是建筑（h03R 剑神等：1500 金 + 5 木 + 4 人口），建成后触发器把它换成英雄单位；全场唯一，建造后不能回收
-const heroBlock = () => G.hero ? '英雄塔全场只能建造一个' : !G.heroChoice ? '建造栏里没有英雄塔' : null;
+// 原图英雄塔是建筑（h03R 剑神等：1500 金 + 5 木 + 4 人口），建成后触发器把它换成英雄单位；全场唯一，建造后不能回收。
+// 还要 10 点当局成就（不够时原图退钱并提示"需要10点成就"），建成扣 10 点
+const heroBlock = () => G.hero ? '英雄塔全场只能建造一个' : !G.heroChoice ? '建造栏里没有英雄塔'
+  : G.ach < RULE.heroAch ? `需要 ${RULE.heroAch} 点当局成就（当前 ${G.ach}）` : null;
 function buildHero(x, y) {
   const hd = D.heroes[G.heroChoice], why = heroBlock();
   if (why) return msg(why);
   if (G.gold < hd.gold) return msg('金币不足');
   if (G.wood < hd.wood) return msg('木材不足');
   if (foodUsed() + hd.food > G.foodCap) return msg('人口不足');
-  G.gold -= hd.gold; G.wood -= hd.wood;
+  G.gold -= hd.gold; G.wood -= hd.wood; G.ach -= RULE.heroAch;
   const h = { id: G.nextId++, isHero: true, fam: 'hero', heroName: hd.name, cat: 'hero', x, y, lv: 0, level: 1, spent: hd.gold, food: hd.food,
     stat: { str: 10, agi: 10, int: 10 }, growth: 'str', points: 3, baseBonus: 0, mana: 0, learned: [], cdLeft: 0, cds: {}, auto: {}, asBonus: 0, sk: {},
     qs: [0, 0, 0, 0], nb: 0, last: { p: 0, m: 0, c: 0 }, xb: { hail: 0, burst: 0, freeze: 0 },   // 枪神学习次数 / 火焰暴击率 / 上次致命；邪冰技能计数器
@@ -2588,7 +2624,9 @@ function startWave() {
   }
   const alive = monstersAlive();
   G.wave++;
-  if (alive === 0) { G.perfect++; G.ach += RULE.achPerPerfect; msg(`Perfect +1（当前 ${G.perfect}），当局成就 +${RULE.achPerPerfect}`); }
+  if (alive === 0) { G.perfect++; G.ach += RULE.achPerPerfect; msg(`Perfect +1（当前 ${G.perfect}），当局成就 +${RULE.achPerPerfect}`); earnAch(PROFILE.perfect); }
+  if (G.player && G.mode !== 'demo') { const p = profileOf(G.player); if (G.wave > p.best) p.best = G.wave; }
+  earnAch(PROFILE.wave);
   G.score -= alive;
   G.gold += 8 + G.wave * 2;                 // 排名序号*8 + 波数*2 (单人排名 1)
   G.bossRule = null; G.waveHook = null; G.waveNote = ''; G.curUnit = null;
@@ -2952,10 +2990,16 @@ function step(dt) {
   FXS.update(dt);
   G.fx = G.fx.filter(f => f.life > 0);
 }
+// 结算时附上本局获得的账号成就和档位
+function achSummary() {
+  if (!G.player || G.mode === 'demo') return '';
+  const p = profileOf(G.player), t = achTier(p.pts);
+  return `<p>${G.player}：本局账号成就 <b style="color:#ff9ad5">+${G.earned}</b>，共 ${p.pts} 点 · ${t.name}（下局开局当局成就 ${RULE.startAch + t.lv}${t.next ? `，${t.next} 点升下一档` : ''}）</p>`;
+}
 function gameOver(reason) {
   G.phase = 'over'; SFX.end('defeat');
   showModal(`<h2>大家很厉害！很遗憾，还是失败了！</h2><p>${reason}</p>
-    <p>到达第 <b>${G.wave}</b> 波 · 击杀 ${G.kills} · Perfect ${G.perfect} · 得分 ${G.score}</p>
+    <p>到达第 <b>${G.wave}</b> 波 · 击杀 ${G.kills} · Perfect ${G.perfect} · 得分 ${G.score}</p>${achSummary()}
     <div class="row"><button class="primary" id="m-restart">再来一局</button></div>`);
   document.getElementById('m-restart').onclick = () => { hideModal(); showStart(); };
 }
@@ -2968,7 +3012,8 @@ function demoEnd() {
 }
 function victory() {
   G.phase = 'win'; SFX.end('victory');
-  showModal(`<h2>通关！</h2><p>你杀死了最终 BOSS。击杀 ${G.kills} · Perfect ${G.perfect} · 得分 ${G.score}</p>
+  if (G.player && G.mode !== 'demo') { profileOf(G.player).clears++; earnAch(PROFILE.clear); }
+  showModal(`<h2>通关！</h2><p>你杀死了最终 BOSS。击杀 ${G.kills} · Perfect ${G.perfect} · 得分 ${G.score}</p>${achSummary()}
     <p>${G.perfect >= 10 ? '原版中 Perfect ≥ 10 会开启无尽关卡（本复刻暂未实现）。' : 'Perfect 未达到 10，原版中不能开启无尽关卡。'}</p>
     <div class="row"><button class="primary" id="m-restart">再来一局</button></div>`);
   document.getElementById('m-restart').onclick = () => { hideModal(); showStart(); };
@@ -3836,7 +3881,7 @@ function renderCard(e) {
     c1 = `<div class="st"><div><span>剩余时间：</span><b>${Math.ceil(e.until - G.t)} 秒</b><br><span>当局成就：</span><b style="color:#ff9ad5">${G.ach}</b></div></div>`;
     const d = Math.round(Math.hypot(G.builder.x - e.x, G.builder.y - e.y));
     c2 = `<div class="st"><div><span>守卫者距离：</span><b>${d}</b><br>${rabbitNear() ? '<b style="color:#6fd17a">可以购买</b>' : `<b style="color:#ff8f86">要在 ${RULE.rabbitReach} 范围内</b>`}</div></div>`;
-    extra = '<div class="tip">用当局成就购买道具（开局 5 点，每次 Perfect +1）。兔子到时间就会消失。</div>';
+    extra = `<div class="tip">用当局成就购买道具（开局 ${RULE.startAch} 点 + 账号成就档位加成，每次 Perfect +1；英雄塔也要 ${RULE.heroAch} 点）。兔子到时间就会消失。</div>`;
     hp = '15 / 15';
   } else if (e.isBuilder) {
     name = '循环圈守卫者'; sub = '不死族';
@@ -3967,7 +4012,7 @@ function buildCmds() {
             ico: SVG_CATS.has(d.cat) ? 'tower-' + fam : null, cost: l.gold }));
       });
       if (G.heroChoice) { const h = D.heroes[G.heroChoice], blocked = heroBlock();
-        out.push(cmd('F', h.name, h.name + '（英雄塔）', `<b>${h.name}</b> ${atkTag(h.atk)}<br>英雄塔 · 全场唯一 · 建造后不能回收<br><span class="gold">${h.gold} 金</span> · ${h.wood} 木材 · ${h.food} 人口<br>${h.title}${blocked ? '<br><b style="color:#ff5a4f">' + blocked + '</b>' : ''}`,
+        out.push(cmd('F', h.name, h.name + '（英雄塔）', `<b>${h.name}</b> ${atkTag(h.atk)}<br>英雄塔 · 全场唯一 · 建造后不能回收<br><span class="gold">${h.gold} 金</span> · ${h.wood} 木材 · ${h.food} 人口 · <b style="color:#ff9ad5">${RULE.heroAch} 当局成就</b><br>${h.title}${blocked ? '<br><b style="color:#ff5a4f">' + blocked + '</b>' : ''}`,
           () => { G.placing = 'hero'; uiDirty(); }, { atk: h.atk, active: G.placing === 'hero', disabled: !!blocked || G.gold < h.gold || G.wood < h.wood, hero: true, iconKey: 'icon:hero:' + h.name, ico: 'hero-' + h.name, cost: h.gold })); }
       while (out.length < 11) out.push(null);
       out.push(back); return out;
@@ -4299,8 +4344,34 @@ function fitDialog() {
   }
 }
 window.addEventListener('resize', () => { if (!$('modal').classList.contains('hidden')) fitDialog(); });
+// 开局先输入玩家名称（代替原图的平台账号）：同名继承账号成就点数，下面列出本机已有的名称可以直接点
+const escHtml = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const profileLine = name => { const p = profileOf(name), t = achTier(p.pts); return `${p.pts} 点 · ${t.name} · 开局当局成就 ${RULE.startAch + t.lv}`; };
+function askName() {
+  const names = Object.keys(profiles.all).sort((a, b) => profiles.all[b].pts - profiles.all[a].pts).slice(0, 4);
+  const foot = `同一个名称继承它的账号成就点数（存在本机浏览器里）。账号成就每到达新的一波 +${PROFILE.wave}、每次 Perfect +${PROFILE.perfect}、通关 +${PROFILE.clear}，攒够档位开局多给当局成就；英雄塔要 ${RULE.heroAch} 点当局成就才能建`;
+  showModal(`<div class="w3dlg"><h2>输入玩家名称</h2>
+    <input id="p-name" class="w3input" maxlength="12" placeholder="玩家名称（最多 12 个字）" value="${escHtml(profiles.last)}" autocomplete="off">
+    <button class="w3btn" id="p-ok">确定</button>
+    ${names.map((n, i) => `<button class="w3btn" data-i="${i}">${escHtml(n)}（${profileLine(n)}）</button>`).join('')}
+    <div class="w3hint">${foot}</div></div>`);
+  $('modal-box').classList.add('dlg');
+  fitDialog();
+  const input = $('p-name'), hint = $('modal-box').querySelector('.w3hint');
+  const pick = name => {
+    name = name.trim().slice(0, 12);
+    if (!name) { hint.innerHTML = '<b style="color:#ff8f86">请先输入玩家名称</b>'; input.focus(); return; }
+    SFX.ui('bigClick'); profileOf(name); profiles.last = name; saveProfiles(); showStart();
+  };
+  $('p-ok').onclick = () => pick(input.value);
+  input.onkeydown = e => { if (e.key === 'Enter') pick(input.value); };
+  $('modal-box').querySelectorAll('.w3btn[data-i]').forEach(el => { el.onclick = () => pick(names[+el.dataset.i]); });
+  input.focus(); input.select();
+}
 function showStart() {
-  const start = (mode, players = 1) => { newGame(mode, players); hideModal(); resize(); clampCam(); uiDirty(); };
+  if (!profiles.last) return askName();
+  const player = profiles.last;
+  const start = (mode, players = 1) => { newGame(mode, players, player); hideModal(); resize(); clampCam(); uiDirty(); };
   const intro = () => showDialog('玩法简介', [{ text: '返回', fn: pickMode }],
     `怪物沿"回"字形双环路线<b>永远绕圈</b>，不会漏到基地。<b>场上怪物超过上限即失败</b>（每个玩家 ${RULE.capPerPlayer} 只，单人 ${RULE.capPerPlayer} 只）。地图是原图的 8 人地图，有 8 个出怪口，参与几人就开几个（单人只开左上角）。每波按时出怪，不管上一波清没清完。<br><br>
     选中<b>守卫者</b>（F1），点击地面让它移动；在右下角命令面板里打开<b>建造</b>，选塔后点地面，守卫者会走过去建造。拖动画面或点击小地图移动镜头，滚轮缩放。`);
@@ -4310,6 +4381,7 @@ function showStart() {
     { text: '演示：前两波', hint: MODES.demo.desc, fn: () => start('demo') },
     { text: '多人规模（2~8 人）', hint: '按原图多人局的规模开局：N 人开 N 个出怪口，怪物上限 40×N，最终波的龙和魔王也按人数。原版数值，联机前用来试玩', fn: pickPlayers },
     { text: '玩法简介', hint: '怎么玩、怎么操作', fn: intro },
+    { text: `玩家 ${escHtml(player)} · 成就 ${profileOf(player).pts} 点（切换）`, hint: `账号成就 ${profileLine(player)}<br>点这里换一个玩家名称，各名称的账号成就分开记`, fn: askName },
   ]), '把鼠标移到选项上查看说明');
   const pickPlayers = () => showDialog('多人规模', [2, 3, 4, 5, 6, 7, 8].map(n => ({
     text: `${n} 人`, hint: `开放 ${n} 个出怪口（${GATES.slice(0, n).map(g => g[0]).join(' ')}），怪物上限 ${n * RULE.capPerPlayer}；原版数值`, fn: () => start('origin', n),
@@ -4332,9 +4404,11 @@ function showHelp() {
     <p><b>资源</b>：起手 2000 金、5 木；12 木 = 1 人口；1 木 = 300 金。回收塔返还 100% 金币。</p>
     <p><b>死亡之指</b>：守卫者的技能（热键 X），对 800 范围内的一个敌人使用，直接杀死它；BOSS 只扣一部分生命。冷却 90 秒，耗 5 点魔法（守卫者魔法上限 10）。</p>
     <p><b>商店</b>：地图中央，守卫者走到 ${RULE.shopReach} 范围内选中商店购买：1 个木材（500 金，冷却 30 秒）、10 个木材（5000 金，冷却 300 秒）、魔力卷轴（英雄塔 +120 魔法）、知识之书（英雄塔随机属性 +10）、天赋卷轴（15 木，MAX 光环塔激活基础天赋，开局 1200 秒后开放）。三种卷轴买下后放进守卫者的<b>物品栏</b>（6 格），选中守卫者点物品（或小键盘 7 8 4 5 1 2），再点目标塔，守卫者走到施法距离内使用。复制 / 收购卷轴要对队友使用，单人用不了。</p>
-    <p><b>兔子</b>：每个 BOSS 波（10/20/30/40 波、最终波）开始 ${RULE.rabbitDelay} 秒后，地图随机位置出现一只兔子（小地图粉点），${RULE.rabbitLife} 秒后消失。守卫者走到它 ${RULE.rabbitReach} 范围内，选中兔子就能用<b>当局成就</b>买道具：4 种塔类之球（重新随机建造栏的某一类塔）、5 个木材、魔法药水（有魔法功勋的塔 +200，天神塔 +600）、知识药水、重修药水（属性选择那项 -6、技能点 +3，每局 1 支）。当局成就开局 ${RULE.startAch} 点，每次 Perfect +${RULE.achPerPerfect}；守卫者的<b>兔子卷轴</b>（${RULE.rabbitScrollAch} 成就）可以额外召唤一次兔子。</p>
-    <p><b>英雄塔</b>：每次随机建造给出 1 个英雄塔（和原图随机模式一样），1500 金 + 5 木材 + 4 人口，全场唯一，建造后不能回收。建成时随机给出力量 / 敏捷 / 智力的成长值（合计 10），每次升级按成长值加属性；属性选择决定杀精英怪 +1 的属性和满级后升级 +3 的属性。升级要 等级×100 金 + 200 魔法（英雄每击杀 +2 魔法）。学技能：第 1 个免费；第 2/3/4 个分别要 18/36/54 木材，且力量 ≥ 80/160/240，最多 4 个（第 5 个特殊技能有额外条件）。英雄有技能点：建成 3 点、每升一级 3~9 点，每点力量 / 敏捷 / 智力 +2 或随机。
+    <p><b>兔子</b>：每个 BOSS 波（10/20/30/40 波、最终波）开始 ${RULE.rabbitDelay} 秒后，地图随机位置出现一只兔子（小地图粉点），${RULE.rabbitLife} 秒后消失。守卫者走到它 ${RULE.rabbitReach} 范围内，选中兔子就能用<b>当局成就</b>买道具：4 种塔类之球（重新随机建造栏的某一类塔）、5 个木材、魔法药水（有魔法功勋的塔 +200，天神塔 +600）、知识药水、重修药水（属性选择那项 -6、技能点 +3，每局 1 支）。当局成就开局 ${RULE.startAch} 点（拒绝逃跑）再加账号成就档位 +0~10，每次 Perfect +${RULE.achPerPerfect}；守卫者的<b>兔子卷轴</b>（${RULE.rabbitScrollAch} 成就）可以额外召唤一次兔子。</p>
+    <p><b>英雄塔</b>：每次随机建造给出 1 个英雄塔（和原图随机模式一样），1500 金 + 5 木材 + 4 人口，还要 <b>${RULE.heroAch} 点当局成就</b>（建成扣掉），全场唯一，建造后不能回收。建成时随机给出力量 / 敏捷 / 智力的成长值（合计 10），每次升级按成长值加属性；属性选择决定杀精英怪 +1 的属性和满级后升级 +3 的属性。升级要 等级×100 金 + 200 魔法（英雄每击杀 +2 魔法）。学技能：第 1 个免费；第 2/3/4 个分别要 18/36/54 木材，且力量 ≥ 80/160/240，最多 4 个（第 5 个特殊技能有额外条件）。英雄有技能点：建成 3 点、每升一级 3~9 点，每点力量 / 敏捷 / 智力 +2 或随机。
       随机建造在原图随机模式的 17 个英雄里抽，原图的主动技能都是攻击时自动放。</p>
+    <p><b>账号成就</b>（玩家 ${escHtml(G.player || '—')}：${G.player ? profileLine(G.player) : '未登记'}）：开局输入的玩家名称代替原图的平台账号，同名继承点数，存在本机浏览器里。每到达新的一波 +${PROFILE.wave}、每次 Perfect +${PROFILE.perfect}、通关 +${PROFILE.clear}（演示模式不算）。
+      档位（开局当局成就加成）：${ACH_TIERS.map(([n, t], i) => `${t} ${n} 点 +${i + 1}`).join('、')}。</p>
     <p style="color:#7f9483;font-size:11px">命令图标的图形来自 <a href="https://game-icons.net" target="_blank" style="color:#9fc4a6">game-icons.net</a>（Lorc、Delapouite 等，CC BY 3.0）。</p>
     <div class="row"><button class="primary" id="m-close">继续游戏</button></div>`);
   $('m-close').onclick = () => { hideModal(); G.paused = was; };
