@@ -1,0 +1,40 @@
+{
+ "key": "hero:凤凰",
+ "src": "sprites/w3_hero_Units_Human_Phoenix_Phoenix.png",
+ "frameW": 240,
+ "frameH": 240,
+ "cols": 10,
+ "rows": 24,
+ "anchor": [
+  0.5,
+  0.62
+ ],
+ "unitsPerPixel": 2.0,
+ "pitch": 50,
+ "actions": {
+  "idle": {
+   "row": 0,
+   "dirs": 8,
+   "frames": 10,
+   "fps": 6.0,
+   "loop": true
+  },
+  "attack": {
+   "row": 8,
+   "dirs": 8,
+   "frames": 8,
+   "fps": 14,
+   "loop": false
+  },
+  "spell": {
+   "row": 16,
+   "dirs": 8,
+   "frames": 8,
+   "fps": 12,
+   "loop": false
+  }
+ },
+ "modelScale": 1.3,
+ "aliasOf": "model:hero:Units/Human/Phoenix/Phoenix",
+ "war3": true
+}

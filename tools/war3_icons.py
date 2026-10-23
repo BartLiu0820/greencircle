@@ -122,6 +122,8 @@ def main():
         put('icon:hero:' + n, U[h['id']].get('Art')); put('portrait:hero:' + n, U[h['id']].get('Art'))
         for i, s in enumerate(h['skills']):                    # 技能书里的 4~5 个技能（tools/add_heroes.py）
             put(f'icon:skill:{n}:{i}', A.get(s['id'], {}).get('Art'))
+        for i, s in enumerate(h.get('cmds', [])):             # 没有技能书的英雄：单位上的命令技能
+            put(f'icon:cmd:{n}:{i}', A.get(s['id'], {}).get('Art'))
     for uid in D['units']:
         put('portrait:unit:' + uid, U.get(uid, {}).get('Art'))
     put('portrait:builder', U[BUILDER_ID].get('Art'))
