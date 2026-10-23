@@ -19,7 +19,7 @@ OUT = os.path.join(ROOT, 'h5', 'assets', 'icons', 'war3')
 A = json.load(open(os.path.join(ROOT, 'analysis', 'raw', 'abilities_all.json'), encoding='utf8'))
 ITEMS = json.load(open(os.path.join(ROOT, 'analysis', 'raw', 'items_all.json'), encoding='utf8'))
 # 兔子（成就商店 nshe）卖的道具 + 兔子卷轴 + 地图中央商店（u00L）卖的道具：命令面板图标 ico:item-<物品 ID>
-SHOP_ITEMS = ['I00K', 'I00M', 'I00N', 'I00L', 'I01I', 'I01U', 'I02A', 'I00S'] + U['u00L']['Sellitems'].split(',')
+SHOP_ITEMS = ['I00K', 'I00M', 'I00N', 'I00L', 'I01I', 'I01U', 'I02A', 'I00Q', 'I00S'] + U['u00L']['Sellitems'].split(',')
 
 # 游戏里的通用命令（ico 名）→ 原图里对应技能的图标
 GENERIC = {

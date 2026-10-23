@@ -188,7 +188,7 @@ function kill(m, src) {
     const w = rint(1, 3); G.wood += w;
     const owner = src && (src.owner || src);
     if (owner && owner.isHero) {
-      owner.stat[owner.growth] += 1; msg(`英雄击杀精英怪：${statCN(owner.growth)} +1，木材 +${w}`);
+      const k = growthStat(owner); owner.stat[k] += 1; msg(`英雄击杀精英怪：${statCN(k)} +1，木材 +${w}`);
       const def = HERO_DEF[owner.heroName]; if (def.onElite) def.onElite(owner, src);
     }
     else msg(`击杀精英怪：木材 +${w}`);
@@ -497,7 +497,7 @@ function towerStats(t) {
   // 目标数只对弹射武器有意义：弹跳塔、通灵塔（武器类型 mbounce，3 个目标）。毒塔单位表里的 targCount 是普通飞弹，原图只打一个目标
   const targets = t.fam === '弹跳塔' || t.fam === '通灵塔' ? lv.targets || 1 : 1;
   const dmg = lv.dmg + (t.fam === '弹跳塔' ? BOUNCE.atkStep * G.bounce.atk : 0);     // 弹跳提升攻击（R000）加的是基础攻击
-  if (t.stats) { const x = t.stats(t); return { dmg: x.dmg ?? dmg, cd: (x.cd ?? lv.cd) / (1 + (x.as || 0)), range: lv.range, atk: lv.atk, targets }; }   // 英雄召唤物：攻击随英雄属性 / 科技变
+  if (t.stats) { const x = t.stats(t); return { dmg: x.dmg ?? dmg, cd: (x.cd ?? lv.cd) / Math.min(AS_CAP, 1 + (x.as || 0)), range: lv.range, atk: lv.atk, targets }; }   // 英雄召唤物：攻击随英雄属性 / 科技变
   return { dmg, cd: lv.cd, range: lv.range, atk: lv.atk, targets };
 }
 // WC3 的塔锁定目标：一直打同一个，直到它死掉或走出射程才重新找最近的（腐蚀、减速、重击就集中在一个目标上）
@@ -538,7 +538,17 @@ function shot(t, m) { t.face = Math.atan2(m.y - t.y, m.x - t.x); }
 // 这些都只加塔的基础攻击（attack() / heroAttack() 里乘进去），不加技能伤害
 const bv = (t, k) => t.buff && t.buff[k] && t.buff[k].until > G.t ? t.buff[k].v : 0;
 //   弹跳提升攻速（R001）是科技，和光环叠加
-const towerAS = t => (1 + Math.max(t.buffAS, t.selfAS || 0) + Math.max(bv(t, 'bloodlust'), t.selfAS2 || 0) + bv(t, 'fire') + (t.fam === '弹跳塔' ? BOUNCE.asStep * G.bounce.as : 0)) * (1 - t.eliteAS);
+// WC3 的攻速加成是一个总和（敏捷、技能、光环、嗜血、科技一起加），封顶 +400%（攻击间隔最多缩短到 1/5）。
+// 英雄 / 召唤物自身的攻速已经算进 towerStats 的 cd（ownAS），这里只乘上光环等加成，再按总和封顶
+const AS_CAP = 5;
+function ownAS(t) {
+  if (t.isHero) { const def = HERO_DEF[t.heroName], x = def.stats ? def.stats(t) : {}; return 1 + t.stat.agi * 0.01 + t.asBonus + (x.as || 0); }
+  return t.stats ? 1 + (t.stats(t).as || 0) : 1;
+}
+function towerAS(t) {
+  const own = ownAS(t), add = Math.max(t.buffAS, t.selfAS || 0) + Math.max(bv(t, 'bloodlust'), t.selfAS2 || 0) + bv(t, 'fire') + (t.fam === '弹跳塔' ? BOUNCE.asStep * G.bounce.as : 0);
+  return Math.min(AS_CAP, own + add) / Math.min(AS_CAP, own) * (1 - t.eliteAS);
+}
 //   神牛的神盾光辉（战鼓）和攻击光环叠加；古树的心灵之火另算
 const towerAtk = t => (1 + Math.max(t.buffDmg, t.selfAtk2 || 0) + (t.selfAtk || 0) + bv(t, 'roar') + bv(t, 'divine') + (t.drums || 0) + bv(t, 'innerfire')) * (1 - t.eliteWeak);
 
@@ -1403,8 +1413,6 @@ function hsum(h, x, y, life, lv, o = {}) {
   return summon(h, { fam: '召唤', title: o.title || '召唤物', label: o.label || '召', x, y, until: life ? G.t + life : undefined,
     levels: [{ dmg: 0, cd: 1, range: 600, atk: 'normal', targets: 1, abils: [], ...lv }], ...o });
 }
-// 原图里攻速加成封顶 +400%（单位攻击间隔最多缩短到 1/5）
-const AS_CAP = 5;
 // ---- 各英雄的数值表（技能表 / war3map.w3a 的 1~10 级数据）
 const JS = {   // 剑神
   storm: [20, 100, 300, 900, 1500, 2700, 3500, 5000, 12000, 30000],     // 剑刃风暴 A0I1：400 范围每秒伤害（等级 = 敏捷/24）
@@ -2032,7 +2040,8 @@ function plantAncient(h, x, y) {
 // init(h) 建成时    second(h) 每秒（原图 BGU 等 1 秒计时器）    tick(h, dt) 每帧    stats(h) → { dmg, as, multi, multiR } 攻击加成 / 弹幕
 // auras(h) → [{ x, y, r, kind, v }] 光环（kind：towerDmg / towerAS / drums 给塔，armor / slow / heroSlow 给敌人）
 // onLaunch(h, tg) 攻击出手时（在技能之前）    onKill(h, m, src) 英雄或召唤物杀敌    onElite(h, src)    anyAttack(h, t, tg) 任意塔攻击时
-// onLevel(h) 升级时（HERO_LEVEL）    onLevelBtn(h) 点"升级"时（原图 BaJ，在升级之前判断）    towerUpgraded(h, t)    cmds(h) 额外命令    info(h) 信息面板多的几行
+// onLevel(h) 升级时（HERO_LEVEL）    onLevelBtn(h) 点"升级"时（原图 BaJ，升级之后判断等级）    towerUpgraded(h, t)    cmds(h) 额外命令    info(h) 信息面板多的几行
+// randomStat 没有"属性选择"（A0CD）的英雄：杀精英 +1、满级升级 +3、知识药水、重修药水都改成随机一项（原图对 H05J 单独判断）
 const HERO_DEF = {
   剑神: {}, 火魂: {},
   枪神: {},
@@ -2057,9 +2066,9 @@ const HERO_DEF = {
   大巫师: {
     // 升级（HERO_LEVEL，原图 BMR 的 else 链：只取第一个学会的）
     onLevel(h) { if (learned(h, 0)) h.points++; else if (learned(h, 1)) h.stat.agi++; else if (learned(h, 2)) h.stat.int++; else if (learned(h, 3)) h.stat.str++; },
-    // 点"升级"时（BaJ，<30 级）：巫伤 技能点 +2，死亡呐喊 / 恐怖嚎叫 各 智力 +1
+    // 点"升级"时（BaJ，升级后 <30 级，所以 29→30 那次没有）：巫伤 技能点 +2，死亡呐喊 / 恐怖嚎叫 各 智力 +1
     onLevelBtn(h) { if (h.level >= 30) return; if (learned(h, 0)) h.points += 2; if (learned(h, 2)) h.stat.int++; if (learned(h, 1)) h.stat.int++; },
-    maxLevelRandom: true,
+    randomStat: true,
     cmds: h => [cmd('G', '祭', '巫祭', '<b>巫祭</b><br>献祭自己的一座塔（直接消失、不返还）：<br>巫医塔（3 木）力量 +30~60；巫术塔（3 木）敏捷 +30~60；巫法塔 随机一项 +60；巫魔塔（3 木）智力 +30~60<br>巫师塔（光明）→ 学会巫驱；巫师塔（暗黑）→ 学会巫缓（占技能名额，木材 / 力量要求同学习技能）',
       () => { G.pending = 'wuji'; G.placing = null; msg('巫祭：选择要献祭的塔（Esc 取消）'); uiDirty(); }, { active: G.pending === 'wuji', ico: 'learn' })],
   },
@@ -2277,7 +2286,7 @@ function buildHero(x, y) {
 // 攻击力 = 基础攻击 + 升级累计的 [力量/5] + 力量×5（StrAttackBonus）+ 技能 / 科技加成；攻速 = 1 + 敏捷×1%（AgiAttackSpeedBonus）+ 技能加成，封顶 +400%
 function heroStats(h) {
   const hd = D.heroes[h.heroName], def = HERO_DEF[h.heroName], x = def.stats ? def.stats(h) : {};
-  const as = Math.min(AS_CAP, 1 + h.stat.agi * 0.01 + h.asBonus + (x.as || 0));
+  const as = Math.min(AS_CAP, ownAS(h));
   return { dmg: hd.dmg + h.baseBonus + h.stat.str * 5 + (x.dmg || 0), cd: hd.cd / as, range: hd.range, atk: hd.atk, targets: 1, multi: x.multi || 0, multiR: x.multiR || hd.range };
 }
 function heroTick(h, dt) {
@@ -2398,8 +2407,7 @@ function heroLevelUp(h) {
   if (G.gold < gold) return msg('金币不足');
   if (h.mana < mana) return msg('魔法值不足（升级需要 ' + mana + ' 魔法）');
   G.gold -= gold; h.mana -= mana; h.spent += gold;
-  if (def.onLevelBtn) def.onLevelBtn(h);
-  if (max) { const k = def.maxLevelRandom ? pick(['str', 'agi', 'int']) : h.growth; h.stat[k] += 3; msg(`${statCN(k)} +3`); }
+  if (max) { const k = growthStat(h); h.stat[k] += 3; msg(`${statCN(k)} +3`); }
   else {
     h.level++;
     for (const k in h.stat) h.stat[k] += 1;
@@ -2408,9 +2416,12 @@ function heroLevelUp(h) {
     h.points += h.level <= 10 ? 3 : h.level <= 20 ? 4 : h.level <= 29 ? 5 : 9;
     if (def.onLevel) def.onLevel(h);
   }
+  if (def.onLevelBtn) def.onLevelBtn(h);
   SFX.ui('levelup', { x: h.x, y: h.y });
   uiDirty();
 }
+// 属性选择那一项；没有属性选择的英雄（大巫师）每次随机一项
+const growthStat = h => HERO_DEF[h.heroName].randomStat ? pick(['str', 'agi', 'int']) : h.growth;
 // 技能点（原图英雄技能 A05Y / A060 / A05Z / A0FL，学了就移除，所以能一直学）：力量 / 敏捷 / 智力 +2；随机：5% 某项 +3，25% 某项 +2，3% 某项 +4，1% 全 +2
 function spendPoint(h, k) {
   if (h.points < 1) return msg('没有技能点');
@@ -2686,18 +2697,28 @@ function startFinal() {
 // 原图 nshe：中立单位，模型是复活节兔子（放大 3 倍），刷在可玩区域内随机一点，小地图闪烁，60 秒后"咕~"一声消失
 const RABBIT_TALK = ['跑圈啦! 跑圈啦!跑圈啦!', '咦，人呢？找不到我！啦啦啦！', '别过来，你们都别过来！我就只是想逛逛圈圈而已！',
   '这些宠物一点都比不上我，我是说速度！1，2，3虚浮！', '主塔后面不补塔，一看就是个麻瓜！', '我真希望能永远在大家身边！T。T'];
-// 兔子卖的东西（原图 nshe 的物品栏，analysis/data/shops.json）。药水原图是买下后对塔使用；单人只有一个英雄塔，买下直接用在英雄塔上。
-// 没做：天赋秘籍（本复刻没有光环天赋）、重修药水（没有属性点）、许愿点（没有许愿商人）、卖东西 1/20 掉糖果（没有宠物）
+// 兔子卖的东西（原图 nshe 的物品栏，analysis/data/shops.json）。药水原图是买下后对塔使用：知识 / 重修药水只能对英雄用，单人只有一个英雄塔，买下直接用在英雄塔上；
+// 魔法药水要选目标（放进守卫者物品栏）。没做：天赋秘籍（本复刻没有光环天赋）、许愿点（没有许愿商人）、卖东西 1/20 掉糖果（没有宠物）
+// 魔法药水的目标（原图 BKO：有这些功勋 / 魔法技能的塔 +200，天神塔 +600；英雄没有这些技能，用不了）
+const MP_POTION_FAMS = new Set(['扫射塔', '天将塔', '巫妖塔', '剑圣塔', '魔幻塔', '风行塔', '寒冰塔', '将军塔', '神圣塔', '人马塔', '银行塔', '五行塔', '燃烧塔', '破坏塔', '小熊猫塔', '死亡塔', '狂狼塔', '深渊塔', '兽王塔', '弹跳塔']);
 const RABBIT_SHOP = [
   { id: 'I00K', key: 'Q', name: '原始之球', ach: 2, wood: 1, tip: '随机 1 次建造栏的原始塔', use: () => rerollSlot('raw') },
   { id: 'I00M', key: 'W', name: '光环之球', ach: 2, wood: 1, tip: '随机 1 次建造栏的光环塔', use: () => rerollSlot('aura') },
   { id: 'I00N', key: 'E', name: '辅助之球', ach: 2, wood: 1, tip: '随机 1 次建造栏的 2 个辅助塔', use: () => rerollSlot('sup') },
   { id: 'I00L', key: 'R', name: '另类之球', ach: 2, wood: 1, tip: '随机 1 次建造栏的另类塔', use: () => rerollSlot('alt') },
   { id: 'I01I', key: 'A', name: '5个木材', ach: 1, gold: 2500, cd: 1, tip: '购买 5 个木材', use: () => { G.wood += 5; msg('木材 +5'); } },
-  { id: 'I01U', key: 'S', name: '魔法药水', ach: 2, gold: 4000, cd: 6, hero: true, tip: '英雄塔获得 200 点魔法',
-    use: h => { h.mana = Math.min(h.maxMana(), h.mana + 200); msg(`${h.heroName} 魔法 +200`); } },
-  { id: 'I02A', key: 'D', name: '知识药水', ach: 3, gold: 2500, cd: 6, hero: true, max: 6, tip: '英雄塔当前成长属性 +7~12 点（每局最多 6 支）',
-    use: h => { const v = rint(7, 12); h.stat[h.growth] += v; msg(`${h.heroName} ${statCN(h.growth)} +${v}`); } },
+  { id: 'I01U', key: 'S', name: '魔法药水', ach: 2, gold: 4000, cd: 6, inv: true, range: 600,
+    tip: '对一座有魔法功勋的塔（魔幻、剑圣、寒冰、神圣、扫射、银行、弹跳塔 MAX 等）使用，获得 200 点魔法；天神塔获得 600 点魔法<br>英雄塔不能使用',
+    pick: '魔法药水：选择有魔法功勋的塔（Esc 取消）',
+    ok: t => !t || t.isHero || !(t.fam === '天神塔' || (MP_POTION_FAMS.has(t.fam) && t.maxMana > 0 && (t.fam !== '弹跳塔' || t.bmax))) ? '添加失败，该单位无魔法功勋' : null,
+    use: t => { const v = t.fam === '天神塔' ? 600 : 200; addMana(t, v); msg(`${curLevel(t).name} 魔法 +${v}`); } },
+  { id: 'I02A', key: 'D', name: '知识药水', ach: 3, gold: 2500, cd: 6, hero: true, max: 6, tip: '英雄塔属性选择那一项 +7~12 点（大巫师随机一项，每局最多 6 支）',
+    use: h => { const v = rint(7, 12), k = growthStat(h); h.stat[k] += v; msg(`${h.heroName} ${statCN(k)} +${v}`); } },
+  { id: 'I00Q', key: 'F', name: '重修药水', ach: 3, cd: 6, hero: true, max: 1, tip: '英雄塔属性选择那一项 -6 点（大巫师随机一项），获得 3 点技能点<br>三项属性都要 ≥7 才能用（每局最多 1 支）',
+    use: h => {
+      if (h.stat.str < 7 || h.stat.agi < 7 || h.stat.int < 7) { msg('英雄三项属性都要 ≥7 才能重修'); return false; }
+      const k = growthStat(h); h.stat[k] -= 6; h.points += 3; msg(`英雄重修${statCN(k)} 6 点，技能点 +3`);
+    } },
 ];
 function spawnRabbit(by) {
   const lim = BUILD_LIM - 150;
@@ -2754,6 +2775,7 @@ function rabbitBlock(it) {
 }
 function buyRabbit(it) {
   const why = rabbitBlock(it); if (why) return msg(why);
+  if (it.inv) { G.inv[G.inv.indexOf(null)] = it; payItem(it); msg(`${it.name}放进了守卫者的物品栏：选中守卫者，点物品再点目标使用`); return; }
   if (it.use(G.hero) === false) return;
   payItem(it);
 }
@@ -3975,13 +3997,13 @@ function buildCmds() {
         { ...skIco(i), passive: true, cdOf: kit.cdKey ? () => [cdLeft(h, kit.cdKey), kit.cd(h)] : undefined }));
     }
     // 第二行：属性选择（杀精英 +1、满级升级 +3 的那项）+ 技能点
-    for (const [k, st, nm] of [['A', 'str', '力量'], ['S', 'agi', '敏捷'], ['D', 'int', '智力']])
+    if (!def.randomStat) for (const [k, st, nm] of [['A', 'str', '力量'], ['S', 'agi', '敏捷'], ['D', 'int', '智力']])
       out.push(cmd(k, nm.slice(0, 1), '属性选择：' + nm, `属性选择<b>${nm}</b>：每杀死 1 个精英怪，${nm} +1；满级后再升级 ${nm} +3`, () => { h.growth = st; uiDirty(); }, { active: h.growth === st, ico: st }));
     out.push(cmd('F', '点', `技能点（${h.points}）`, `<b>技能点 ${h.points}</b><br>每点可以加 2 点力量 / 敏捷 / 智力，或随机。建成时 3 点；升级时 ≤10 级 +3、≤20 级 +4、≤29 级 +5、30 级 +9`,
       () => { G.menu = 'points'; uiDirty(); }, { ico: 'upgrade', disabled: h.points < 1 }));
     // 第三行：升级、学习技能、英雄自己的命令
     const maxed = h.level >= 30, g = maxed ? 500 : h.level * 100, mp = maxed ? 400 : 200;
-    out.push(cmd('U', '↑', '升级', `需要 <b>${g} 金币 + ${mp} 魔法</b><br>${maxed ? `满级后：${def.maxLevelRandom ? '随机一项' : '所选属性'} +3` : `等级 +1：全属性 +1 再按成长值加（力量 +${h.grow.str} · 敏捷 +${h.grow.agi} · 智力 +${h.grow.int}），基础攻击 +[力量/5]，技能点 +${h.level + 1 <= 10 ? 3 : h.level + 1 <= 20 ? 4 : h.level + 1 <= 29 ? 5 : 9}`}`,
+    out.push(cmd('U', '↑', '升级', `需要 <b>${g} 金币 + ${mp} 魔法</b><br>${maxed ? `满级后：${def.randomStat ? '随机一项' : '所选属性'} +3` : `等级 +1：全属性 +1 再按成长值加（力量 +${h.grow.str} · 敏捷 +${h.grow.agi} · 智力 +${h.grow.int}），基础攻击 +[力量/5]，技能点 +${h.level + 1 <= 10 ? 3 : h.level + 1 <= 20 ? 4 : h.level + 1 <= 29 ? 5 : 9}`}`,
       () => heroLevelUp(h), { disabled: G.gold < g || h.mana < mp, ico: 'upgrade', cost: g }));
     const canUp = h.learned.some(i => (kits[i].relearn && h.qs[i] < 2) || kits[i].up);
     out.push(cmd('L', '书', '学习技能', `最多 4 个。第 1 个免费，第 2/3/4 个需要木材 18/36/54，力量 ≥ 80/160/240${canUp ? '<br>学会的技能有的可以再次学习' : ''}`, () => { G.menu = 'skills'; uiDirty(); }, { ico: 'learn', disabled: h.learned.length >= 4 && !canUp }));
@@ -4273,7 +4295,7 @@ function showHelp() {
     <p><b>资源</b>：起手 2000 金、5 木；12 木 = 1 人口；1 木 = 300 金。回收塔返还 100% 金币。</p>
     <p><b>死亡之指</b>：守卫者的技能（热键 X），对 800 范围内的一个敌人使用，直接杀死它；BOSS 只扣一部分生命。冷却 90 秒，耗 5 点魔法（守卫者魔法上限 10）。</p>
     <p><b>商店</b>：地图中央，守卫者走到 ${RULE.shopReach} 范围内选中商店购买：1 个木材（500 金，冷却 30 秒）、10 个木材（5000 金，冷却 300 秒）、魔力卷轴（英雄塔 +120 魔法）、知识之书（英雄塔随机属性 +10）、天赋卷轴（15 木，MAX 光环塔激活基础天赋，开局 1200 秒后开放）。三种卷轴买下后放进守卫者的<b>物品栏</b>（6 格），选中守卫者点物品（或小键盘 7 8 4 5 1 2），再点目标塔，守卫者走到施法距离内使用。复制 / 收购卷轴要对队友使用，单人用不了。</p>
-    <p><b>兔子</b>：每个 BOSS 波（10/20/30/40 波、最终波）开始 ${RULE.rabbitDelay} 秒后，地图随机位置出现一只兔子（小地图粉点），${RULE.rabbitLife} 秒后消失。守卫者走到它 ${RULE.rabbitReach} 范围内，选中兔子就能用<b>当局成就</b>买道具：4 种塔类之球（重新随机建造栏的某一类塔）、5 个木材、魔法药水、知识药水。当局成就开局 ${RULE.startAch} 点，每次 Perfect +${RULE.achPerPerfect}；守卫者的<b>兔子卷轴</b>（${RULE.rabbitScrollAch} 成就）可以额外召唤一次兔子。</p>
+    <p><b>兔子</b>：每个 BOSS 波（10/20/30/40 波、最终波）开始 ${RULE.rabbitDelay} 秒后，地图随机位置出现一只兔子（小地图粉点），${RULE.rabbitLife} 秒后消失。守卫者走到它 ${RULE.rabbitReach} 范围内，选中兔子就能用<b>当局成就</b>买道具：4 种塔类之球（重新随机建造栏的某一类塔）、5 个木材、魔法药水（有魔法功勋的塔 +200，天神塔 +600）、知识药水、重修药水（属性选择那项 -6、技能点 +3，每局 1 支）。当局成就开局 ${RULE.startAch} 点，每次 Perfect +${RULE.achPerPerfect}；守卫者的<b>兔子卷轴</b>（${RULE.rabbitScrollAch} 成就）可以额外召唤一次兔子。</p>
     <p><b>英雄塔</b>：每次随机建造给出 1 个英雄塔（和原图随机模式一样），1500 金 + 5 木材 + 4 人口，全场唯一，建造后不能回收。建成时随机给出力量 / 敏捷 / 智力的成长值（合计 10），每次升级按成长值加属性；属性选择决定杀精英怪 +1 的属性和满级后升级 +3 的属性。升级要 等级×100 金 + 200 魔法（英雄每击杀 +2 魔法）。学技能：第 1 个免费；第 2/3/4 个分别要 18/36/54 木材，且力量 ≥ 80/160/240，最多 4 个（第 5 个特殊技能有额外条件）。英雄有技能点：建成 3 点、每升一级 3~9 点，每点力量 / 敏捷 / 智力 +2 或随机。
       随机建造在原图随机模式的 17 个英雄里抽，原图的主动技能都是攻击时自动放。</p>
     <p style="color:#7f9483;font-size:11px">命令图标的图形来自 <a href="https://game-icons.net" target="_blank" style="color:#9fc4a6">game-icons.net</a>（Lorc、Delapouite 等，CC BY 3.0）。</p>

@@ -523,6 +523,7 @@ window.ASSET_MANIFEST.sprites = Object.assign(window.ASSET_MANIFEST.sprites || {
  "ico:item-I01I": "icons/war3/BTNBundleOfLumber.png",
  "ico:item-I01U": "icons/war3/BTNVialFull.png",
  "ico:item-I02A": "icons/war3/BTNGreaterInvisibility.png",
+ "ico:item-I00Q": "icons/war3/BTNLesserInvulneralbility.png",
  "ico:item-I00S": "icons/war3/BTNScroll.png",
  "ico:item-I001": "icons/war3/BTNBundleOfLumber.png",
  "ico:item-I002": "icons/war3/BTNBundleOfLumber.png",
