@@ -6,7 +6,9 @@
  * 地块和魔兽一样定义在格点上（每 64 单位一个，和建造网格的格子中心重合），每个格子按四个角的地块从低到高叠图：
  * 最低的一层画整块（偶尔用带花草碎石的变体），更高的每层按"哪几个角是这种地块"取图集左边 4×4 里对应的过渡遮罩。
  * 地面按 16×16 格分块，用到时才画、画好缓存；镜头拉远时改用一张低分辨率的整图。
- * 用法：const T = Terrain.create({ world, roadSegs, roadHalf, spawns, center });
+ * 传了 map（assets/w3map.js，tools/war3_map.py 导出的原图 w3e 地块和 doo 树）时，地块和树都照原图摆：格点间距 128（和魔兽一样，一格贴图 64 像素），
+ * 不传时按路网程序生成（格点间距 64）。
+ * 用法：const T = Terrain.create({ world, roadSegs, roadHalf, spawns, center, map });
  *       每帧 T.drawGround(ctx, view, t)；T.drawTrees(ctx, view)（在单位之前画）；T.drawOverlay(ctx, view)（最后画）
  *       view = { W, H, S, cx, cy }：画布像素尺寸、每世界单位的像素数、镜头中心（世界坐标，y 朝上）
  *       3D 镜头时 view 还带 sx(x, y, z) / sy(y, z) / k(y)（透视投影、y 处每世界单位的像素数）：地块和树由 units3d.js 画
@@ -18,15 +20,16 @@ const rng = seed => () => { seed = (seed * 1664525 + 1013904223) >>> 0; return s
 const hash = (i, j) => { let h = Math.imul(i, 374761393) + Math.imul(j, 668265263) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
 const mkCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
 const DATA = window.W3_TERRAIN;
-const T = 64;                                    // 格点间距（世界单位）
 const CH = 16;                                   // 每块多少格
 const HI = 64;                                   // 高清块：每格像素（= 原版贴图一格的像素）
 const LO = 12;                                   // 低清整图：每格像素
 const PRIO = ['Zvin', 'Crck', 'cZc1', 'Lgrd', 'Arck'];   // 叠放顺序（原图 w3e 地块表的顺序，后面的盖在前面上）
 const PLAIN = [0, 15, 16, 17, 20, 21];           // 整块时常用的几格（较素）；其余变体（花草、碎石）偶尔用
 
-function create({ world, roadSegs, roadHalf, spawns = [], center = [0, 0] }) {
+function create({ world, roadSegs, roadHalf, spawns = [], center = [0, 0], map = null }) {
   const R = rng(1234);
+  const ground = map && map.ground;
+  const T = ground ? ground.step : 64;           // 格点间距（世界单位）
   // 横平竖直的路段：到路中线的"方形距离"（切比雪夫距离），让拐角是方的，和原图一样
   const roadDist = (x, y) => {
     let m = Infinity;
@@ -40,11 +43,14 @@ function create({ world, roadSegs, roadHalf, spawns = [], center = [0, 0] }) {
   const cheb = (x, y, p) => Math.max(Math.abs(x - p[0]), Math.abs(y - p[1]));
 
   // ------------------------------------------------ 格点地块
-  const N = Math.ceil((world + 420) / T);        // 格点范围 -N..N
+  const N = ground ? (ground.w - 1) / 2 : Math.ceil((world + 420) / T);   // 格点范围 -N..N
   const NV = 2 * N + 1;
   const vt = new Uint8Array(NV * NV);
   const K = Object.fromEntries(PRIO.map((k, i) => [k, i]));
-  for (let j = 0; j < NV; j++) for (let i = 0; i < NV; i++) {
+  if (ground) {                                  // 原图 w3e：格点 (i, j) 在 (ox + i×step, oy + j×step)，地块名转成叠放顺序
+    const idx = ground.names.map(n => K[n] ?? K.Lgrd);
+    for (let k = 0; k < NV * NV; k++) vt[k] = idx[+ground.t[k]];
+  } else for (let j = 0; j < NV; j++) for (let i = 0; i < NV; i++) {
     const x = (i - N) * T, y = (j - N) * T, d = roadDist(x, y), ds = Math.min(Infinity, ...spawns.map(p => cheb(x, y, p)));
     const ax = Math.abs(x - center[0]), ay = Math.abs(y - center[1]);
     let k = 'Lgrd';
@@ -117,16 +123,18 @@ function create({ world, roadSegs, roadHalf, spawns = [], center = [0, 0] }) {
 
   // ------------------------------------------------ 树墙
   const trees = [];
-  const TREE_SCALE = 0.62;                       // 地图整体缩小了，树也跟着按比例缩小（和格子的比例与原图一致）
+  const TREE_SCALE = 0.62;                       // 程序生成的地图比原图小，树也跟着按比例缩小（原图的树用 doo 里的缩放）
   const tlist = DATA ? DATA.trees.list : [];
-  const pickTree = () => {
-    let r = R(), id = 'VTlt';
-    for (const [k, w] of Object.entries(DATA.trees.weight)) { if ((r -= w) < 0) { id = k; break; } }
+  const pickTree = (id) => {
+    let r = R();
+    if (!id) { id = 'VTlt'; for (const [k, w] of Object.entries(DATA.trees.weight)) { if ((r -= w) < 0) { id = k; break; } } }
     const opts = tlist.filter(t => t.id === id);
     return opts[(R() * opts.length) | 0];
   };
-  const addTree = (x, y) => trees.push({ x, y, t: pickTree(), s: TREE_SCALE * (0.85 + R() * 0.3), flip: R() < 0.5 });
-  if (DATA) {
+  const addTree = (x, y, id, s) => trees.push({ x, y, t: pickTree(id), s: s ?? TREE_SCALE * (0.85 + R() * 0.3), flip: R() < 0.5 });
+  if (DATA && map) {                             // 原图 doo 里的树（出怪口围栏一圈）；YTct 城市树墙没有贴图，按乡村树墙画
+    for (const [id, x, y, sc] of map.trees) addTree(x, y, id === 'YTct' ? 'VTlt' : id, sc);
+  } else if (DATA) {
     // 地图边缘：建造区外一圈，越往外越密
     for (let y = -L; y <= L; y += T) for (let x = -L; x <= L; x += T) {
       const out = Math.max(Math.abs(x), Math.abs(y)) - world;

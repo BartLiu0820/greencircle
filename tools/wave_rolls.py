@@ -17,8 +17,10 @@ TRIG = {}                                         # 触发器变量 → 动作�
 for f in FUNCS.values():
     for t, fn in re.findall(r'TriggerAddAction\((\w+),function (\w+)\)', f): TRIG[t] = fn
 SPAWNER = {'RT': '多', 'RU': '中', 'RV': '少'}    # 0.25 秒 ×62 / 0.6 秒 ×32 / 1 秒 ×15（周期见 TriggerRegisterTimerEventPeriodic）
-GATES = ['I', 'p', 'm', 'o', 'r', 'q', 'n', 'u']  # 8 个出怪口（出怪器 wv 依次在这些区域刷怪）；单人只用第 1 个
-ONE_OF = ['K', 'X', 'i', 'N', 'Q', 'U', 'e', 'a']  # BOSS 波"全图随机一个出怪口刷 1 只"用的区域：单人一律刷在自己的口
+GATES = ['I', 'p', 'm', 'o', 'r', 'q', 'n', 'u']  # 8 个出怪口（Qu[1..8]，出怪器 wv 依次在这些区域刷怪）
+ONE_OF = ['K', 'X', 'i', 'N', 'Q', 'U', 'e', 'a']  # 出怪路的拐点：BOSS 波"全图随机一个出怪口刷 1 只"有的刷在这里
+# 刷怪位置记成出怪口写法（游戏里按开着的出怪口结算，见 game.js 的 gateSpots）：
+#   'each' 8 个口各 1 只；[a, b] 第 a~b 个口随机一个；区域名 刷在这个出怪口 / 拐点；'any' 沿用上一个函数里的位置（全图只刷 1 只）
 VARS = ('DC', 'DW', 'HI', 'IR', 'IQ')
 MARK = re.compile(r'"\|c008000FF(第.{1,6}波开始|BOSS波开始|熊猫Boss波开始|30秒后最终Boss波——龙 开启)\|r"')
 UNKNOWN = set()
@@ -78,7 +80,7 @@ def run(stmts, paths, ctx):
     for s in stmts:
         nxt = []
         for p, st in paths:
-            if s[0] == 'loop':                    # 8 个出怪口的循环：单人只走第 1 个口
+            if s[0] == 'loop':                    # 8 个出怪口的循环：每个口各刷 1 只
                 st = dict(st, loopgate=True); r = run(s[1], [(p, st)], ctx)
                 nxt += [(q, dict(t, loopgate=False)) for q, t in r]
             elif s[0] == 'if':
@@ -120,24 +122,26 @@ def step(l, st, ctx):
     if m: return ev(st, ['sc', m[1]])
     m = re.match(r'call EnableTrigger\((R[TUV])\)', l)
     if m: return ev(st, ['sp', SPAWNER[m[1]]])
+    m = re.match(r'set (\w+(?:\[\w+\])?)=GetRandomLocInRect\(Qu\[GetRandomInt\((\d+),(\d+)\)\]\)', l)
+    if m: return dict(st, locs={**st['locs'], m[1]: [int(m[2]), int(m[3])]})
     m = re.match(r'set (\w+(?:\[\w+\])?)=Get(?:RandomLoc|RectCenter)\w*\((\w+)\)', l)
     if m: return dict(st, locs={**st['locs'], m[1]: m[2]})
     m = re.match(r"call CreateNUnitsAtLoc\((\d+),'(\w{4})'[^,]*,Player\(11\),([^,]+),", l)
     if m:
         n, uid, loc = int(m[1]), m[2], m[3]
-        if loc == 'Uk[GetForLoopIndexA()]' or loc == 'Sb[GetForLoopIndexA()]': mine = st.get('loopgate', False)
-        elif loc.startswith('Uk[GetRandomInt('): mine = loc.startswith('Uk[GetRandomInt(1,')   # 前 4 个口随机一个、后 4 个口随机一个：单人算 1 只
-        elif loc in ('Qr', 'Oe') and loc not in st['locs']: mine = True      # 沿用上一个函数里的位置：全图只刷 1 只，单人就刷在自己的口
+        r = re.match(r'Uk\[GetRandomInt\((\d+),(\d+)', m.string[m.start(3):])
+        if loc == 'Uk[GetForLoopIndexA()]' or loc == 'Sb[GetForLoopIndexA()]': gate = 'each' if st.get('loopgate') else None
+        elif r: gate = [int(r[1]), int(r[2])]                              # Uk[GetRandomInt(1,4)] / Uk[GetRandomInt(5,8)]
+        elif loc in ('Qr', 'Oe') and loc not in st['locs']: gate = 'any'   # 沿用上一个函数里的位置：全图只刷 1 只
         else:
             rect = st['locs'].get(loc) or ('I' if loc in ('Uk[1]', 'Sb[1]') else None)
-            if rect is None and loc in ('Qr', 'Oe'): rect = st['locs'].get(loc)
-            mine = rect in ('I', 'K') or rect in ONE_OF
-            if rect is None: UNKNOWN.add('loc ' + loc); mine = False
-        return ev(st, ['mk', uid, n]) if mine else st
+            gate = rect if isinstance(rect, list) or rect in GATES or rect in ONE_OF else None
+            if rect is None: UNKNOWN.add('loc ' + loc)
+        return ev(st, ['mk', uid, n, None, gate]) if gate else st
     m = re.match(r"call UnitApplyTimedLifeBJ\(([\d.]+),", l)
     if m and st['ev'] and st['ev'][-1][1][0] == 'mk':           # 给刚刷出的单位限时（如 48 波的魔王 60 秒）
         t, e = st['ev'][-1]
-        return dict(st, ev=st['ev'][:-1] + ((t, e[:3] + [float(m[1])]),))
+        return dict(st, ev=st['ev'][:-1] + ((t, e[:3] + [float(m[1])] + e[4:]),))
     m = re.match(r'call (?:Conditional)?TriggerExecute\((\w+)\)', l)
     if m and TRIG.get(m[1]) in ctx['chain']:
         return dict(st, next=TRIG[m[1]], nextAt=round(st['t'] - st['mark'], 2) if st['mark'] is not None else 0)

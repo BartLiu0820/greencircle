@@ -38,46 +38,45 @@ const COUNTER = { '物理': 'magic', '抗性': 'normal', '魔法': 'pierce', '�
 const SPAWNER = { '多': { every: 0.25, count: 62 }, '中': { every: 0.6, count: 32 }, '少': { every: 1.0, count: 15 } };
 const CAT_CN = { main: '主塔', raw: '原始塔', sup: '辅助塔', aura: '光环塔', alt: '另类塔', hero: '英雄塔', big: '大辅助', witch: '巫系辅助', uniq: '全场唯一', evo: '大辅助（进化）', summon: '召唤物' };
 
-// ---------------------------------------------------------------- 路线 (由地图 region + 移动指令还原)
-// 原图 8 名玩家的塔遍布整个环；单人时把路线整体缩小到 MAP_SCALE，让塔的射程覆盖更多路段（射程、移速等数值不变）
-const MAP_SCALE = 0.55;
-const NODES_RAW = {
-  // 外环
-  L: [-3856, 3888], Z: [0, 3888], Y: [3888, 3840], k: [3888, 16], j: [3840, -3888], P: [0, -3888], O: [-3888, -3840], M: [-3888, 0],
-  // 内环
-  S: [-2864, 2848], l: [0, 2768], W: [2832, 2880], h: [2768, 0], g: [2864, -2864], d: [-16, -2768], c: [-2880, -2880], T: [-2768, 0],
-  // 四角出怪口：左上 I → K → L（红色玩家），右上 p → X → Y，右下 m → i → j，左下 o → N → O
-  I: [-4864, 5216], K: [-4864, 3776], p: [5216, 4880], X: [3744, 4864], m: [4832, -5264], i: [4800, -3744], o: [-5248, -4832], N: [-3808, -4768],
+// ---------------------------------------------------------------- 地图（原图 8 人布局：世界坐标就是 WC3 地图坐标）
+// 路网、出怪口、能不能建造、镜头范围都照原图：tools/war3_map.py 从地图包导出寻路图（wpm）、地块（w3e）、树（doo）和区域（assets/w3map.js）
+const W3MAP = window.W3_MAP;
+const rectMid = k => { const [a, b, c, d] = W3MAP.rects[k]; return [(a + c) / 2, (b + d) / 2]; };
+// 路中线（原图路面 256 宽，寻路图上不能建造的一条 384 宽）：外环 ±3840、内环 ±2816、中心 4 条支路 ±1792 / ±768、四角出怪路 ±4864。
+// 节点名是原图的区域名（war3map.j 的 Rect）：怪走进区域时被下令走向下一个区域
+const RO = 3840, RI = 2816, RC = 1792, RS = 768, RG = 4864;
+const NODES = {
+  // 外环、内环（四角和四边中点）
+  L: [-RO, RO], Z: [0, RO], Y: [RO, RO], k: [RO, 0], j: [RO, -RO], P: [0, -RO], O: [-RO, -RO], M: [-RO, 0],
+  S: [-RI, RI], l: [0, RI], W: [RI, RI], h: [RI, 0], g: [RI, -RI], d: [0, -RI], c: [-RI, -RI], T: [-RI, 0],
+  // 四角出怪口 → 拐点 → 外环角
+  I: [-RG, rectMid('I')[1]], K: [-RG, RO], p: [rectMid('p')[0], RG], X: [RO, RG], m: [RG, rectMid('m')[1]], i: [RG, -RO], o: [rectMid('o')[0], -RG], N: [-RO, -RG],
+  // 中心四个出怪口 → 拐点 → 内环边上的路口（R / V / f / b 在内环上，内环的怪路过时直行）
+  r: [-RS, RS], Q: [-RC, RS], R: [-RC, RI], q: [RS, RS], U: [RS, RC], V: [RI, RC], n: [RS, -RS], e: [RC, -RS], f: [RC, -RI], u: [-RS, -RS], a: [-RS, -RC], b: [-RI, -RC],
 };
-// 缩放后对齐到建造网格：路的中线都落在格子中心（64 的倍数），并且全部横平竖直，
-// 这样路两侧的可建造区是整齐的矩形。内外环中线相距 11 格 = 路占 5 格 + 两排塔（每座 3×3 格）。
-const CELL = 64, TOWER_CELLS = 3, ROAD_BLOCK = 160;            // ROAD_BLOCK：路中线两侧各 2.5 格不能建造
-const RING_OUT = 33 * CELL, RING_IN = RING_OUT - 11 * CELL;     // 2112 / 1408
-const NODES = (() => {
-  const o = RING_OUT, i = RING_IN;
-  return {
-    L: [-o, o], Z: [0, o], Y: [o, o], k: [o, 0], j: [o, -o], P: [0, -o], O: [-o, -o], M: [-o, 0],
-    S: [-i, i], l: [0, i], W: [i, i], h: [i, 0], g: [i, -i], d: [0, -i], c: [-i, -i], T: [-i, 0],
-    I: [-42 * CELL, 45 * CELL], K: [-42 * CELL, o], p: [45 * CELL, 42 * CELL], X: [o, 42 * CELL],
-    m: [42 * CELL, -45 * CELL], i: [42 * CELL, -o], o: [-45 * CELL, -42 * CELL], N: [-o, -42 * CELL],
-  };
-})();
 const EDGES = [
   ['L', 'Z'], ['Z', 'Y'], ['Y', 'k'], ['k', 'j'], ['j', 'P'], ['P', 'O'], ['O', 'M'], ['M', 'L'],
-  ['S', 'l'], ['l', 'W'], ['W', 'h'], ['h', 'g'], ['g', 'd'], ['d', 'c'], ['c', 'T'], ['T', 'S'],
+  ['S', 'R'], ['R', 'l'], ['l', 'W'], ['W', 'V'], ['V', 'h'], ['h', 'g'], ['g', 'f'], ['f', 'd'], ['d', 'c'], ['c', 'b'], ['b', 'T'], ['T', 'S'],
   ['M', 'T'], ['Z', 'l'], ['k', 'h'], ['P', 'd'],
 ];
-// 原图 8 个出怪口：四角各一个进外环、中心四个进内环。单人只开左上角那个；另外三个角先摆出来，留给以后多人联机
-const SPAWN_GATES = [['I', 'K', 'L'], ['p', 'X', 'Y'], ['m', 'i', 'j'], ['o', 'N', 'O']];
-const SPAWN_PATH = SPAWN_GATES[0];
+// 原图 8 个出怪口，顺序是 Qu[1..8]（出怪器 wv 依次在 I p m o r q n u 刷怪，BOSS 波"Qu[随机]"也按这个编号）。
+// 开几个口由参与人数决定：N 人开前 N 个（单人只开左上角 I；8 人全开，和原图一样）
+const GATES = [['I', 'K', 'L'], ['p', 'X', 'Y'], ['m', 'i', 'j'], ['o', 'N', 'O'], ['r', 'Q', 'R'], ['q', 'U', 'V'], ['n', 'e', 'f'], ['u', 'a', 'b']];
+const MAX_PLAYERS = GATES.length;
 const ADJ = {};
 for (const [a, b] of EDGES) { (ADJ[a] = ADJ[a] || []).push(b); (ADJ[b] = ADJ[b] || []).push(a); }
-const ROAD_SEGS = EDGES.concat(SPAWN_GATES.flatMap(([a, b, c]) => [[a, b], [b, c]])).map(([a, b]) => [NODES[a], NODES[b]]);
-const GATE_POS = SPAWN_GATES.map(g => NODES[g[0]]);
-const ROAD_HALF = 110;   // 路宽一半
-const SHOP = { isShop: true, x: 0, y: 64 };             // 原图 CreateUnit(Player(15),'u00L',0,128)，按 MAP_SCALE 缩放后对齐网格
-const WORLD = Math.round(6000 * MAP_SCALE);
-const BUILD_LIM = 3168;  // 可建造区外边界（格子边线）
+const ROAD_SEGS = EDGES.concat(GATES.flatMap(([a, b, c]) => [[a, b], [b, c]])).map(([a, b]) => [NODES[a], NODES[b]]);
+const GATE_POS = GATES.map(g => NODES[g[0]]);
+const ROAD_HALF = 128;   // 路宽一半
+const SHOP = { isShop: true, x: 0, y: 128 };            // 原图 CreateUnit(Player(15),'u00L',0,128)
+const WORLD = 6016;                                     // 可玩区域 94×94 格（w3i），±6016
+const CAM_LIM = W3MAP.camera;                           // 镜头中心的范围（w3i 的镜头边界）
+// 寻路图：32 单位一格，"不能建造"的位图（不能行走的地图边界也算）
+const PATHING = (() => {
+  const p = W3MAP.pathing, bin = atob(p.nobuild), bits = new Uint8Array(bin.length);
+  for (let k = 0; k < bin.length; k++) bits[k] = bin.charCodeAt(k);
+  return { n: p.n, cell: p.cell, origin: p.origin, nobuild: (i, j) => i < 0 || j < 0 || i >= p.n || j >= p.n || (bits[(j * p.n + i) >> 3] >> ((j * p.n + i) & 7) & 1) === 1 };
+})();
 
 // ---------------------------------------------------------------- 工具
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -97,18 +96,22 @@ const abil = (lv, code) => (lv.abils || []).find(a => a.code === code);
 
 // ---------------------------------------------------------------- 游戏状态
 let G;
-function newGame(mode) {
+// players：参与人数（1~8）。单人是 1；以后接联机时由房间里的玩家数决定。人数决定开几个出怪口（GATES 的前 N 个）和场上怪物上限（每人 40）
+function newGame(mode, players = 1) {
+  const np = clamp(Math.round(players), 1, MAX_PLAYERS), [sx0, sy0, sx1, sy1] = W3MAP.rects.s, bx = rnd(sx0, sx1), by = rnd(sy0, sy1);
   G = {
-    mode, interval: MODES[mode].interval, hpScale: MODES[mode].hp, t: 0, phase: 'prep', timer: MODES[mode].prep || RULE.prepTime, wave: 0,
+    mode, players: np, gates: GATES.slice(0, np).map((g, k) => k),
+    c9: Array.from({ length: MAX_PLAYERS }, (_, k) => k < np ? RULE.capPerPlayer : 0),    // 原图 C9[1..8]：在场玩家 40，空位 0；上限 M3 = 它们的和
+    interval: MODES[mode].interval, hpScale: MODES[mode].hp, t: 0, phase: 'prep', timer: MODES[mode].prep || RULE.prepTime, wave: 0,
     gold: MODES[mode].gold || RULE.startGold, wood: MODES[mode].wood || RULE.startWood, foodCap: MODES[mode].food,
     monsters: [], towers: [], fx: [], zones: [], spawners: [], timeouts: [],
     perfect: 0, score: 1000, kills: 0, speed: 1, paused: false,
     build: [], rerolls: 0, placing: null, selected: null, hero: null, heroChoice: null,
     bossRule: null, final: null, nextId: 1, hint: '准备阶段：选中守卫者，在出怪口附近建塔！',
-    // 循环圈守卫者：无敌、移速 500、全图闪烁 (CD 1 秒)
-    builder: { isBuilder: true, x: NODES.L[0] + 250, y: NODES.L[1] + 450, speed: 500, order: null, blinkCd: 0, mana: FOD.maxMana, fodAt: 0 },
+    // 循环圈守卫者：无敌、移速 500、全图闪烁 (CD 1 秒)。原图所有玩家的守卫者都出生在地图上方的区域 s
+    builder: { isBuilder: true, x: bx, y: by, speed: 500, order: null, blinkCd: 0, mana: FOD.maxMana, fodAt: 0 },
     inv: Array(6).fill(null),
-    cam: { x: NODES.L[0] + 600, y: NODES.L[1] - 300, zoom: 2.4 },
+    cam: { x: bx, y: by - 600, zoom: 2.4 },
     menu: 'main', pending: null,
     ach: RULE.startAch, rabbit: null, rabbitScroll: false, buys: {}, itemCd: {},
     waveVars: {}, next: null, carryHint: null, sc: null, curUnit: null, waveHook: null, waveNote: '', finalCountdown: false,
@@ -203,19 +206,20 @@ function kill(m, src) {
 }
 
 // ---------------------------------------------------------------- 怪物
+// opt.gate：第几个出怪口（GATES 的下标，默认 0 = 左上角 I）；opt.at：从出怪路的第几个点出发（原图有的单位直接刷在拐点 K / Q 等区域）
 function spawnMonster(id, opt = {}) {
   const u = D.units[id];
   if (!u) return null;
-  const [x, y] = NODES[SPAWN_PATH[0]];
+  const path = GATES[opt.gate || 0].slice(opt.at || 0), [x, y] = NODES[path[0]];
   const hpMul = (1 + RULE.hpPerWave * G.wave) * G.hpScale * (opt.hpMul || 1);
   const m = {
     id: G.nextId++, uid: id, name: u.name, x: x + rnd(-150, 150), y: y + rnd(-150, 150),
     maxHp: u.hp * hpMul, hp: u.hp * hpMul, armor: u.armor, type: u.armorType, speed: u.speed || 250,
-    bounty: u.bounty, regen: u.regen || 0, path: SPAWN_PATH.slice(1), prev: null, cur: SPAWN_PATH[0], lane: rnd(-0.75, 0.75),
+    bounty: u.bounty, regen: u.regen || 0, path: path.slice(1), prev: null, cur: path[0], lane: rnd(-0.75, 0.75),
     slow: 0, slowUntil: 0, stunUntil: 0, shred: 0, shredUntil: 0, armorDown: 0, armorDownUntil: 0,
     auraFocus: 0, auraArmorDown: 0, auraSlow: 0, auraSpeed: 0, auraRegen: 0, burn: null, dots: [],
     deb: {}, ignoreArmorUntil: 0, frozenUntil: 0, expel: null,       // deb：限时减甲 / 加速（{ v, until }）；expel：被驱逐（遣返用）
-    boss: !!opt.boss, r: opt.boss ? 90 : 55, elite: null,
+    boss: !!opt.boss, r: opt.boss ? 90 : 55, elite: null, gate: opt.gate || 0, at: opt.at || 0,
   };
   if (!opt.noElite && !NO_ELITE.has(id) && Math.random() < RULE.eliteChance) makeElite(m);
   m.cr = colRadius(m);
@@ -242,15 +246,15 @@ function nextNode(m) {
   const opts = ADJ[m.cur].filter(n => n !== m.prev);
   return pick(opts.length ? opts : ADJ[m.cur]);   // 路口 50/50 随机，不走回头路
 }
-// 遣返（war3map.j 的 BHC）：带驱逐状态的怪走进 L、Y 两个转弯口时，驱逐塔的驱逐 85%、巫师塔（光明）的驱逐 95% 概率被传回出怪口。
+// 遣返（war3map.j 的 BHC）：带驱逐状态的怪走进 L、Y 两个转弯口时，驱逐塔的驱逐 85%、巫师塔（光明）的驱逐 95% 概率被传回 1 号出怪口（Uk[1] = I）。
 // 魔王不会被遣返
 const REPATRIATE_AT = new Set(['L', 'Y']);
 function repatriate(m) {
   const e = m.expel;
   if (!e || e.until <= G.t || m.uid === 'Udea' || !REPATRIATE_AT.has(m.cur) || Math.random() >= e.p) return false;
   FXS.ring(m.x, m.y, 140, '#9fe3ff', 0.45, 4);
-  const [x, y] = NODES[SPAWN_PATH[0]];
-  Object.assign(m, { x: x + rnd(-150, 150), y: y + rnd(-150, 150), cur: SPAWN_PATH[0], prev: null, path: SPAWN_PATH.slice(1), expel: null });
+  const g = GATES[0], [x, y] = NODES[g[0]];
+  Object.assign(m, { x: x + rnd(-150, 150), y: y + rnd(-150, 150), cur: g[0], prev: null, path: g.slice(1), expel: null });
   m.target = nextNode(m);
   FXS.ring(m.x, m.y, 140, '#9fe3ff', 0.45, 4);
   return true;
@@ -332,19 +336,14 @@ function famOf(t) { return D.towers[t.fam]; }
 function curLevel(t) { return t.levels[t.lv]; }
 function towerFood(fam) { return fam === 'hero' ? D.heroes[G.heroChoice].food : fam === 'ancient' ? 1 : Math.max(0, D.towers[fam].levels[0].food || 0); }
 function foodUsed() { return G.towers.reduce((s, t) => s + (t.food || 0), 0); }
-// 建造网格：格子中心在 64 的倍数上；塔占 3×3 格，中心对齐格子中心
+// 建造网格：一格 64（= 2×2 个寻路格），格子边线在 64 的倍数上（和原图寻路图里路、出怪口的边线对齐），所以格子中心是 64k+32；
+// 塔占 3×3 格，中心对齐格子中心
+const CELL = 64, TOWER_CELLS = 3, GRID_OFF = CELL / 2;
 const FOOT_HALF = TOWER_CELLS * CELL / 2;                         // 96
-// 地形本身能不能建（不看塔）：格子完全在边界内、不碰路的禁建带、不碰出怪口
+// 地形本身能不能建（不看塔）：照原图寻路图，格子里的 2×2 个寻路格都能建才行（路、出怪口围栏、中央、地图边界都不能建）
 function cellBuildable(cx, cy) {
-  const h = CELL / 2;
-  if (Math.abs(cx) + h > BUILD_LIM || Math.abs(cy) + h > BUILD_LIM) return false;
-  for (const [a, b] of ROAD_SEGS) {
-    if (cx + h > Math.min(a[0], b[0]) - ROAD_BLOCK && cx - h < Math.max(a[0], b[0]) + ROAD_BLOCK &&
-        cy + h > Math.min(a[1], b[1]) - ROAD_BLOCK && cy - h < Math.max(a[1], b[1]) + ROAD_BLOCK) return false;
-  }
-  for (const [sx0, sy0] of GATE_POS) if (Math.abs(cx - sx0) < 352 && Math.abs(cy - sy0) < 352) return false;
-  if (Math.abs(cx - SHOP.x) < 160 && Math.abs(cy - SHOP.y) < 160) return false;     // 中央商店
-  return true;
+  const i = Math.floor((cx - CELL / 2 - PATHING.origin) / PATHING.cell), j = Math.floor((cy - CELL / 2 - PATHING.origin) / PATHING.cell);
+  return !PATHING.nobuild(i, j) && !PATHING.nobuild(i + 1, j) && !PATHING.nobuild(i, j + 1) && !PATHING.nobuild(i + 1, j + 1);
 }
 // 格子是否被塔（或排队中的建造命令）占了
 function cellTaken(cx, cy, withOrders) {
@@ -2526,7 +2525,34 @@ const NO_ELITE = new Set(['Nfir', 'Nalc', 'Ntin', 'Npbm', 'hhdl', 'nhef', 'njks'
   'nglm', 'nfgl', 'ndrl', 'ndrt', 'ndrn', 'nogo', 'nsw2', 'nogn', 'noga', 'ndsa', 'Udea', 'nbal', 'nchw', 'nchg', 'njga', 'njgb', 'nskg', 'nanm', 'h08S']);
 const HINT_ARMOR = { '物理': 'small', '抗性': 'medium', '魔法': 'large', '神圣': 'divine' };
 function monstersAlive() { return G.monsters.filter(m => !m.dead).length; }
-function cap() { return G.final && G.final.endless ? 15 : RULE.capPerPlayer; }
+// 场上怪物上限（原图 M3 = C9[1]+…+C9[8]）：每个在场玩家 40
+function cap() { return G.final && G.final.endless ? 15 : G.c9.reduce((a, b) => a + b, 0); }
+// 玩家离开（联机用）：原图 SQ 等触发器把他的 C9 每秒 -1 直到 0，上限慢慢降下来；他的出怪口照样出怪
+function playerLeft(slot) {
+  const tick = () => { if (G.c9[slot] > 0) { G.c9[slot]--; later(1, tick); } };
+  later(1, tick);
+}
+// 出怪口：spec 是原图刷怪的位置写法（tools/wave_rolls.py 解析）——
+//   'each'：8 个口各刷 1 只（循环 Uk[1..8]）→ 每个开着的口各 1 只
+//   [a, b]：Uk[GetRandomInt(a,b)] / Qu[GetRandomInt(a,b)]，第 a~b 个口随机一个 → 在其中开着的口里随机，都没开就不刷
+//   出怪口区域名（I、p、m…，原图把 Uk[1]~Uk[8] 逐个写出来各刷 1 只）→ 这个口开着才刷
+//   拐点区域名（K、X、Q…，原图"全图随机一个口刷 1 只"的分支）→ 这个口没开就改在随机一个开着的口
+//   'any'：沿用上一个函数里的位置（全图只刷 1 只）→ 随机一个开着的口
+// 返回 [{ gate, at }] 列表
+function gateSpots(spec = [1, 1]) {
+  if (spec === 'each') return G.gates.map(g => ({ gate: g, at: 0 }));
+  if (Array.isArray(spec)) {
+    const open = G.gates.filter(g => g >= spec[0] - 1 && g <= spec[1] - 1);
+    return open.length ? [{ gate: pick(open), at: 0 }] : [];
+  }
+  for (let g = 0; g < GATES.length; g++) {
+    const at = GATES[g].indexOf(spec);
+    if (at === 0) return G.gates.includes(g) ? [{ gate: g, at }] : [];
+    if (at === 1) return [{ gate: G.gates.includes(g) ? g : pick(G.gates), at }];
+  }
+  return [{ gate: pick(G.gates), at: 0 }];
+}
+function spawnAt(spec, id, opt = {}) { return gateSpots(spec).map(p => spawnMonster(id, { ...opt, ...p })).filter(Boolean); }
 function startSpawner(word) {
   if (G.spawners.some(s => s.word === word)) return;            // 出怪器是周期触发器：已经开着，再打开一次没有效果
   const s = SPAWNER[word] || SPAWNER['中'];
@@ -2549,13 +2575,10 @@ function waveLen(row) {
   const nf = WR.fns[row.next];
   return row.nextAt + nf.pre + (nf.dm ? G.interval : 0);
 }
-function waveOp(op, id, n, life) {
+function waveOp(op, id, n, life, gate) {
   if (op === 'sc') { G.sc = id; if (!G.curUnit) { G.curUnit = id; refreshHint(); } }
   if (op === 'sp') startSpawner(id);
-  if (op === 'mk') for (let i = 0; i < n; i++) {
-    const m = spawnMonster(id, { boss: D.units[id] && D.units[id].hp >= 3000 });
-    if (m && life) m.until = G.t + life;
-  }
+  if (op === 'mk') for (let i = 0; i < n; i++) for (const m of spawnAt(gate, id, { boss: D.units[id] && D.units[id].hp >= 3000 })) if (life) m.until = G.t + life;
 }
 function startWave() {
   const lastWave = MODES[G.mode].waves;
@@ -2580,7 +2603,7 @@ function startWave() {
     return refreshHint();
   }
   if (BOSS_WAVES[fn]) BOSS_WAVES[fn]();
-  for (const [t, op, id, k, life] of row.ev) later(t, () => waveOp(op, id, k, life));
+  for (const [t, op, id, k, life, gate] of row.ev) later(t, () => waveOp(op, id, k, life, gate));
   rollFn(row.next);
   G.timer = waveLen(row);
   refreshHint();
@@ -2650,8 +2673,9 @@ const BOSS_WAVES = {
     });
   },
 };
-// 最终 BOSS 波（原图 yo）：倒计时 300 秒。先出熊猫（第 34 波定下的那种），20 秒后出 1 条龙（四色等概率，一半概率护甲改成 200），
-// 每条龙进场带 4 只狗头人；59 秒出魔王（单人带 +22 护甲的物品）并开始刷耐瑟龙，同时出巨龙，之后每 55 秒补魔龙、速龙。
+// 最终 BOSS 波（原图 yo）：倒计时 300 秒。先出熊猫（第 34 波定下的那种），20 秒后出龙：上限 M3 ≤ 50（单人）1 条四色随机的龙，
+// 否则青龙（1~2 号口），M3 > 50 再加红龙（2~4 号口）、> 200 绿龙（7~8 号口）、> 300 蓝龙（5~6 号口），每条龙一半概率护甲改成 200；
+// 每条龙进场带 4 只狗头人；59 秒出魔王（随机一个口，按人数带护甲 / 生命物品）并开始刷耐瑟龙，同时每个口出巨龙，之后每 55 秒补魔龙、速龙。
 // 杀死所有龙和魔王即通关；杀龙 +20 木，杀狗头人 +5 木
 const PANDA = { 1: 'Ntin', 2: 'Npbm', 3: 'Nalc', 4: 'Nfir' };
 const KOBOLDS = ['nkob', 'nkot', 'nkog', 'ngst'];
@@ -2664,19 +2688,28 @@ function startFinal() {
   G.sc = PANDA[G.waveVars.HI] || pick(Object.values(PANDA)); G.curUnit = G.sc; startSpawner('少');
   refreshHint();
   const need = m => { if (m) G.final.need.push(m); return m; };
-  later(20, () => {
-    const d = need(spawnMonster(pick(['nbzd', 'nrdr', 'nrdk', 'ngrd']), { boss: true }));
-    if (d) {
+  const dragon = (id, spec) => {
+    for (const d of spawnAt(spec, id, { boss: true })) {
+      need(d);
       if (Math.random() < 0.5) d.armor = 200;
       d.onDeath = () => { G.wood += 20; msg('你杀死了一条龙，获得 20 点木材'); };
-      for (const k of KOBOLDS) { const g = spawnMonster(k, { boss: true }); if (g) g.onDeath = () => { G.wood += 5; msg('你杀死了一只狗，获得 5 点木材'); }; }
+      for (const k of KOBOLDS) { const g = spawnMonster(k, { boss: true, gate: d.gate, at: d.at }); if (g) { Object.assign(g, { x: d.x, y: d.y }); g.onDeath = () => { G.wood += 5; msg('你杀死了一只狗，获得 5 点木材'); }; } }
       msg(`${d.name}出现了，带着 4 只狗头人`);
     }
+  };
+  later(20, () => {
+    const M3 = cap();
+    if (M3 <= 50) dragon(Math.random() < 1 / 4 ? 'nbzd' : Math.random() < 1 / 3 ? 'nrdr' : pick(['nrdk', 'ngrd']), [1, 1]);
+    else dragon('nbzd', [1, 2]);
+    if (M3 > 50) later(0.3, () => dragon('nrdr', [2, 4]));
+    if (M3 > 200) later(0.6, () => dragon('ngrd', [7, 8]));
+    if (M3 > 300) later(0.9, () => dragon('nrdk', [5, 6]));
   });
   later(59.3, () => {
     G.sc = 'nndr';
-    const u = need(spawnMonster('Udea', { boss: true }));
-    if (u) u.armor += 22;                                       // A0EO 能提高护甲的物品（AIde，+22）
+    // 魔王的物品按人数（原图 CountPlayersInForceBJ）：≤2 人护甲 +22；≤4 人 +52、生命 +20 万；≤6 人 +82、+40 万；8 人 +122、+80 万
+    const [arm, hp] = G.players <= 2 ? [22, 0] : G.players <= 4 ? [52, 2e5] : G.players <= 6 ? [82, 4e5] : [122, 8e5];
+    for (const u of spawnAt([1, 8], 'Udea', { boss: true })) { need(u); u.armor += arm; u.maxHp += hp * G.hpScale; u.hp += hp * G.hpScale; }
     msg('魔王：翻滚吧！');
     G.final.check = true;
   });
@@ -2690,11 +2723,11 @@ function startFinal() {
       if (G.selected === m) uiDirty();
     }
   });
-  [[59.3, 'njga'], [114.3, 'n07W'], [169.3, 'n07V']].forEach(([t, id]) => later(t, () => { startSpawner('少'); spawnMonster(id, { boss: true }); }));
+  [[59.3, 'njga'], [114.3, 'n07W'], [169.3, 'n07V']].forEach(([t, id]) => later(t, () => { startSpawner('少'); spawnAt('each', id, { boss: true }); }));
 }
 
 // ---------------------------------------------------------------- 兔子（成就商店）
-// 原图 nshe：中立单位，模型是复活节兔子（放大 3 倍），刷在可玩区域内随机一点，小地图闪烁，60 秒后"咕~"一声消失
+// 原图 nshe：中立单位，模型是复活节兔子（放大 3 倍），刷在外环外四块区域里的随机一点，小地图闪烁，60 秒后"咕~"一声消失
 const RABBIT_TALK = ['跑圈啦! 跑圈啦!跑圈啦!', '咦，人呢？找不到我！啦啦啦！', '别过来，你们都别过来！我就只是想逛逛圈圈而已！',
   '这些宠物一点都比不上我，我是说速度！1，2，3虚浮！', '主塔后面不补塔，一看就是个麻瓜！', '我真希望能永远在大家身边！T。T'];
 // 兔子卖的东西（原图 nshe 的物品栏，analysis/data/shops.json）。药水原图是买下后对塔使用：知识 / 重修药水只能对英雄用，单人只有一个英雄塔，买下直接用在英雄塔上；
@@ -2721,9 +2754,8 @@ const RABBIT_SHOP = [
     } },
 ];
 function spawnRabbit(by) {
-  const lim = BUILD_LIM - 150;
-  let x, y;
-  do { x = rnd(-lim, lim); y = rnd(-lim, lim); } while (GATE_POS.some(([gx, gy]) => dist2(x, y, gx, gy) < 700 * 700));   // 不刷进出怪口的围栏里
+  const [a, b, c, d] = W3MAP.rects[pick(['y', 'z', 'BB', 'BC'])];      // 原图 qR：外环外的左、右、上、下四块区域等概率选一块，区域内随机一点
+  const x = rnd(a, c), y = rnd(b, d);
   G.rabbit = { isRabbit: true, id: G.nextId++, x, y, hx: x, hy: y, t0: G.t, until: G.t + RULE.rabbitLife, face: rnd(0, TAU), next: G.t + 1 };
   SFX.ui('hint');
   msg(by ? `${by}召唤了一次兔子，大家快找呀！` : `兔子：${pick(RABBIT_TALK)}`);
@@ -2874,7 +2906,7 @@ function step(dt) {
   // 出怪
   for (const s of G.spawners) {
     s.next -= dt;
-    while (s.next <= 0 && s.left > 0) { if (G.sc) spawnMonster(G.sc); s.left--; s.next += s.every; }   // 刷的是"当前出怪单位"（原图的 Ul）
+    while (s.next <= 0 && s.left > 0) { if (G.sc) for (const g of G.gates) spawnMonster(G.sc, { gate: g }); s.left--; s.next += s.every; }   // 每个开着的出怪口各刷 1 只"当前出怪单位"（原图的 Ul）
   }
   G.spawners = G.spawners.filter(s => s.left > 0);
   builderUpdate(dt);
@@ -3138,7 +3170,7 @@ function resize() {
   const r = cv.getBoundingClientRect();
   DPR = window.devicePixelRatio || 1;
   W = cv.width = ov.width = Math.max(1, r.width * DPR); H = cv.height = ov.height = Math.max(1, r.height * DPR);
-  BASE = Math.min(W, H) / (WORLD * 2 + 300);
+  BASE = Math.min(W, H) / VIEW_REF;
   const mr = mm.getBoundingClientRect();
   mm.width = Math.max(1, mr.width * DPR); mm.height = Math.max(1, mr.height * DPR);
   if (G) clampCam();
@@ -3161,7 +3193,8 @@ function clampCam() {
 // 这里滚轮拉远时俯角变大、接近俯视（方便看全图），拉到最近正好是魔兽的标准镜头；镜头注视点 = G.cam.x / y，
 // 注视点处每世界单位的像素数 = S（和原来的平面画法一样，所以缩放档位、平移速度都不用改）。
 // 没有 WebGL（U3 为空）时退回原来的正上方平面：sx / sy 就是线性换算，k(y) = S。
-const ZMIN = 1, ZMAX = 6, FOVY = 2 * Math.atan(Math.tan(35 * Math.PI / 180) * 0.75);
+// 缩放 1 = 画面短边看到 VIEW_REF 世界单位；最小缩放能看到整张地图
+const VIEW_REF = 6900, ZMIN = VIEW_REF / (WORLD * 2 + 300), ZMAX = 6, FOVY = 2 * Math.atan(Math.tan(35 * Math.PI / 180) * 0.75);
 const PITCH_FAR = 82, PITCH_NEAR = 56;
 const camPitch = zoom => (PITCH_FAR - (PITCH_FAR - PITCH_NEAR) * Math.pow(Math.log(zoom / ZMIN) / Math.log(ZMAX / ZMIN), 1.4)) * Math.PI / 180;
 let CAM = null;                                       // { ex, ey, ez, c, s, F, d }：眼睛位置、俯角的 cos / sin、焦距（像素）、到注视点的距离
@@ -3210,7 +3243,7 @@ function centerOn(e) { zoomTo = null; G.cam.x = e.x; G.cam.y = e.y; clampCam(); 
 
 // ================================================================ 渲染
 let mouse = null, HOV = null;
-const TER = window.Terrain.create({ world: WORLD, roadSegs: ROAD_SEGS, roadHalf: ROAD_HALF, spawns: GATE_POS, center: [0, 0] });
+const TER = window.Terrain.create({ world: WORLD, roadSegs: ROAD_SEGS, roadHalf: ROAD_HALF, spawns: GATE_POS, center: [0, 0], map: W3MAP });
 // 3D 时树墙用原版树模型（tools/war3_terrain.py 的 TREES：哪种树用哪个模型的第几个变体，费伍德树是灰谷树换贴图）
 const TREE_MDX = {
   ATtr: ['doodads/terrain/ashentree/ashentree', [0, 3, 6]], CTtr: ['doodads/terrain/ashentree/ashentree', [1, 4], ['ashentree.blp', 'felwoodtree.blp']],
@@ -3233,7 +3266,7 @@ function draw() {
   if (CAM) gctx.clearRect(0, 0, W, H);            // 3D：地面画布是透明的贴地层，地块在 GL 里画
   if (U3) U3.frame(view, TER.glSource());
   TER.drawGround(ctx, view, now);                 // 原版地块铺的地面、中央法阵、出怪口（terrain.js）
-  GATE_POS.forEach(([x, y], k) => label(k ? '出怪口（联机）' : '出怪口', x, y + 300, k ? '#c9a39e' : '#ffb0a8', 12));
+  GATE_POS.forEach(([x, y], k) => { const on = G.gates.includes(k); label(on ? `出怪口 ${k + 1}` : `出怪口 ${k + 1}（${k + 1} 人以上开放）`, x, y + 300, on ? '#ffb0a8' : '#9a8784', 12); });
   for (const z of G.zones) if (z.style !== 'bladestorm') { ctx.fillStyle = z.color || 'rgba(122,184,255,.18)'; gcircle(z.x, z.y, z.r); ctx.fill(); }
   for (const z of G.zones) if (z.style === 'bladestorm') drawBladestormGround(z);
   for (const t of G.towers) if (t.cat === 'aura') { t.m3 = auraModel(t); if (!t.m3) drawAuraGround(t, now); }   // 光环塔：原版光环模型，画不了才程序绘制地面光环
@@ -3320,7 +3353,7 @@ function draw() {
   if (U3) { U3.render(G.t - (draw.lastT ?? G.t), gctx.canvas); draw.lastT = G.t; }
   drawMinimap();
 }
-const snap = v => Math.round(v / CELL) * CELL;
+const snap = v => Math.round((v - GRID_OFF) / CELL) * CELL + GRID_OFF;
 // 塔的占地方框（世界坐标 → 屏幕路径）
 function footRect(x, y) { grect(x, y, FOOT_HALF); }
 // 建造时在光标附近显示可建造的格子（只画能建的格，越远越淡）
@@ -3664,7 +3697,7 @@ function drawMinimap() {
       mctx.stroke();
     }
   }
-  GATE_POS.forEach(([x, y], i) => { mctx.fillStyle = i ? '#9a4038' : '#ff4a3a'; mctx.beginPath(); mctx.arc(mx(x), my(y), Math.max(3, 200 * k), 0, 7); mctx.fill(); });
+  GATE_POS.forEach(([x, y], i) => { mctx.fillStyle = G.gates.includes(i) ? '#ff4a3a' : '#6a3a35'; mctx.beginPath(); mctx.arc(mx(x), my(y), Math.max(3, 200 * k), 0, 7); mctx.fill(); });
   mctx.strokeStyle = '#6dff6d'; mctx.lineWidth = Math.max(1, 30 * k); mctx.beginPath(); mctx.arc(mx(0), my(0), 300 * k, 0, 7); mctx.stroke();
   const dot = (x, y, c, s) => { mctx.fillStyle = c; mctx.fillRect(mx(x) - s / 2, my(y) - s / 2, s, s); };
   for (const t of G.towers) dot(t.x, t.y, t.isHero ? '#ffd257' : '#3cdc3c', 4 * DPR);
@@ -4267,16 +4300,20 @@ function fitDialog() {
 }
 window.addEventListener('resize', () => { if (!$('modal').classList.contains('hidden')) fitDialog(); });
 function showStart() {
-  const start = mode => { newGame(mode); hideModal(); resize(); clampCam(); uiDirty(); };
+  const start = (mode, players = 1) => { newGame(mode, players); hideModal(); resize(); clampCam(); uiDirty(); };
   const intro = () => showDialog('玩法简介', [{ text: '返回', fn: pickMode }],
-    `怪物沿"回"字形双环路线<b>永远绕圈</b>，不会漏到基地。<b>场上怪物超过 40 只即失败</b>。每波按时出怪，不管上一波清没清完。<br><br>
+    `怪物沿"回"字形双环路线<b>永远绕圈</b>，不会漏到基地。<b>场上怪物超过上限即失败</b>（每个玩家 ${RULE.capPerPlayer} 只，单人 ${RULE.capPerPlayer} 只）。地图是原图的 8 人地图，有 8 个出怪口，参与几人就开几个（单人只开左上角）。每波按时出怪，不管上一波清没清完。<br><br>
     选中<b>守卫者</b>（F1），点击地面让它移动；在右下角命令面板里打开<b>建造</b>，选塔后点地面，守卫者会走过去建造。拖动画面或点击小地图移动镜头，滚轮缩放。`);
   const pickMode = () => showDialog('选择游戏模式', Object.entries(MODES).filter(([, m]) => !m.hidden).map(([k, m]) => ({
     text: `${m.name}（${m.short}）`, hint: m.desc, fn: () => start(k),
   })).concat([
     { text: '演示：前两波', hint: MODES.demo.desc, fn: () => start('demo') },
+    { text: '多人规模（2~8 人）', hint: '按原图多人局的规模开局：N 人开 N 个出怪口，怪物上限 40×N，最终波的龙和魔王也按人数。原版数值，联机前用来试玩', fn: pickPlayers },
     { text: '玩法简介', hint: '怎么玩、怎么操作', fn: intro },
   ]), '把鼠标移到选项上查看说明');
+  const pickPlayers = () => showDialog('多人规模', [2, 3, 4, 5, 6, 7, 8].map(n => ({
+    text: `${n} 人`, hint: `开放 ${n} 个出怪口（${GATES.slice(0, n).map(g => g[0]).join(' ')}），怪物上限 ${n * RULE.capPerPlayer}；原版数值`, fn: () => start('origin', n),
+  })).concat([{ text: '返回', fn: pickMode }]), '只有你一个人操作，出怪口和上限按所选人数');
   pickMode();
 }
 function showHelp() {
@@ -4286,7 +4323,7 @@ function showHelp() {
   }).join('');
   const was = G.paused; G.paused = true;
   showModal(`<h2>说明</h2>
-    <p><b>失败</b>：场上怪物数 &gt; 40。<b>胜利</b>：撑过 48 波后，在 300 秒内击杀最终 BOSS（龙 + 魔王）。</p>
+    <p><b>失败</b>：场上怪物数 &gt; ${cap()}（每个玩家 ${RULE.capPerPlayer}，本局 ${G.players} 人；开放 ${G.players} 个出怪口）。<b>胜利</b>：撑过 48 波后，在 300 秒内击杀最终 BOSS（龙 + 魔王）。</p>
     <p><b>操作</b>：按住 Shift 下命令可以排队（连续建造多座塔）；F1 选中守卫者，F2 选中英雄；守卫者选中时点击 / 右键地面 = 移动；命令面板的按钮都有热键（Q W E R / A S D F …），Esc 返回或取消；方向键或拖动画面移动镜头，滚轮缩放，点击小地图跳转；空格让镜头对准选中单位；P 暂停。</p>
     <p><b>护甲系数</b>（%，原图任务面板原文）：</p>
     <table><tr><th>攻击＼护甲</th><th>抗性</th><th>魔法</th><th>物理</th><th>神圣</th></tr>${rows}</table>
@@ -4336,5 +4373,5 @@ newGame('solo');
 showStart();
 requestAnimationFrame(frame);
 window.__G = () => G;   // 调试用
-window.__dbg = { get G() { return G; }, NODES, EDGES, kill, hurt, spawnMonster, FXS, buildTower, upgradeTower, learnSkill, heroLevelUp, step, canPlace, newGame, monstersAlive, towerStats, rerollBuild, orderBuild, orderMove, castSkill, spawnRabbit, buyRabbit, RABBIT_SHOP, SHOP, SHOP_ITEMS, buyShop, orderFinger, KITS, towerAS, towerAtk, effArmor, applyAuras, sellTower, select, hurt, buildCmds, newTower, attack, bounceXfer, spendPoint, upSkill, wujiSacrifice, plantAncient, knWard, heroStats, HERO_KITS, HERO_DEF, heroAuraList };
+window.__dbg = { get G() { return G; }, NODES, EDGES, kill, hurt, spawnMonster, FXS, buildTower, upgradeTower, learnSkill, heroLevelUp, step, canPlace, newGame, monstersAlive, towerStats, rerollBuild, orderBuild, orderMove, castSkill, spawnRabbit, buyRabbit, RABBIT_SHOP, SHOP, SHOP_ITEMS, buyShop, orderFinger, KITS, towerAS, towerAtk, effArmor, applyAuras, sellTower, select, hurt, buildCmds, newTower, attack, bounceXfer, spendPoint, upSkill, wujiSacrifice, plantAncient, knWard, heroStats, HERO_KITS, HERO_DEF, heroAuraList, gateSpots, spawnAt, cap, playerLeft, startFinal, GATES };
 })();
