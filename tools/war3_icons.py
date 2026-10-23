@@ -20,6 +20,10 @@ A = json.load(open(os.path.join(ROOT, 'analysis', 'raw', 'abilities_all.json'), 
 ITEMS = json.load(open(os.path.join(ROOT, 'analysis', 'raw', 'items_all.json'), encoding='utf8'))
 # 兔子（成就商店 nshe）卖的道具 + 兔子卷轴 + 地图中央商店（u00L）卖的道具：命令面板图标 ico:item-<物品 ID>
 SHOP_ITEMS = ['I00K', 'I00M', 'I00N', 'I00L', 'I01I', 'I01U', 'I02A', 'I00Q', 'I00S'] + U['u00L']['Sellitems'].split(',')
+# 守护宗师 / 宠物商人 / 许愿商人卖的、兔子的天赋秘籍、地上会掉的物品（糖果、马上有钱的字、药水、光环碎片、许愿石）
+SHOP_ITEMS += U['u01A']['Sellitems'].split(',') + U['u00Z']['Sellitems'].split(',') + U['u00M']['Sellitems'].split(',') + ['I01W', 'I01X', 'I00W', 'I00Y',
+  'I004', 'I005', 'I006', 'I007', 'I008', 'I03Y', 'I00P', 'I029', 'I01T', 'I01R', 'I01S', 'gold', 'I003'] + [f'I0{x}' for x in (
+  '15 1B 19 12 10 17 1J 18 1A 16 1G 1D 2C 1K 1E 1H 1F 1L 2Q 2T 2P 2U 2W 2N 2M 1C 2F 2J 2R 2X 2O 2V 2Z 2S 2Y 11').split()]
 
 # 游戏里的通用命令（ico 名）→ 原图里对应技能的图标
 GENERIC = {

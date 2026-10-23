@@ -68,6 +68,8 @@ html, body, button, button:disabled, #minimap, #cv { cursor: url(assets/cursors/
 #wavebox .pf { float: right; color: var(--muted); }
 #w-hint { font-size: 12px; color: #cfe3d4; margin-top: 3px; }
 #w-hint .tag { display: inline-block; padding: 0 5px; border-radius: 3px; margin: 0 2px; font-weight: 600; }
+#w-board { font-size: 11px; color: #9fb8a4; margin-top: 3px; border-top: 1px solid rgba(255,255,255,.08); padding-top: 2px; }
+#w-board b { color: #ffe8a0; font-weight: 600; } #w-board .me { color: #6fd17a; } #w-board .out { color: #777; text-decoration: line-through; }
 #msgs { position: absolute; left: 64px; bottom: 10px; display: flex; flex-direction: column; gap: 3px; pointer-events: none; max-width: 55%; }
 #msgs div { background: rgba(0,0,0,.6); padding: 3px 8px; border-radius: 4px; color: #ffe8a0; animation: fade 6s forwards; }
 @keyframes fade { 0%,80% { opacity: 1 } 100% { opacity: 0 } }

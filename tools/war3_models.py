@@ -17,6 +17,13 @@ SHEETS_JS = os.path.join(ROOT, 'h5', 'assets', 'sprites.js')
 EXTRA = ['abilities/spells/nightelf/thornsaura/thornsaura.mdx', 'abilities/spells/human/devotionaura/devotionaura.mdx',
          'abilities/spells/undead/vampiricaura/vampiricaura.mdx', 'abilities/spells/nightelf/trueshotaura/trueshotaura.mdx',
          'abilities/spells/demon/demonboltimpact/demonboltimpact.mdx']
+# 不在精灵表里、游戏直接按路径画的单位模型（game.js 的 w3meta）：守护宗师 / 许愿商人 / 宠物商人、小精灵、小偷、宠物和野生宠物（浣熊原模型不在包里，用蜥蜴代替）
+EXTRA += ['units/critters/villagerman1/villagerman1.mdx', 'units/critters/villagerwoman/villagerwoman.mdx', 'units/critters/highelfpeasant/highelfpeasant.mdx',
+          'units/nightelf/wisp/wisp.mdx', 'units/human/peasant/peasant.mdx', 'units/critters/skink/skink.mdx', 'units/critters/pig/pig.mdx',
+          'units/creeps/mammoth/mammoth.mdx', 'units/creeps/seaturtle/seaturtle.mdx', 'units/creeps/whitewolf/whitewolf.mdx', 'units/undead/shade/shade.mdx',
+          'units/critters/penguin/penguin.mdx', 'units/creeps/wareagle/wareagle.mdx', 'units/critters/sheep/sheep.mdx', 'units/creeps/murgultidewarrior/murgultidewarrior.mdx',
+          'units/critters/packhorse/packhorse.mdx', 'units/critters/frog/frog.mdx', 'units/critters/flyingsheep/flyingsheep.mdx',
+          'abilities/spells/other/tinkerrocket/tinkerrocketmissile.mdx']
 
 
 def norm(p):
