@@ -525,6 +525,376 @@ window.W3_SOUNDS = {
     "sounds/Abilities/Weapons/DragonHawkMissile/WindSerpentMissile.wav"
    ]
   },
+  "tower:萨满塔": {
+   "what": [
+    "sounds/Units/Orc/Shaman/ShamanWhat1.wav",
+    "sounds/Units/Orc/Shaman/ShamanWhat2.wav",
+    "sounds/Units/Orc/Shaman/ShamanWhat3.wav",
+    "sounds/Units/Orc/Shaman/ShamanWhat4.wav"
+   ],
+   "yes": [
+    "sounds/Units/Orc/Shaman/ShamanYes1.wav",
+    "sounds/Units/Orc/Shaman/ShamanYes2.wav",
+    "sounds/Units/Orc/Shaman/ShamanYes3.wav",
+    "sounds/Units/Orc/Shaman/ShamanYes4.wav"
+   ],
+   "yesAttack": [
+    "sounds/Units/Orc/Shaman/ShamanYesAttack1.wav",
+    "sounds/Units/Orc/Shaman/ShamanYesAttack2.wav",
+    "sounds/Units/Orc/Shaman/ShamanYesAttack3.wav",
+    "sounds/Units/Orc/Shaman/ShamanYesAttack4.wav"
+   ],
+   "pissed": [
+    "sounds/Units/Orc/Shaman/ShamanPissed1.wav",
+    "sounds/Units/Orc/Shaman/ShamanPissed2.wav",
+    "sounds/Units/Orc/Shaman/ShamanPissed3.wav",
+    "sounds/Units/Orc/Shaman/ShamanPissed4.wav",
+    "sounds/Units/Orc/Shaman/ShamanPissed5.wav",
+    "sounds/Units/Orc/Shaman/ShamanPissed6.wav",
+    "sounds/Units/Orc/Shaman/ShamanPissed7.wav"
+   ],
+   "launch": [
+    "sounds/Abilities/Weapons/FarseerMissile/FarseerMissile.wav",
+    "sounds/Abilities/Weapons/FarseerMissile/FarseerMissileLaunch.wav"
+   ]
+  },
+  "tower:兽人塔": {
+   "what": [
+    "sounds/Units/Orc/Grunt/GruntWhat1.wav",
+    "sounds/Units/Orc/Grunt/GruntWhat2.wav",
+    "sounds/Units/Orc/Grunt/GruntWhat3.wav",
+    "sounds/Units/Orc/Grunt/GruntWhat4.wav"
+   ],
+   "yes": [
+    "sounds/Units/Orc/Grunt/GruntYes1.wav",
+    "sounds/Units/Orc/Grunt/GruntYes2.wav",
+    "sounds/Units/Orc/Grunt/GruntYes3.wav",
+    "sounds/Units/Orc/Grunt/GruntYes4.wav"
+   ],
+   "yesAttack": [
+    "sounds/Units/Orc/Grunt/GruntYesAttack1.wav",
+    "sounds/Units/Orc/Grunt/GruntYesAttack2.wav",
+    "sounds/Units/Orc/Grunt/GruntYesAttack3.wav"
+   ],
+   "pissed": [
+    "sounds/Units/Orc/Grunt/GruntPissed1.wav",
+    "sounds/Units/Orc/Grunt/GruntPissed2.wav",
+    "sounds/Units/Orc/Grunt/GruntPissed3.wav",
+    "sounds/Units/Orc/Grunt/GruntPissed4.wav",
+    "sounds/Units/Orc/Grunt/GruntPissed5.wav",
+    "sounds/Units/Orc/Grunt/GruntPissed6.wav",
+    "sounds/Units/Orc/Grunt/GruntPissed7.wav"
+   ],
+   "launch": [
+    "sounds/Abilities/Weapons/ShadowHunterMissile/HeroShadowhunterMissileLaunch1.wav"
+   ],
+   "hit": [
+    "sounds/Abilities/Weapons/ShadowHunterMissile/HeroShadowHunterMissileHit1.wav"
+   ]
+  },
+  "tower:驱逐塔": {
+   "what": [
+    "sounds/Units/Creeps/ForestTroll/ForestTrollWhat1.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollWhat2.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollWhat3.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollWhat4.wav"
+   ],
+   "yes": [
+    "sounds/Units/Creeps/ForestTroll/ForestTrollYes1.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollYes2.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollYes3.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollYes4.wav"
+   ],
+   "yesAttack": [
+    "sounds/Units/Creeps/ForestTroll/ForestTrollYesAttack1.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollYesAttack2.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollYesAttack3.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollYesAttack4.wav"
+   ],
+   "pissed": [
+    "sounds/Units/Creeps/ForestTroll/ForestTrollPissed1.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollPissed2.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollPissed3.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollPissed4.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollPissed5.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollPissed6.wav"
+   ]
+  },
+  "tower:缓速塔": {
+   "what": [
+    "sounds/Units/Creeps/ForestTroll/ForestTrollWhat1.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollWhat2.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollWhat3.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollWhat4.wav"
+   ],
+   "yes": [
+    "sounds/Units/Creeps/ForestTroll/ForestTrollYes1.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollYes2.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollYes3.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollYes4.wav"
+   ],
+   "yesAttack": [
+    "sounds/Units/Creeps/ForestTroll/ForestTrollYesAttack1.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollYesAttack2.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollYesAttack3.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollYesAttack4.wav"
+   ],
+   "pissed": [
+    "sounds/Units/Creeps/ForestTroll/ForestTrollPissed1.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollPissed2.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollPissed3.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollPissed4.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollPissed5.wav",
+    "sounds/Units/Creeps/ForestTroll/ForestTrollPissed6.wav"
+   ]
+  },
+  "tower:巫医塔": {
+   "what": [
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorWhat1.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorWhat2.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorWhat3.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorWhat4.wav"
+   ],
+   "yes": [
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorYes1.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorYes2.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorYes3.wav"
+   ],
+   "yesAttack": [
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorYesAttack1.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorYesAttack2.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorYesAttack3.wav"
+   ],
+   "pissed": [
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed1.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed2.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed3.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed4.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed5.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed6.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed7.wav"
+   ],
+   "launch": [
+    "sounds/Abilities/Weapons/FaerieDragonMissile/FaerieDragonAttack.wav"
+   ]
+  },
+  "tower:巫术塔": {
+   "what": [
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorWhat1.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorWhat2.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorWhat3.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorWhat4.wav"
+   ],
+   "yes": [
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorYes1.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorYes2.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorYes3.wav"
+   ],
+   "yesAttack": [
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorYesAttack1.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorYesAttack2.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorYesAttack3.wav"
+   ],
+   "pissed": [
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed1.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed2.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed3.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed4.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed5.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed6.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed7.wav"
+   ],
+   "launch": [
+    "sounds/Abilities/Weapons/FaerieDragonMissile/FaerieDragonAttack.wav"
+   ]
+  },
+  "tower:巫法塔": {
+   "what": [
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorWhat1.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorWhat2.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorWhat3.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorWhat4.wav"
+   ],
+   "yes": [
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorYes1.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorYes2.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorYes3.wav"
+   ],
+   "yesAttack": [
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorYesAttack1.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorYesAttack2.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorYesAttack3.wav"
+   ],
+   "pissed": [
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed1.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed2.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed3.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed4.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed5.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed6.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed7.wav"
+   ],
+   "launch": [
+    "sounds/Abilities/Weapons/FaerieDragonMissile/FaerieDragonAttack.wav"
+   ]
+  },
+  "tower:巫魔塔": {
+   "what": [
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorWhat1.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorWhat2.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorWhat3.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorWhat4.wav"
+   ],
+   "yes": [
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorYes1.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorYes2.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorYes3.wav"
+   ],
+   "yesAttack": [
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorYesAttack1.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorYesAttack2.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorYesAttack3.wav"
+   ],
+   "pissed": [
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed1.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed2.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed3.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed4.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed5.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed6.wav",
+    "sounds/Units/Orc/WitchDoctor/WitchDoctorPissed7.wav"
+   ],
+   "launch": [
+    "sounds/Abilities/Weapons/FaerieDragonMissile/FaerieDragonAttack.wav"
+   ]
+  },
+  "tower:恐惧塔": {
+   "what": [
+    "sounds/Buildings/Orc/TaurenTotem/TaurenTotemWhat1.wav"
+   ],
+   "launch": [
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileLaunch1.wav",
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileLaunch2.wav",
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileLaunch3.wav"
+   ],
+   "hit": [
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileHit1.wav",
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileHit2.wav",
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileHit3.wav"
+   ]
+  },
+  "tower:火速塔": {
+   "what": [
+    "sounds/Buildings/Orc/TaurenTotem/TaurenTotemWhat1.wav"
+   ],
+   "launch": [
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileLaunch1.wav",
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileLaunch2.wav",
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileLaunch3.wav"
+   ],
+   "hit": [
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileHit1.wav",
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileHit2.wav",
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileHit3.wav"
+   ]
+  },
+  "tower:神力塔": {
+   "what": [
+    "sounds/Buildings/Orc/TaurenTotem/TaurenTotemWhat1.wav"
+   ],
+   "launch": [
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileLaunch1.wav",
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileLaunch2.wav",
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileLaunch3.wav"
+   ],
+   "hit": [
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileHit1.wav",
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileHit2.wav",
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileHit3.wav"
+   ]
+  },
+  "tower:冰封塔": {
+   "what": [
+    "sounds/Buildings/Orc/TaurenTotem/TaurenTotemWhat1.wav"
+   ],
+   "launch": [
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileLaunch1.wav",
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileLaunch2.wav",
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileLaunch3.wav"
+   ],
+   "hit": [
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileHit1.wav",
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileHit2.wav",
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileHit3.wav"
+   ]
+  },
+  "tower:银行塔": {
+   "what": [
+    "sounds/Buildings/Orc/TaurenTotem/TaurenTotemWhat1.wav"
+   ],
+   "launch": [
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileLaunch1.wav",
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileLaunch2.wav",
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileLaunch3.wav"
+   ],
+   "hit": [
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileHit1.wav",
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileHit2.wav",
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileHit3.wav"
+   ]
+  },
+  "tower:魔法塔": {
+   "what": [
+    "sounds/Buildings/Orc/TaurenTotem/TaurenTotemWhat1.wav"
+   ],
+   "launch": [
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileLaunch1.wav",
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileLaunch2.wav",
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileLaunch3.wav"
+   ],
+   "hit": [
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileHit1.wav",
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileHit2.wav",
+    "sounds/Abilities/Weapons/GuardTowerMissile/GuardTowerMissileHit3.wav"
+   ]
+  },
+  "tower:巫师塔（光明）": {
+   "what": [
+    "sounds/Units/Undead/Necromancer/NecromancerWhat1.wav",
+    "sounds/Units/Undead/Necromancer/NecromancerWhat2.wav",
+    "sounds/Units/Undead/Necromancer/NecromancerWhat3.wav",
+    "sounds/Units/Undead/Necromancer/NecromancerWhat4.wav"
+   ],
+   "yes": [
+    "sounds/Units/Undead/Necromancer/NecromancerYes1.wav",
+    "sounds/Units/Undead/Necromancer/NecromancerYes2.wav",
+    "sounds/Units/Undead/Necromancer/NecromancerYes3.wav",
+    "sounds/Units/Undead/Necromancer/NecromancerYes4.wav"
+   ],
+   "yesAttack": [
+    "sounds/Units/Undead/Necromancer/NecromancerYesAttack1.wav",
+    "sounds/Units/Undead/Necromancer/NecromancerYesAttack2.wav",
+    "sounds/Units/Undead/Necromancer/NecromancerYesAttack3.wav"
+   ],
+   "pissed": [
+    "sounds/Units/Undead/Necromancer/NecromancerPissed1.wav",
+    "sounds/Units/Undead/Necromancer/NecromancerPissed2.wav",
+    "sounds/Units/Undead/Necromancer/NecromancerPissed3.wav",
+    "sounds/Units/Undead/Necromancer/NecromancerPissed4.wav",
+    "sounds/Units/Undead/Necromancer/NecromancerPissed5.wav"
+   ],
+   "launch": [
+    "sounds/Abilities/Spells/Orc/HealingWave/HealingWave.wav"
+   ]
+  },
+  "tower:巫师塔（暗黑）": {
+   "launch": [
+    "sounds/Abilities/Spells/Undead/CarrionSwarm/CarrionSwarmDamage1.wav",
+    "sounds/Abilities/Spells/Undead/CarrionSwarm/CarrionSwarmDamage2.wav",
+    "sounds/Abilities/Spells/Undead/CarrionSwarm/CarrionSwarmDamage3.wav",
+    "sounds/Abilities/Spells/Undead/CarrionSwarm/CarrionSwarmLaunch1.wav"
+   ]
+  },
   "hero:剑神": {
    "what": [
     "sounds/Units/Orc/HeroBladeMaster/HeroBlademasterWhat1.wav",
@@ -560,6 +930,236 @@ window.W3_SOUNDS = {
    ],
    "death": [
     "sounds/Units/Orc/HeroBladeMaster/HeroBladeMasterDeath.wav"
+   ]
+  },
+  "hero:大巫师": {
+   "launch": [
+    "sounds/Abilities/Weapons/ShadowHunterMissile/HeroShadowhunterMissileLaunch1.wav"
+   ],
+   "hit": [
+    "sounds/Abilities/Weapons/ShadowHunterMissile/HeroShadowHunterMissileHit1.wav"
+   ]
+  },
+  "hero:战神": {
+   "what": [
+    "sounds/Units/Human/HeroPaladin/HeroPaladinWhat1.wav",
+    "sounds/Units/Human/HeroPaladin/HeroPaladinWhat2.wav",
+    "sounds/Units/Human/HeroPaladin/HeroPaladinWhat3.wav",
+    "sounds/Units/Human/HeroPaladin/HeroPaladinWhat4.wav"
+   ],
+   "yes": [
+    "sounds/Units/Human/HeroPaladin/HeroPaladinYes1.wav",
+    "sounds/Units/Human/HeroPaladin/HeroPaladinYes2.wav",
+    "sounds/Units/Human/HeroPaladin/HeroPaladinYes3.wav",
+    "sounds/Units/Human/HeroPaladin/HeroPaladinYes4.wav"
+   ],
+   "yesAttack": [
+    "sounds/Units/Human/HeroPaladin/HeroPaladinYesAttack1.wav",
+    "sounds/Units/Human/HeroPaladin/HeroPaladinYesAttack2.wav",
+    "sounds/Units/Human/HeroPaladin/HeroPaladinYesAttack3.wav"
+   ],
+   "pissed": [
+    "sounds/Units/Human/HeroPaladin/HeroPaladinPissed1.wav",
+    "sounds/Units/Human/HeroPaladin/HeroPaladinPissed2.wav",
+    "sounds/Units/Human/HeroPaladin/HeroPaladinPissed3.wav",
+    "sounds/Units/Human/HeroPaladin/HeroPaladinPissed4.wav",
+    "sounds/Units/Human/HeroPaladin/HeroPaladinPissed5.wav",
+    "sounds/Units/Human/HeroPaladin/HeroPaladinPissed6.wav"
+   ],
+   "launch": [
+    "sounds/Units/Human/HeroPaladin/HeroPaladinAttack1.wav",
+    "sounds/Units/Human/HeroPaladin/HeroPaladinAttack2.wav"
+   ],
+   "death": [
+    "sounds/Units/Human/HeroPaladin/HeroPaladinDeath.wav"
+   ]
+  },
+  "hero:水魔": {
+   "what": [
+    "sounds/Units/Human/HeroArchMage/HeroArchmageWhat1.wav",
+    "sounds/Units/Human/HeroArchMage/HeroArchmageWhat2.wav",
+    "sounds/Units/Human/HeroArchMage/HeroArchmageWhat3.wav",
+    "sounds/Units/Human/HeroArchMage/HeroArchmageWhat4.wav"
+   ],
+   "yes": [
+    "sounds/Units/Human/HeroArchMage/HeroArchmageYes1.wav",
+    "sounds/Units/Human/HeroArchMage/HeroArchmageYes2.wav",
+    "sounds/Units/Human/HeroArchMage/HeroArchmageYes3.wav",
+    "sounds/Units/Human/HeroArchMage/HeroArchmageYes4.wav"
+   ],
+   "yesAttack": [
+    "sounds/Units/Human/HeroArchMage/HeroArchmageYesAttack1.wav",
+    "sounds/Units/Human/HeroArchMage/HeroArchmageYesAttack2.wav",
+    "sounds/Units/Human/HeroArchMage/HeroArchmageYesAttack3.wav"
+   ],
+   "pissed": [
+    "sounds/Units/Human/HeroArchMage/HeroArchmagePissed1.wav",
+    "sounds/Units/Human/HeroArchMage/HeroArchmagePissed2.wav",
+    "sounds/Units/Human/HeroArchMage/HeroArchmagePissed3.wav",
+    "sounds/Units/Human/HeroArchMage/HeroArchmagePissed4.wav"
+   ],
+   "death": [
+    "sounds/Units/Creeps/BansheeGhost/BansheeGhostDeath1.wav"
+   ]
+  },
+  "hero:火魂": {
+   "launch": [
+    "sounds/Abilities/Weapons/FireBallMissile/FireBallMissileLaunch1.wav",
+    "sounds/Abilities/Weapons/FireBallMissile/FireBallMissileLaunch2.wav",
+    "sounds/Abilities/Weapons/FireBallMissile/FireBallMissileLaunch3.wav"
+   ],
+   "hit": [
+    "sounds/Abilities/Weapons/FireBallMissile/FireBallMissileDeath.wav"
+   ]
+  },
+  "hero:狂牛": {
+   "what": [
+    "sounds/Units/Orc/HeroTaurenChieftain/HeroTaurenChieftainWhat1.wav",
+    "sounds/Units/Orc/HeroTaurenChieftain/HeroTaurenChieftainWhat2.wav",
+    "sounds/Units/Orc/HeroTaurenChieftain/HeroTaurenChieftainWhat3.wav",
+    "sounds/Units/Orc/HeroTaurenChieftain/HeroTaurenChieftainWhat4.wav"
+   ],
+   "yes": [
+    "sounds/Units/Orc/HeroTaurenChieftain/HeroTaurenChieftainYes1.wav",
+    "sounds/Units/Orc/HeroTaurenChieftain/HeroTaurenChieftainYes2.wav",
+    "sounds/Units/Orc/HeroTaurenChieftain/HeroTaurenChieftainYes3.wav",
+    "sounds/Units/Orc/HeroTaurenChieftain/HeroTaurenChieftainYes4.wav"
+   ],
+   "yesAttack": [
+    "sounds/Units/Orc/HeroTaurenChieftain/HeroTaurenChieftainYesAttack1.wav",
+    "sounds/Units/Orc/HeroTaurenChieftain/HeroTaurenChieftainYesAttack2.wav",
+    "sounds/Units/Orc/HeroTaurenChieftain/HeroTaurenChieftainYesAttack3.wav"
+   ],
+   "pissed": [
+    "sounds/Units/Orc/HeroTaurenChieftain/HeroTaurenChieftainPissed1.wav",
+    "sounds/Units/Orc/HeroTaurenChieftain/HeroTaurenChieftainPissed2.wav",
+    "sounds/Units/Orc/HeroTaurenChieftain/HeroTaurenChieftainPissed3.wav",
+    "sounds/Units/Orc/HeroTaurenChieftain/HeroTaurenChieftainPissed4.wav",
+    "sounds/Units/Orc/HeroTaurenChieftain/HeroTaurenChieftainPissed5.wav",
+    "sounds/Units/Orc/HeroTaurenChieftain/HeroTaurenChieftainPissed6.wav"
+   ],
+   "launch": [
+    "sounds/Abilities/Spells/Orc/Disenchant/Disenchant.wav"
+   ],
+   "death": [
+    "sounds/Units/Orc/HeroTaurenChieftain/HeroTaurenChieftainDeath.wav"
+   ]
+  },
+  "hero:电法": {
+   "what": [
+    "sounds/Units/Human/HeroMountainKing/HeroMountainKingWhat1.wav",
+    "sounds/Units/Human/HeroMountainKing/HeroMountainKingWhat2.wav",
+    "sounds/Units/Human/HeroMountainKing/HeroMountainKingWhat3.wav",
+    "sounds/Units/Human/HeroMountainKing/HeroMountainKingWhat4.wav"
+   ],
+   "yes": [
+    "sounds/Units/Human/HeroMountainKing/HeroMountainKingYes1.wav",
+    "sounds/Units/Human/HeroMountainKing/HeroMountainKingYes2.wav",
+    "sounds/Units/Human/HeroMountainKing/HeroMountainKingYes3.wav",
+    "sounds/Units/Human/HeroMountainKing/HeroMountainKingYes4.wav"
+   ],
+   "yesAttack": [
+    "sounds/Units/Human/HeroMountainKing/HeroMountainKingYesAttack1.wav",
+    "sounds/Units/Human/HeroMountainKing/HeroMountainKingYesAttack2.wav",
+    "sounds/Units/Human/HeroMountainKing/HeroMountainKingYesAttack3.wav",
+    "sounds/Units/Human/HeroMountainKing/HeroMountainKingYesAttack4.wav"
+   ],
+   "pissed": [
+    "sounds/Units/Human/HeroMountainKing/HeroMountainKingPissed1.wav",
+    "sounds/Units/Human/HeroMountainKing/HeroMountainKingPissed2.wav",
+    "sounds/Units/Human/HeroMountainKing/HeroMountainKingPissed3.wav",
+    "sounds/Units/Human/HeroMountainKing/HeroMountainKingPissed4.wav",
+    "sounds/Units/Human/HeroMountainKing/HeroMountainKingPissed5.wav",
+    "sounds/Units/Human/HeroMountainKing/HeroMountainKingPissed6.wav",
+    "sounds/Units/Human/HeroMountainKing/HeroMountainKingPissed7.wav"
+   ],
+   "launch": [
+    "sounds/Units/Human/HeroMountainKing/HeroMountainkingAttack1.wav"
+   ],
+   "hit": [
+    "sounds/Abilities/Spells/Orc/FeralSpirit/FeralSpiritTarget1.wav"
+   ],
+   "death": [
+    "sounds/Units/Human/HeroMountainKing/HeroMountainKingDeath.wav"
+   ]
+  },
+  "hero:箭灵": {
+   "launch": [
+    "sounds/Abilities/Weapons/HarpyMissile/HarpyMissileLaunch1.wav",
+    "sounds/Abilities/Weapons/HarpyMissile/HarpyMissileLaunch2.wav",
+    "sounds/Abilities/Weapons/HarpyMissile/HarpyMissileLaunch3.wav"
+   ],
+   "hit": [
+    "sounds/Abilities/Weapons/HarpyMissile/HarpyMissileHit1.wav",
+    "sounds/Abilities/Weapons/HarpyMissile/HarpyMissileHit2.wav",
+    "sounds/Abilities/Weapons/HarpyMissile/HarpyMissileHit3.wav"
+   ]
+  },
+  "hero:神幻": {
+   "what": [
+    "sounds/Units/Human/Knight/KnightWhat1.wav",
+    "sounds/Units/Human/Knight/KnightWhat2.wav",
+    "sounds/Units/Human/Knight/KnightWhat3.wav",
+    "sounds/Units/Human/Knight/KnightWhat4.wav"
+   ],
+   "yes": [
+    "sounds/Units/Human/Knight/KnightYes1.wav",
+    "sounds/Units/Human/Knight/KnightYes2.wav",
+    "sounds/Units/Human/Knight/KnightYes3.wav",
+    "sounds/Units/Human/Knight/KnightYes4.wav"
+   ],
+   "yesAttack": [
+    "sounds/Units/Human/Knight/KnightYesAttack1.wav",
+    "sounds/Units/Human/Knight/KnightYesAttack2.wav",
+    "sounds/Units/Human/Knight/KnightYesAttack3.wav"
+   ],
+   "pissed": [
+    "sounds/Units/Human/Knight/KnightPissed1.wav",
+    "sounds/Units/Human/Knight/KnightPissed2.wav",
+    "sounds/Units/Human/Knight/KnightPissed3.wav",
+    "sounds/Units/Human/Knight/KnightPissed4.wav",
+    "sounds/Units/Human/Knight/KnightPissed5.wav",
+    "sounds/Units/Human/Knight/KnightPissed6.wav"
+   ],
+   "hit": [
+    "sounds/Abilities/Spells/NightElf/Starfall/StarfallCaster1.wav"
+   ],
+   "death": [
+    "sounds/Units/Human/Knight/KnightDeath.wav"
+   ]
+  },
+  "hero:邪冰": {
+   "what": [
+    "sounds/Units/Human/Jaina/JainaWhat1.wav",
+    "sounds/Units/Human/Jaina/JainaWhat2.wav",
+    "sounds/Units/Human/Jaina/JainaWhat3.wav",
+    "sounds/Units/Human/Jaina/JainaWhat4.wav"
+   ],
+   "yes": [
+    "sounds/Units/Human/Jaina/JainaYes1.wav",
+    "sounds/Units/Human/Jaina/JainaYes2.wav",
+    "sounds/Units/Human/Jaina/JainaYes3.wav",
+    "sounds/Units/Human/Jaina/JainaYes4.wav"
+   ],
+   "yesAttack": [
+    "sounds/Units/Human/Jaina/JainaYesAttack1.wav",
+    "sounds/Units/Human/Jaina/JainaYesAttack2.wav"
+   ],
+   "pissed": [
+    "sounds/Units/Human/Jaina/JainaPissed1.wav",
+    "sounds/Units/Human/Jaina/JainaPissed2.wav",
+    "sounds/Units/Human/Jaina/JainaPissed3.wav",
+    "sounds/Units/Human/Jaina/JainaPissed4.wav",
+    "sounds/Units/Human/Jaina/JainaPissed5.wav"
+   ],
+   "launch": [
+    "sounds/Abilities/Spells/Other/FrostBolt/FrostBoltLaunch1.wav"
+   ],
+   "hit": [
+    "sounds/Abilities/Spells/Other/FrostBolt/FrostBoltHit1.wav"
+   ],
+   "death": [
+    "sounds/Units/Human/Jaina/JainaOnFootDeath1.wav"
    ]
   },
   "hero:枪神": {
@@ -603,48 +1203,52 @@ window.W3_SOUNDS = {
     "sounds/Units/Human/MortarTeam/MortarteamDeath.wav"
    ]
   },
-  "hero:邪冰": {
+  "hero:坦克": {
    "what": [
-    "sounds/Units/Human/Jaina/JainaWhat1.wav",
-    "sounds/Units/Human/Jaina/JainaWhat2.wav",
-    "sounds/Units/Human/Jaina/JainaWhat3.wav",
-    "sounds/Units/Human/Jaina/JainaWhat4.wav"
+    "sounds/Units/Human/SteamTank/SteamTankWhat1.wav",
+    "sounds/Units/Human/SteamTank/SteamTankWhat2.wav",
+    "sounds/Units/Human/SteamTank/SteamTankWhat3.wav"
    ],
    "yes": [
-    "sounds/Units/Human/Jaina/JainaYes1.wav",
-    "sounds/Units/Human/Jaina/JainaYes2.wav",
-    "sounds/Units/Human/Jaina/JainaYes3.wav",
-    "sounds/Units/Human/Jaina/JainaYes4.wav"
+    "sounds/Units/Human/SteamTank/SteamTankYes1.wav",
+    "sounds/Units/Human/SteamTank/SteamTankYes2.wav",
+    "sounds/Units/Human/SteamTank/SteamTankYes3.wav"
    ],
    "yesAttack": [
-    "sounds/Units/Human/Jaina/JainaYesAttack1.wav",
-    "sounds/Units/Human/Jaina/JainaYesAttack2.wav"
+    "sounds/Units/Human/SteamTank/SteamTankYesAttack1.wav"
    ],
    "pissed": [
-    "sounds/Units/Human/Jaina/JainaPissed1.wav",
-    "sounds/Units/Human/Jaina/JainaPissed2.wav",
-    "sounds/Units/Human/Jaina/JainaPissed3.wav",
-    "sounds/Units/Human/Jaina/JainaPissed4.wav",
-    "sounds/Units/Human/Jaina/JainaPissed5.wav"
+    "sounds/Units/Human/SteamTank/SteamTankPissed1.wav",
+    "sounds/Units/Human/SteamTank/SteamTankPissed2.wav"
    ],
    "launch": [
-    "sounds/Abilities/Spells/Other/FrostBolt/FrostBoltLaunch1.wav"
-   ],
-   "hit": [
-    "sounds/Abilities/Spells/Other/FrostBolt/FrostBoltHit1.wav"
+    "sounds/Units/Human/SteamTank/SteamTankAttack1.wav"
    ],
    "death": [
-    "sounds/Units/Human/Jaina/JainaOnFootDeath1.wav"
+    "sounds/Units/Human/SteamTank/SteamTankDeath1.wav"
    ]
   },
-  "hero:火魂": {
+  "hero:古树": {
+   "what": [
+    "sounds/Buildings/NightElf/AncientOfLore/AncientOfTheEarthWhat1.wav",
+    "sounds/Buildings/NightElf/AncientOfLore/AncientOfTheEarthWhat2.wav",
+    "sounds/Buildings/NightElf/AncientOfLore/AncientOfTheEarthWhat3.wav"
+   ],
+   "yes": [
+    "sounds/Buildings/NightElf/AncientOfLore/AncientOfTheEarthYes1.wav",
+    "sounds/Buildings/NightElf/AncientOfLore/AncientOfTheEarthYes2.wav",
+    "sounds/Buildings/NightElf/AncientOfLore/AncientOfTheEarthYes3.wav"
+   ],
+   "yesAttack": [
+    "sounds/Buildings/NightElf/AncientOfLore/AncientOfTheEarthYesAttack1.wav",
+    "sounds/Buildings/NightElf/AncientOfLore/AncientOfTheEarthYesAttack2.wav",
+    "sounds/Buildings/NightElf/AncientOfLore/AncientOfTheEarthYesAttack3.wav"
+   ],
    "launch": [
-    "sounds/Abilities/Weapons/FireBallMissile/FireBallMissileLaunch1.wav",
-    "sounds/Abilities/Weapons/FireBallMissile/FireBallMissileLaunch2.wav",
-    "sounds/Abilities/Weapons/FireBallMissile/FireBallMissileLaunch3.wav"
+    "sounds/Units/NightElf/Wisp/WispReady1.wav"
    ],
    "hit": [
-    "sounds/Abilities/Weapons/FireBallMissile/FireBallMissileDeath.wav"
+    "sounds/Units/NightElf/Wisp/WispDeath1.wav"
    ]
   },
   "tower:炎魔": {
@@ -1312,6 +1916,81 @@ window.W3_SOUNDS = {
   "unit:uskm": {
    "death": [
     "sounds/Units/Undead/Skeleton/SkeletonDeath1.wav"
+   ]
+  },
+  "unit:Udre": {
+   "death": [
+    "sounds/Units/Undead/HeroDreadLord/HeroDreadLordDeath.wav"
+   ]
+  },
+  "unit:n07R": {
+   "death": [
+    "sounds/Units/Creeps/GoblinZeppelin/GoblinZeppelinDeath1.wav"
+   ]
+  },
+  "unit:n07S": {
+   "death": [
+    "sounds/Units/Creeps/GoblinZeppelin/GoblinZeppelinDeath1.wav"
+   ]
+  },
+  "unit:n07T": {
+   "death": [
+    "sounds/Units/Creeps/GoblinZeppelin/GoblinZeppelinDeath1.wav"
+   ]
+  },
+  "unit:n07U": {
+   "death": [
+    "sounds/Units/Creeps/GoblinZeppelin/GoblinZeppelinDeath1.wav"
+   ]
+  },
+  "unit:n07V": {
+   "death": [
+    "sounds/Units/Creeps/Wendigo/WendigoDeath.wav"
+   ]
+  },
+  "unit:n07W": {
+   "death": [
+    "sounds/Units/Creeps/Wendigo/WendigoDeath.wav"
+   ]
+  },
+  "unit:ncen": {
+   "death": [
+    "sounds/Units/Creeps/Centaur/CentaurDeath.wav"
+   ]
+  },
+  "unit:ncks": {
+   "death": [
+    "sounds/Units/Creeps/Centaur/CentaurDeath.wav"
+   ]
+  },
+  "unit:ncnk": {
+   "death": [
+    "sounds/Units/Creeps/Centaur/CentaurDeath.wav"
+   ]
+  },
+  "unit:ngst": {
+   "death": [
+    "sounds/Units/Creeps/RockGolem/RockGolemDeath1.wav"
+   ]
+  },
+  "unit:njga": {
+   "death": [
+    "sounds/Units/Creeps/Wendigo/WendigoDeath.wav"
+   ]
+  },
+  "unit:nkob": {
+   "death": [
+    "sounds/Units/Creeps/Kobold/KoboldDeath.wav"
+   ]
+  },
+  "unit:nkog": {
+   "death": [
+    "sounds/Units/Creeps/Kobold/KoboldDeath.wav"
+   ]
+  },
+  "unit:nkot": {
+   "death": [
+    "sounds/Units/Creeps/Kobold/KoboldDeath.wav"
    ]
   },
   "builder": {

@@ -1,0 +1,24 @@
+{
+ "key": "model:hero:Units/Creeps/Medivh/Medivh",
+ "src": "sprites/w3_hero_Units_Creeps_Medivh_Medivh.png",
+ "frameW": 192,
+ "frameH": 192,
+ "cols": 10,
+ "rows": 8,
+ "anchor": [
+  0.5,
+  0.7
+ ],
+ "unitsPerPixel": 2.0,
+ "pitch": 50,
+ "actions": {
+  "idle": {
+   "row": 0,
+   "dirs": 8,
+   "frames": 10,
+   "fps": 6.67,
+   "loop": true
+  }
+ },
+ "modelScale": 1.4
+}

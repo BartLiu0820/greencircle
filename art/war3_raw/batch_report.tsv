@@ -157,3 +157,16 @@ model:monster:Units/Creeps/DragonSpawnGreen/DragonSpawnGreen	ok	高 3.57 m | ppm
 model:monster:Units/Creeps/DragonSpawnPurple/DragonSpawnPurple	ok	高 3.57 m | ppm 24 | 缺贴图 0 | 动作 idle,walk,death,spell | 光效 无
 model:monster:Units/Creeps/KoboldGeomancer/KoboldGeomancer	ok	高 0.83 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,death | 光效 无
 model:monster:Units/Creeps/NetherDragon/NetherDragon	ok	高 0.64 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 有
+model:hero:Units/Orc/HeroShadowHunter/HeroShadowHunter	ok	高 1.68 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无
+model:hero:Units/NightElf/HeroWarden/HeroWarden	ok	高 2.41 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无
+model:hero:Units/Critters/Marine/Marine	ok	高 1.66 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 有
+model:hero:Units/Creeps/BansheeGhost/BansheeGhost	ok	高 2.28 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death | 光效 无
+model:hero:Units/Creeps/tuskarLord/tuskarLord	ok	高 1.90 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death | 光效 无
+model:hero:Units/Orc/HeroTaurenChieftain/HeroTaurenChieftain	ok	高 2.41 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无
+model:hero:Units/Orc/SpiritWalker/SpiritWalker	ok	高 1.99 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death | 光效 无
+model:hero:Units/NightElf/MalFurion/MalFurion	ok	高 2.16 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 有
+model:hero:Units/Creeps/BansheeRanger/BansheeRanger	ok	高 1.57 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 有
+model:hero:Units/Creeps/Medivh/Medivh	ok	高 2.53 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,death | 光效 无
+model:hero:Units/Human/HeroBloodElf/HeroBloodElf	ok	高 1.77 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 有
+model:hero:Units/Human/WarWagon/WarWagon	ok	高 1.68 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death | 光效 无
+model:hero:Buildings/NightElf/AncientofLore/AncientofLore	ok	高 2.14 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death | 光效 有

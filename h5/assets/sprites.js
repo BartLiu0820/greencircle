@@ -86,6 +86,81 @@ window.SPRITE_SHEETS = {
   "aliasOf": "model:fx:Units/Orc/HeroBladeMaster/HeroBladeMaster_glow",
   "war3": true
  },
+ "glow:hero:古树": {
+  "key": "glow:hero:古树",
+  "src": "sprites/w3_hero_Buildings_NightElf_AncientofLore_AncientofLore_glow.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 6.0,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 0.8,
+  "glow": true,
+  "aliasOf": "model:hero:Buildings/NightElf/AncientofLore/AncientofLore_glow",
+  "war3": true
+ },
+ "glow:hero:战神": {
+  "key": "glow:hero:战神",
+  "src": "sprites/w3_hero_Units_Critters_Marine_Marine_glow.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 7.5,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.3,
+  "glow": true,
+  "aliasOf": "model:hero:Units/Critters/Marine/Marine_glow",
+  "war3": true
+ },
  "glow:hero:枪神": {
   "key": "glow:hero:枪神",
   "src": "sprites/w3_hero_Units_Critters_ChaosSpaceOrc_ChaosSpaceOrc_glow.webp",
@@ -125,6 +200,129 @@ window.SPRITE_SHEETS = {
   "modelScale": 1.1,
   "glow": true,
   "aliasOf": "model:hero:Units/Critters/ChaosSpaceOrc/ChaosSpaceOrc_glow",
+  "war3": true
+ },
+ "glow:hero:电法": {
+  "key": "glow:hero:电法",
+  "src": "sprites/w3_hero_Units_NightElf_MalFurion_MalFurion_glow.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 3.53,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "glow": true,
+  "aliasOf": "model:hero:Units/NightElf/MalFurion/MalFurion_glow",
+  "war3": true
+ },
+ "glow:hero:箭灵": {
+  "key": "glow:hero:箭灵",
+  "src": "sprites/w3_hero_Units_Creeps_BansheeRanger_BansheeRanger_glow.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 8.58,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.15,
+  "glow": true,
+  "aliasOf": "model:hero:Units/Creeps/BansheeRanger/BansheeRanger_glow",
+  "war3": true
+ },
+ "glow:hero:风神": {
+  "key": "glow:hero:风神",
+  "src": "sprites/w3_hero_Units_Human_HeroBloodElf_HeroBloodElf_glow.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "glow": true,
+  "aliasOf": "model:hero:Units/Human/HeroBloodElf/HeroBloodElf_glow",
   "war3": true
  },
  "glow:shop": {
@@ -940,6 +1138,197 @@ window.SPRITE_SHEETS = {
   "aliasOf": "model:hero:Units/Orc/HeroBladeMaster/HeroBladeMaster",
   "war3": true
  },
+ "hero:古树": {
+  "key": "hero:古树",
+  "src": "sprites/w3_hero_Buildings_NightElf_AncientofLore_AncientofLore.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.62
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 6.0,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 0.8,
+  "aliasOf": "model:hero:Buildings/NightElf/AncientofLore/AncientofLore",
+  "war3": true
+ },
+ "hero:坦克": {
+  "key": "hero:坦克",
+  "src": "sprites/w3_hero_Units_Human_WarWagon_WarWagon.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 10.0,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.2,
+  "aliasOf": "model:hero:Units/Human/WarWagon/WarWagon",
+  "war3": true
+ },
+ "hero:大巫师": {
+  "key": "hero:大巫师",
+  "src": "sprites/w3_hero_Units_Orc_HeroShadowHunter_HeroShadowHunter.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 10.0,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 0.95,
+  "aliasOf": "model:hero:Units/Orc/HeroShadowHunter/HeroShadowHunter",
+  "war3": true
+ },
+ "hero:幻影": {
+  "key": "hero:幻影",
+  "src": "sprites/w3_hero_Units_NightElf_HeroWarden_HeroWarden.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 7.5,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.2,
+  "aliasOf": "model:hero:Units/NightElf/HeroWarden/HeroWarden",
+  "war3": true,
+  "tint": [
+   1.0,
+   1.0,
+   0.196
+  ]
+ },
+ "hero:战神": {
+  "key": "hero:战神",
+  "src": "sprites/w3_hero_Units_Critters_Marine_Marine.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 7.5,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.3,
+  "aliasOf": "model:hero:Units/Critters/Marine/Marine",
+  "war3": true
+ },
  "hero:枪神": {
   "key": "hero:枪神",
   "src": "sprites/w3_hero_Units_Critters_ChaosSpaceOrc_ChaosSpaceOrc.webp",
@@ -980,6 +1369,72 @@ window.SPRITE_SHEETS = {
   "aliasOf": "model:hero:Units/Critters/ChaosSpaceOrc/ChaosSpaceOrc",
   "war3": true
  },
+ "hero:水魔": {
+  "key": "hero:水魔",
+  "src": "sprites/w3_hero_Units_Creeps_BansheeGhost_BansheeGhost.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 5.36,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.5,
+  "aliasOf": "model:hero:Units/Creeps/BansheeGhost/BansheeGhost",
+  "war3": true
+ },
+ "hero:渔人": {
+  "key": "hero:渔人",
+  "src": "sprites/w3_hero_Units_Creeps_tuskarLord_tuskarLord.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.62
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 8.1,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.1,
+  "aliasOf": "model:hero:Units/Creeps/tuskarLord/tuskarLord",
+  "war3": true
+ },
  "hero:火魂": {
   "key": "hero:火魂",
   "src": "sprites/hero_火魂.webp",
@@ -1016,6 +1471,190 @@ window.SPRITE_SHEETS = {
     "loop": false
    }
   }
+ },
+ "hero:狂牛": {
+  "key": "hero:狂牛",
+  "src": "sprites/w3_hero_Units_Orc_HeroTaurenChieftain_HeroTaurenChieftain.webp",
+  "frameW": 240,
+  "frameH": 240,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 3.75,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 0.95,
+  "aliasOf": "model:hero:Units/Orc/HeroTaurenChieftain/HeroTaurenChieftain",
+  "war3": true
+ },
+ "hero:电法": {
+  "key": "hero:电法",
+  "src": "sprites/w3_hero_Units_NightElf_MalFurion_MalFurion.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 3.53,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "aliasOf": "model:hero:Units/NightElf/MalFurion/MalFurion",
+  "war3": true
+ },
+ "hero:神幻": {
+  "key": "hero:神幻",
+  "src": "sprites/w3_hero_Units_Creeps_Medivh_Medivh.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   }
+  },
+  "modelScale": 1.4,
+  "aliasOf": "model:hero:Units/Creeps/Medivh/Medivh",
+  "war3": true,
+  "tint": [
+   1.0,
+   1.0,
+   0.0
+  ]
+ },
+ "hero:神牛": {
+  "key": "hero:神牛",
+  "src": "sprites/w3_hero_Units_Orc_SpiritWalker_SpiritWalker.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 3.75,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.1,
+  "aliasOf": "model:hero:Units/Orc/SpiritWalker/SpiritWalker",
+  "war3": true
+ },
+ "hero:箭灵": {
+  "key": "hero:箭灵",
+  "src": "sprites/w3_hero_Units_Creeps_BansheeRanger_BansheeRanger.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 8.58,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.15,
+  "aliasOf": "model:hero:Units/Creeps/BansheeRanger/BansheeRanger",
+  "war3": true
  },
  "hero:邪冰": {
   "key": "hero:邪冰",
@@ -1061,6 +1700,46 @@ window.SPRITE_SHEETS = {
    0.0,
    0.0
   ]
+ },
+ "hero:风神": {
+  "key": "hero:风神",
+  "src": "sprites/w3_hero_Units_Human_HeroBloodElf_HeroBloodElf.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "aliasOf": "model:hero:Units/Human/HeroBloodElf/HeroBloodElf",
+  "war3": true
  },
  "shop": {
   "key": "shop",
@@ -12927,6 +13606,232 @@ window.SPRITE_SHEETS = {
   "modelScale": 1.5,
   "glow": true
  },
+ "model:hero:Buildings/NightElf/AncientofLore/AncientofLore": {
+  "key": "model:hero:Buildings/NightElf/AncientofLore/AncientofLore",
+  "src": "sprites/w3_hero_Buildings_NightElf_AncientofLore_AncientofLore.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.62
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 6.0,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 0.8
+ },
+ "model:hero:Buildings/NightElf/AncientofLore/AncientofLore_glow": {
+  "key": "model:hero:Buildings/NightElf/AncientofLore/AncientofLore_glow",
+  "src": "sprites/w3_hero_Buildings_NightElf_AncientofLore_AncientofLore_glow.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 6.0,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 0.8,
+  "glow": true
+ },
+ "model:hero:Units/Creeps/BansheeGhost/BansheeGhost": {
+  "key": "model:hero:Units/Creeps/BansheeGhost/BansheeGhost",
+  "src": "sprites/w3_hero_Units_Creeps_BansheeGhost_BansheeGhost.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 5.36,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.5
+ },
+ "model:hero:Units/Creeps/BansheeRanger/BansheeRanger": {
+  "key": "model:hero:Units/Creeps/BansheeRanger/BansheeRanger",
+  "src": "sprites/w3_hero_Units_Creeps_BansheeRanger_BansheeRanger.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 8.58,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.15
+ },
+ "model:hero:Units/Creeps/BansheeRanger/BansheeRanger_glow": {
+  "key": "model:hero:Units/Creeps/BansheeRanger/BansheeRanger_glow",
+  "src": "sprites/w3_hero_Units_Creeps_BansheeRanger_BansheeRanger_glow.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 8.58,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.15,
+  "glow": true
+ },
+ "model:hero:Units/Creeps/Medivh/Medivh": {
+  "key": "model:hero:Units/Creeps/Medivh/Medivh",
+  "src": "sprites/w3_hero_Units_Creeps_Medivh_Medivh.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   }
+  },
+  "modelScale": 1.4
+ },
+ "model:hero:Units/Creeps/tuskarLord/tuskarLord": {
+  "key": "model:hero:Units/Creeps/tuskarLord/tuskarLord",
+  "src": "sprites/w3_hero_Units_Creeps_tuskarLord_tuskarLord.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.62
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 8.1,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.1
+ },
  "model:hero:Units/Critters/ChaosSpaceOrc/ChaosSpaceOrc": {
   "key": "model:hero:Units/Critters/ChaosSpaceOrc/ChaosSpaceOrc",
   "src": "sprites/w3_hero_Units_Critters_ChaosSpaceOrc_ChaosSpaceOrc.webp",
@@ -13004,6 +13909,160 @@ window.SPRITE_SHEETS = {
   "modelScale": 1.1,
   "glow": true
  },
+ "model:hero:Units/Critters/Marine/Marine": {
+  "key": "model:hero:Units/Critters/Marine/Marine",
+  "src": "sprites/w3_hero_Units_Critters_Marine_Marine.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 7.5,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.3
+ },
+ "model:hero:Units/Critters/Marine/Marine_glow": {
+  "key": "model:hero:Units/Critters/Marine/Marine_glow",
+  "src": "sprites/w3_hero_Units_Critters_Marine_Marine_glow.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 7.5,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.3,
+  "glow": true
+ },
+ "model:hero:Units/Human/HeroBloodElf/HeroBloodElf": {
+  "key": "model:hero:Units/Human/HeroBloodElf/HeroBloodElf",
+  "src": "sprites/w3_hero_Units_Human_HeroBloodElf_HeroBloodElf.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0
+ },
+ "model:hero:Units/Human/HeroBloodElf/HeroBloodElf_glow": {
+  "key": "model:hero:Units/Human/HeroBloodElf/HeroBloodElf_glow",
+  "src": "sprites/w3_hero_Units_Human_HeroBloodElf_HeroBloodElf_glow.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "glow": true
+ },
  "model:hero:Units/Human/Jaina/Jaina": {
   "key": "model:hero:Units/Human/Jaina/Jaina",
   "src": "sprites/w3_hero_Units_Human_Jaina_Jaina.webp",
@@ -13042,6 +14101,152 @@ window.SPRITE_SHEETS = {
   },
   "modelScale": 1.5
  },
+ "model:hero:Units/Human/WarWagon/WarWagon": {
+  "key": "model:hero:Units/Human/WarWagon/WarWagon",
+  "src": "sprites/w3_hero_Units_Human_WarWagon_WarWagon.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 10.0,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.2
+ },
+ "model:hero:Units/NightElf/HeroWarden/HeroWarden": {
+  "key": "model:hero:Units/NightElf/HeroWarden/HeroWarden",
+  "src": "sprites/w3_hero_Units_NightElf_HeroWarden_HeroWarden.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 7.5,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.2
+ },
+ "model:hero:Units/NightElf/MalFurion/MalFurion": {
+  "key": "model:hero:Units/NightElf/MalFurion/MalFurion",
+  "src": "sprites/w3_hero_Units_NightElf_MalFurion_MalFurion.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 3.53,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0
+ },
+ "model:hero:Units/NightElf/MalFurion/MalFurion_glow": {
+  "key": "model:hero:Units/NightElf/MalFurion/MalFurion_glow",
+  "src": "sprites/w3_hero_Units_NightElf_MalFurion_MalFurion_glow.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 3.53,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "glow": true
+ },
  "model:hero:Units/Orc/HeroBladeMaster/HeroBladeMaster": {
   "key": "model:hero:Units/Orc/HeroBladeMaster/HeroBladeMaster",
   "src": "sprites/w3_hero_Units_Orc_HeroBladeMaster_HeroBladeMaster.webp",
@@ -13075,6 +14280,113 @@ window.SPRITE_SHEETS = {
     "dirs": 8,
     "frames": 8,
     "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.1
+ },
+ "model:hero:Units/Orc/HeroShadowHunter/HeroShadowHunter": {
+  "key": "model:hero:Units/Orc/HeroShadowHunter/HeroShadowHunter",
+  "src": "sprites/w3_hero_Units_Orc_HeroShadowHunter_HeroShadowHunter.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 10.0,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 0.95
+ },
+ "model:hero:Units/Orc/HeroTaurenChieftain/HeroTaurenChieftain": {
+  "key": "model:hero:Units/Orc/HeroTaurenChieftain/HeroTaurenChieftain",
+  "src": "sprites/w3_hero_Units_Orc_HeroTaurenChieftain_HeroTaurenChieftain.webp",
+  "frameW": 240,
+  "frameH": 240,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 3.75,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 0.95
+ },
+ "model:hero:Units/Orc/SpiritWalker/SpiritWalker": {
+  "key": "model:hero:Units/Orc/SpiritWalker/SpiritWalker",
+  "src": "sprites/w3_hero_Units_Orc_SpiritWalker_SpiritWalker.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 3.75,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
     "loop": false
    }
   },

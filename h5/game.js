@@ -125,7 +125,7 @@ function newGame(mode) {
 
 // ---------------------------------------------------------------- 建造栏
 // 原图随机建造（war3map.j 里 Qf / Hd / He / Hf / Hh / Hg / H7 七个随机数）：1 主塔、1 原始塔、1 光环塔、1 新辅助（4 大辅助 + 4 巫系）、
-// 1 小辅助、1 另类塔、1 全场唯一塔；另外 Hc 从 17 个英雄塔里随机放开 1 个（有"英雄赞助"是 34 个）。本复刻只做了 4 个英雄，就在这 4 个里抽
+// 1 小辅助、1 另类塔、1 全场唯一塔；另外 Hc = GetRandomInt(1,17) 从 17 个英雄塔里放开 1 个（有"英雄赞助"是 34 个，平台功能，不做）
 const FAM = Object.values(D.towers);
 const byCat = c => FAM.filter(f => f.cat === c).map(f => f.name);
 const SLOT_POOL = { main: ['main'], raw: ['raw'], aura: ['aura'], newsup: ['big', 'witch'], sup: ['sup'], alt: ['alt'], uniq: ['uniq'] };
@@ -140,7 +140,8 @@ function rerollBuild(free) {
   }
   if (MODES[G.mode].build) G.build = MODES[G.mode].build.slice();      // 演示模式：固定建造栏
   else G.build = SLOTS.map(s => pick(slotPool(s)));
-  G.heroChoice = MODES[G.mode].hero || pick(Object.keys(D.heroes));
+  const hc = rint(1, 17);
+  G.heroChoice = MODES[G.mode].hero || Object.keys(D.heroes).find(n => D.heroes[n].hc === hc);
   G.placing = null;
   uiDirty();
 }
@@ -178,13 +179,18 @@ function kill(m, src) {
   if (src) {
     src.kills = (src.kills || 0) + 1;
     const owner = src.owner || src;
-    if (owner.isHero) owner.mana = Math.min(owner.maxMana(), owner.mana + 2);    // 英雄每击杀 +2 魔法
-    else if (owner.fam && G.towers.includes(owner)) towerKilled(owner, m);         // 塔的魔法值（功勋）
+    if (owner.isHero) {
+      owner.mana = Math.min(owner.maxMana(), owner.mana + 2);                      // 英雄（和它的召唤物）每击杀 +2 魔法
+      const def = HERO_DEF[owner.heroName]; if (def.onKill) def.onKill(owner, m, src);
+    } else if (owner.fam && G.towers.includes(owner)) towerKilled(owner, m);       // 塔的魔法值（功勋）
   }
   if (m.elite) {
     const w = rint(1, 3); G.wood += w;
     const owner = src && (src.owner || src);
-    if (owner && owner.isHero) { owner.stat[owner.growth] += 1; msg(`英雄击杀精英怪：${statCN(owner.growth)} +1，木材 +${w}`); }
+    if (owner && owner.isHero) {
+      owner.stat[owner.growth] += 1; msg(`英雄击杀精英怪：${statCN(owner.growth)} +1，木材 +${w}`);
+      const def = HERO_DEF[owner.heroName]; if (def.onElite) def.onElite(owner, src);
+    }
     else msg(`击杀精英怪：木材 +${w}`);
     const bm = G.towers.find(o => o.bmax);         // 杀死精英怪 20% 概率升级弹跳塔 MAX 的灵魂重击
     if (bm && bm.bolt < BOUNCE.bolt.length && Math.random() < 0.2) { bm.bolt++; msg(`弹跳塔 MAX 灵魂重击升到 ${bm.bolt} 级`); }
@@ -263,7 +269,7 @@ const toSeg = (f, x, y) => [(x - f.A[0]) * f.ux + (y - f.A[1]) * f.uy, (x - f.A[
 function moveMonster(m, dt) {
   if (!m.target) m.target = nextNode(m);
   if (G.t < m.stunUntil) return;
-  let spd = m.speed * (1 + m.auraSpeed + debuff(m, 'expelSpeed')) * (1 - Math.max(m.slow * (G.t < m.slowUntil ? 1 : 0), m.auraSlow));
+  let spd = m.speed * (1 + m.auraSpeed + debuff(m, 'expelSpeed')) * (1 - Math.max(m.slow * (G.t < m.slowUntil ? 1 : 0), m.auraSlow)) * (1 - Math.min(0.95, m.heroSlow || 0));
   spd = clamp(spd, 30, 522);
   let f = segFrame(m), [sAlong, lat] = toSeg(f, m.x, m.y);
   sAlong += spd * dt;
@@ -324,7 +330,7 @@ function separateMonsters() {
 // ---------------------------------------------------------------- 塔
 function famOf(t) { return D.towers[t.fam]; }
 function curLevel(t) { return t.levels[t.lv]; }
-function towerFood(fam) { return fam === 'hero' ? D.heroes[G.heroChoice].food : Math.max(0, D.towers[fam].levels[0].food || 0); }
+function towerFood(fam) { return fam === 'hero' ? D.heroes[G.heroChoice].food : fam === 'ancient' ? 1 : Math.max(0, D.towers[fam].levels[0].food || 0); }
 function foodUsed() { return G.towers.reduce((s, t) => s + (t.food || 0), 0); }
 // 建造网格：格子中心在 64 的倍数上；塔占 3×3 格，中心对齐格子中心
 const FOOT_HALF = TOWER_CELLS * CELL / 2;                         // 96
@@ -342,7 +348,8 @@ function cellBuildable(cx, cy) {
 }
 // 格子是否被塔（或排队中的建造命令）占了
 function cellTaken(cx, cy, withOrders) {
-  for (const t of G.towers) if (t.cat !== 'summon' && Math.abs(cx - t.x) < FOOT_HALF && Math.abs(cy - t.y) < FOOT_HALF) return true;
+  for (const t of G.towers) if ((t.cat !== 'summon' || t.solid) && !t.isHero && Math.abs(cx - t.x) < FOOT_HALF && Math.abs(cy - t.y) < FOOT_HALF) return true;
+  if (G.hero && Math.abs(cx - G.hero.home.x) < FOOT_HALF && Math.abs(cy - G.hero.home.y) < FOOT_HALF) return true;   // 英雄塔占的是原位置（狂牛瞬移后也一样）
   if (withOrders) for (const o of buildOrders()) if (Math.abs(cx - o.x) < FOOT_HALF && Math.abs(cy - o.y) < FOOT_HALF) return true;
   return false;
 }
@@ -373,6 +380,7 @@ function newTower(fam, x, y, extra) {
 }
 function buildTower(fam, x, y) {
   if (fam === 'hero') return buildHero(x, y);
+  if (fam === 'ancient') return G.hero && plantAncient(G.hero, x, y);       // 古树：种召唤古树
   const lv0 = D.towers[fam].levels[0], why = buildBlock(fam);
   if (why) return msg(why);
   if (G.gold < lv0.gold) return msg('金币不足');
@@ -393,6 +401,7 @@ function upgradeTower(t, branchKey) {
   G.gold -= next.gold; t.spent += next.gold;
   if (branchKey) { t.levels = [t.levels[0]].concat(f.branches[branchKey]); t.branch = branchKey; }
   t.lv++;
+  if (G.hero && HERO_DEF[G.hero.heroName].towerUpgraded) HERO_DEF[G.hero.heroName].towerUpgraded(G.hero, t);   // 幻影：暴击 / 冰霜 / 重击塔升到 3 级
   SFX.ui('upgrade');
   uiDirty();
 }
@@ -412,12 +421,12 @@ function sellTower(t) {
 function giveOrder(o, queue) { const b = G.builder; if (queue && b.order) (b.queue = b.queue || []).push(o); else { b.order = o; b.queue = []; } }
 function orderMove(x, y, queue) { giveOrder({ kind: 'move', x, y }, queue); addFx({ kind: 'mark', x, y, life: 0.6, color: '#6fd17a' }); }
 function orderBuild(fam, x, y, queue) {
-  const cost = fam === 'hero' ? D.heroes[G.heroChoice].gold : D.towers[fam].levels[0].gold;
+  const cost = fam === 'hero' ? D.heroes[G.heroChoice].gold : fam === 'ancient' ? 500 : D.towers[fam].levels[0].gold;
   const food = towerFood(fam);
   if (G.gold < cost) return msg('金币不足'), false;
   if (fam === 'hero' && G.wood < D.heroes[G.heroChoice].wood) return msg('木材不足'), false;
   if (foodUsed() + food > G.foodCap) return msg('人口不足（12 木材可买 1 人口）'), false;
-  const why = fam === 'hero' ? heroBlock() : buildBlock(fam);
+  const why = fam === 'hero' ? heroBlock() : fam === 'ancient' ? null : buildBlock(fam);
   if (why) return msg(why), false;
   giveOrder({ kind: 'build', fam, x, y }, queue);
   return true;
@@ -488,6 +497,7 @@ function towerStats(t) {
   // 目标数只对弹射武器有意义：弹跳塔、通灵塔（武器类型 mbounce，3 个目标）。毒塔单位表里的 targCount 是普通飞弹，原图只打一个目标
   const targets = t.fam === '弹跳塔' || t.fam === '通灵塔' ? lv.targets || 1 : 1;
   const dmg = lv.dmg + (t.fam === '弹跳塔' ? BOUNCE.atkStep * G.bounce.atk : 0);     // 弹跳提升攻击（R000）加的是基础攻击
+  if (t.stats) { const x = t.stats(t); return { dmg: x.dmg ?? dmg, cd: (x.cd ?? lv.cd) / (1 + (x.as || 0)), range: lv.range, atk: lv.atk, targets }; }   // 英雄召唤物：攻击随英雄属性 / 科技变
   return { dmg, cd: lv.cd, range: lv.range, atk: lv.atk, targets };
 }
 // WC3 的塔锁定目标：一直打同一个，直到它死掉或走出射程才重新找最近的（腐蚀、减速、重击就集中在一个目标上）
@@ -529,7 +539,8 @@ function shot(t, m) { t.face = Math.atan2(m.y - t.y, m.x - t.x); }
 const bv = (t, k) => t.buff && t.buff[k] && t.buff[k].until > G.t ? t.buff[k].v : 0;
 //   弹跳提升攻速（R001）是科技，和光环叠加
 const towerAS = t => (1 + Math.max(t.buffAS, t.selfAS || 0) + Math.max(bv(t, 'bloodlust'), t.selfAS2 || 0) + bv(t, 'fire') + (t.fam === '弹跳塔' ? BOUNCE.asStep * G.bounce.as : 0)) * (1 - t.eliteAS);
-const towerAtk = t => (1 + Math.max(t.buffDmg, t.selfAtk2 || 0) + (t.selfAtk || 0) + bv(t, 'roar') + bv(t, 'divine')) * (1 - t.eliteWeak);
+//   神牛的神盾光辉（战鼓）和攻击光环叠加；古树的心灵之火另算
+const towerAtk = t => (1 + Math.max(t.buffDmg, t.selfAtk2 || 0) + (t.selfAtk || 0) + bv(t, 'roar') + bv(t, 'divine') + (t.drums || 0) + bv(t, 'innerfire')) * (1 - t.eliteWeak);
 
 function towerUpdate(t, dt) {
   if (t.cat === 'aura') return;
@@ -537,8 +548,10 @@ function towerUpdate(t, dt) {
   if (t.isHero) heroTick(t, dt);
   if (t.maxMana && t.manaRegen) t.mana = clamp(t.mana + t.manaRegen * dt, 0, t.maxMana);
   if (kit && kit.tick) kit.tick(t, dt);
+  if (t.tick) t.tick(t, dt);
   const st = towerStats(t);
   t.atkMul = towerAtk(t);
+  if (t.mobile) summonMove(t, dt, st.range);
   if (t.fam === '扫射塔') return sweepUpdate(t, dt, st);
   t.cdLeft -= dt * towerAS(t);
   if (t.cdLeft > 0) return;
@@ -546,8 +559,17 @@ function towerUpdate(t, dt) {
   if (!target) { t.cdLeft = 0; return; }
   t.cdLeft += st.cd;
   t.attacks++; t.atkT = G.t;
+  if (G.hero && HERO_DEF[G.hero.heroName].anyAttack) HERO_DEF[G.hero.heroName].anyAttack(G.hero, t, target);   // 坦克的能量
   if (t.isHero) return heroAttack(t, target, st);
   attack(t, target, st);
+}
+// 会走动的召唤物（炎魔、水元素、骷髅）：射程里没有敌人就走向最近的敌人，但不离开英雄 leash 范围
+function summonMove(t, dt, range) {
+  if (nearest(t.x, t.y, range)) return;
+  const o = t.owner, m = nearest(o.x, o.y, t.mobile.leash) || null;
+  if (!m) return;
+  const dx = m.x - t.x, dy = m.y - t.y, d = Math.hypot(dx, dy), step = Math.min(d - range * 0.8, t.mobile.speed * dt);
+  if (step > 0) { t.x += dx / d * step; t.y += dy / d * step; t.face = Math.atan2(dy, dx); }
 }
 
 // 普通塔一次攻击 (按 WC3 技能代码解释附加效果)
@@ -557,9 +579,16 @@ function attack(t, target, st) {
   // 致命一击（剑圣塔的致命一击由它的技能包按成长模式处理）
   const crit = !(kit && kit.ownCrit) && abil(lv, 'AOcr');
   if (crit && Math.random() * 100 < (crit.A || 25)) { dmg *= crit.B || 3; addFx({ kind: 'text', x: target.x, y: target.y, text: '暴击', life: 0.6, color: '#ffd257' }); }
+  // 英雄的召唤物：马甲只跑触发器（silent）；致命一击；出手时的触发器
+  if (t.silent) { shot(t, target); return t.onLaunch(t, target); }
+  const sc = t.crit && t.crit();
+  if (sc && Math.random() < sc[0]) { dmg *= sc[1]; popText(target.x, target.y, sc[1] + '倍', '#ffd257'); }
+  if (t.onLaunch) t.onLaunch(t, target);
   // 目标集合
   let targets = [target];
   if (t.fam === '弹跳塔' || t.fam === '通灵塔') targets = chainTargets(target, st.targets, 500);   // 弹射；通灵塔武器是 mbounce：3 个目标、弹射范围 500
+  if (lv.bounce) targets = chainTargets(target, lv.bounce, lv.jump || 500);
+  if (lv.multi) targets = [target].concat(inRange(t.x, t.y, lv.multiR || st.range).filter(m => m !== target).slice(0, lv.multi));   // 弹幕：额外目标
   // 破坏塔：分裂破坏 A06U（多重射击）。说明"同时攻击 4 个单位"，2~MAX 级还是同一个技能；天赋（分裂破坏 2 级）9 个
   if (t.fam === '破坏塔') targets = [target].concat(inRange(t.x, t.y, 1200).filter(m => m !== target).slice(0, (t.talent ? 9 : 4) - 1));
   // 箭塔：箭射 A07X 每次攻击升 1 级，4 级时（每 4 次攻击里的第 4 次）打 800 范围内所有敌人
@@ -580,13 +609,14 @@ function attack(t, target, st) {
     const c = hit || { x, y };
     if (t.fam === '牛头塔') splash(t, c, (abil(lv, 'Aroc') || {}).area || 500, dmg, st.atk);     // 粉碎（分裂）A0A9：500 范围
     if (t.fam === '群攻塔') { splash(t, c, 300, dmg, st.atk); stunArea(c, 300, 0.1); }
+    if (lv.splash) splash(t, c, lv.splash, dmg, st.atk);
   };
   const land = (m, primary) => (hit, x, y) => {
-    if (hit) { hurt(hit, dmg, st.atk, t); onHitEffects(t, lv, hit, st); frozenBurst(hit); }
+    if (hit) { hurt(hit, dmg, st.atk, t); onHitEffects(t, lv, hit, st); frozenBurst(hit); if (t.onHit) t.onHit(t, hit); }
     if (primary) { area(hit, x, y); SFX.ent(sndKey(t), 'hit', { x, y }); }
   };
   SFX.ent(sndKey(t), 'launch', { x: t.x, y: t.y });
-  if (t.fam === '弹跳塔' || t.fam === '通灵塔') {     // 依次弹到下一个目标
+  if (t.fam === '弹跳塔' || t.fam === '通灵塔' || lv.bounce) {     // 依次弹到下一个目标
     const hop = (i, src) => { if (i >= targets.length) return;
       FXS.launch(style, src, targets[i], (hit, x, y) => { land(targets[i], i === 0)(hit, x, y); hop(i + 1, { x, y, z: 50 }); }, w3opt(t)); };
     return hop(0, from);
@@ -1348,57 +1378,484 @@ function bounceXfer(src, t) {
 function towerKilled(t, m) { const kit = KITS[t.fam]; if (kit && kit.kill) kit.kill(t, m); }
 
 // ---------------------------------------------------------------- 英雄塔
-const HERO_KITS = {
-  // 每个技能：init(hero) 学会时；onAttack(hero, target) 攻击时触发（被动）；
-  // 主动技能：cd 冷却秒数 + cast(hero, target)，可以按热键施放，也会自动施放（右键切换自动施放）；cast 返回 false 表示没放出去（不进冷却）
-  剑神: [
-    { cd: 8, cast(h, tg) { zone(h, tg.x, tg.y, 400, 5, lerpStat(20, 30000, h.stat.agi, 240), 'magic', () => ({ dmg: h.stat.int * 700, atk: 'chaos', ignore: h.stat.agi > 400 }), 'bladestorm'); } },
-    { onAttack(h, tg) {
-      const ig = h.stat.int >= 400, k = ig ? 0.33 : 1;
-      if (Math.random() < 0.15 * k) aoe(h, tg, 120, h.stat.str * 960, 'pierce', ig);
-      if (Math.random() < 0.30 * k) aoe(h, tg, 240, h.stat.agi * 300, 'magic', ig);
-      if (Math.random() < 0.60 * k) aoe(h, tg, 360, h.stat.int * 120, 'chaos', ig);
-    } },
-    { onAttack(h, tg) { if (Math.random() < 0.2 && G.zones.filter(z => z.owner === h && z.r === 180).length < 5) zone(h, tg.x, tg.y, 180, 3, lerpStat(10, 20000, h.stat.agi, 200), 'magic', () => ({ dmg: h.stat.str * lerpStat(20, 800, h.stat.str, 400), atk: 'pierce' }), 'bladestorm'); } },
-    { init(h) { h.asBonus += 1.0; }, critChance: 0.05, critMul: 50 },
+// 原图随机建造（Hc = GetRandomInt(1,17)）每次放开 1 个英雄塔，D.heroes 的 hc 就是这个编号（tools/add_heroes.py）。
+// 英雄塔是建筑（1500 金 + 5 木 + 4 人口），建成时换成英雄单位：全场唯一、无敌、不能移动、不能回收。
+// 每个英雄的技能都按原图触发器实现（war3map.j）：HERO_KITS 是技能（学会后生效），HERO_DEF 是英雄本身的规则（攻击方式、计数器、命令）。
+// 原图的主动技能几乎都是"攻击时自动施放"（EVENT_PLAYER_UNIT_ATTACKED 里 IssueImmediateOrder），冷却好了就放，所以这里都是自动的。
+//
+// 技能包字段（都可选）：
+//   init(h) 学会时    onLaunch(h, tg) 每次攻击出手时    onAttack(h, hit) 主目标被打中时    tick(h, dt) 每帧    onKill(h, m, src) 英雄或它的召唤物杀敌
+//   crit(h) → [概率, 倍数] / critChance + critMul 致命一击    canLearn(h) → 不能学的原因（第 5 个技能的额外条件）
+//   up = { tip(h), why(h), cost(h) → { gold, mana }, apply(h) } 学会后"再次学习"（升级技能）    cdKey + cd(h) 命令面板显示冷却
+const lvBy = (v, div, max) => clamp(Math.floor(v / div), 1, max);              // 原图 SetUnitAbilityLevel(属性 / div)：0 级无效，至少 1 级
+const tiers = (v, steps, xs) => { for (let i = 0; i < steps.length; i++) if (v >= steps[i]) return xs[i]; return xs[steps.length]; };
+const learned = (h, i) => h.learned.includes(i);
+const cdOk = (h, k, cd) => { if (!cdReady(h, k)) return false; setCd(h, k, cd); return true; };
+const pickIn = (x, y, r) => { const ms = inRange(x, y, r); return ms.length ? pick(ms) : null; };
+const firstIn = (x, y, r) => G.monsters.find(m => !m.dead && dist2(x, y, m.x, m.y) <= r * r) || null;   // 原图 FirstOfGroup：最早出场的那个
+const heroUnits = h => G.towers.filter(t => t.owner === h && t.cat === 'summon');
+const countSum = (h, kind) => heroUnits(h).filter(t => t.kind === kind && (!t.until || t.until > G.t)).length;
+// 英雄的召唤物 / 马甲：放进 G.towers，用普通塔的攻击逻辑（towerUpdate → attack），击杀算英雄的（英雄 +2 魔法）。
+// lv：{ dmg, cd, range, atk, bounce（弹射个数）, jump（弹射距离）, multi（额外目标数，弹幕）, multiR, splash }；
+// o：label / title（画面上的字和名字）、kind（计数用）、stats(s)（动态攻击数值）、onLaunch(s, tg)、onHit(s, m)、silent（马甲：不发弹道，只跑 onLaunch）、
+//    mobile（会走动：追射程外最近的敌人，不离开英雄 leash 范围）、aura（{ kind, r, v } 给塔或敌人加光环）、solid（占建造格子）
+function hsum(h, x, y, life, lv, o = {}) {
+  return summon(h, { fam: '召唤', title: o.title || '召唤物', label: o.label || '召', x, y, until: life ? G.t + life : undefined,
+    levels: [{ dmg: 0, cd: 1, range: 600, atk: 'normal', targets: 1, abils: [], ...lv }], ...o });
+}
+// 原图里攻速加成封顶 +400%（单位攻击间隔最多缩短到 1/5）
+const AS_CAP = 5;
+// ---- 各英雄的数值表（技能表 / war3map.w3a 的 1~10 级数据）
+const JS = {   // 剑神
+  storm: [20, 100, 300, 900, 1500, 2700, 3500, 5000, 12000, 30000],     // 剑刃风暴 A0I1：400 范围每秒伤害（等级 = 敏捷/24）
+  mirror: [10, 25, 100, 200, 500, 1000, 2000, 5000, 10000, 20000],      // 剑刃风暴 2 A0I3：180 范围每秒伤害（等级 = 敏捷/20）
+};
+const HH = {   // 火魂
+  burn: [40, 160, 800, 1500, 4500, 9000, 20000, 40000, 80000, 150000],  // 焚化之炎 A0EG（液体火焰）：每秒伤害（等级 = 力量/35）
+  beasts: [3, 3, 3, 4, 4, 4, 5, 5, 5, 6], stamp: [50, 300, 600, 1000, 2000, 3000, 4000, 8000, 14000, 30000],   // 惊吓 A0E8（等级 = 智力/28）
+  lava: [[20, 0.75], [145, 0.65], [600, 0.6], [2000, 0.55], [4000, 0.45], [10000, 0.3]], split: [10, 12, 14, 16, 18, 20],   // 炎魔 n03Q~n03H
+  stomp: [10000, 20000, 40000, 80000, 120000],                          // 召唤火凤 A0FW：1000 范围伤害 + 晕 6 秒（等级 = 智力/100+1）
+};
+const ZS = {   // 战神
+  berserk: [20, 300, 600, 1200, 1800, 2500, 4000, 6000, 12000, 24000], slow: [0.2, 0.24, 0.28, 0.32, 0.36, 0.4, 0.5, 0.7, 0.9, 1.2],   // 狂战士 A0D3
+  as: [0.4, 0.4, 0.4, 0.4, 0.65, 0.65, 0.7, 0.9, 1.2, 1.6],             // 马甲的 A0D9：友军攻速
+  roar: [0.3, 0.6, 0.9, 1.2, 1.5, 1.8, 2.1, 2.4, 2.7, 3.0],            // 圣战士马甲的咆哮 A0D4（等级 = 力量/20）
+  snipe: [2000, 4000, 8000, 16000, 32000, 64000, 120000, 240000, 360000, 480000],   // 狙击枪：风暴之锤 A0E7（等级 = 智力/25）
+};
+const SM = {   // 水魔
+  lust: [0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 10, 1.1], lustDur: [1, 1, 1, 2, 2, 2, 2, 3, 3, 3],   // 冰原力的嗜血 A0D0（9 级 10 倍，原图数据）
+  armor: [40, 60, 80, 120, 200, 400],                                  // 暴风雪的减防光环 A0CR（等级 = 智力/60）
+  ringR: [600, 630, 660, 690, 720, 750, 780, 810, 840, 900], ringV: [0.3, 0.32, 0.34, 0.36, 0.38, 0.4, 0.42, 0.44, 0.46, 0.5],   // 水魔环 A0D1
+  elem: [[400, 40000, 0.4], [301, 20000, 0.6], [201, 5000, 0.7], [101, 1200, 0.8], [0, 180, 0.9]],   // 水元素：敏捷门槛、攻击、间隔
+};
+const DF = {   // 电法
+  chain: [40, 200, 500, 1000, 2000, 4000, 8000, 15000, 25000, 40000, 70000], chainN: [6, 6, 6, 6, 6, 6, 6, 6, 6, 8, 10],   // 闪电链 A0BI
+};
+const FS = {   // 风神
+  lockDur: [0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.8],          // 刀风之锁的残废 A0I9
+  rampCd: [12, 11, 10, 9, 8, 7, 6, 5], bandit: [0, 1, 2, 4, 7, 10, 15, 25, 50, 100],   // 狂风肆虐 A068 冷却 / 土匪的战鼓 A067
+  hammer: [1, 2, 3, 4, 5, 6, 7, 8, 9, 999],                            // 风暴之锤 A0B5：额外目标
+};
+const YL = {   // 渔人：甲乙丙丁（普通 / Plus）
+  fish: [
+    { name: '鱼人甲', n: [50, 1.6, 400, 'normal', 4, 500, { kind: 'towerDmg', r: 1500, v: 1.3 }], p: [1550, 1.6, 600, 'normal', 9, 800, { kind: 'towerDmg', r: 1500, v: 1.8 }] },
+    { name: '鱼人乙', n: [300, 1.8, 400, 'pierce', 4, 400, { kind: 'armor', r: 1200, v: 90 }], p: [300, 1.1, 600, 'pierce', 9, 800, { kind: 'armor', r: 1200, v: 160 }] },
+    { name: '鱼人丙', n: [30, 1.8, 400, 'magic', 10, 500, { kind: 'slow', r: 900, v: 0.6 }], p: [1530, 1.1, 600, 'magic', 10, 800, { kind: 'slow', r: 900, v: 0.9 }] },
+    { name: '鱼人丁', n: [70, 2.2, 800, 'chaos', 3, 600, { kind: 'towerAS', r: 1500, v: 0.7 }], p: [1570, 1.5, 800, 'chaos', 8, 600, { kind: 'towerAS', r: 1500, v: 1.2 }] },
   ],
-  // 枪神：技能本身只有学习次数（Hy：1 学会、2 再次学习）和致命一击，每次攻击的效果在 HERO_ATTACK.枪神 里
+};
+const KN = { wave: [50, 200, 600, 1000, 1600, 2500, 4000, 8000, 16000, 40000] };   // 狂牛震荡波 A0JP（等级 = 智力/25）
+const SN = {   // 神牛
+  up: [[1000, 120], [1500, 80], [2000, 40], [2500, 0], [500, 20]],    // 再次学习：金币 + 魔法
+  multi: [1, 2, 3, 4, 5, 6, 8, 10, 12, 14], drums: [0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.4, 3.0],
+};
+const JL = {   // 箭灵
+  ice: [[320, 15000, 0.16], [260, 10000, 0.3], [220, 6000, 0.3], [180, 3000, 0.3], [140, 1000, 0.3], [80, 300, 0.3], [0, 50, 0.3]],
+  fire: [50, 200, 600, 1200, 2400, 4000, 8000, 12000, 20000, 32000], fireArmor: [20, 40, 60, 80, 120, 180, 250, 400, 600, 800],
+  skel: [[240, 6000, 0.25], [160, 2400, 0.6], [80, 600, 0.6], [0, 35, 0.6]],
+};
+const GS = {   // 古树
+  wind: [20, 40, 100, 200, 400, 700, 1200, 2400, 6600, 12500, 14500, 17000], slime: [0.2, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1.0, 1.2, 1.5],
+  fire: [2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 7],
+};
+// 原图说明 / 数值里的"属性档位"
+const t5 = (v, xs) => tiers(v, [400, 300, 200, 100], xs);              // ≥400 / ≥300 / ≥200 / ≥100 / 其他
+const HERO_KITS = {
+  // ---------------------------------------------------------------- 剑神（BQ3 / BQ6 / BQ9 / BRG）
+  剑神: [
+    // 剑刃风暴：每次攻击，场上没有剑魂就在目标处召唤一个（5 秒，400 范围每秒伤害）；消失时 400 范围 智力×700 混乱（敏捷 ≥400 无视护甲）
+    { onLaunch(h, tg) {
+      if (G.zones.some(z => z.owner === h && z.kind === 'js1')) return;
+      zone(h, tg.x, tg.y, 400, 5, JS.storm[lvBy(h.stat.agi, 24, 10) - 1], 'magic', () => ({ dmg: h.stat.int * 700, atk: 'chaos', ignore: h.stat.agi >= 400 }), 'bladestorm', { kind: 'js1' });
+    } },
+    // 致命剑刃：攻击时在目标处判定三次（智力 ≥400：几率 5% / 10% / 20%，无视护甲）
+    { onLaunch(h, tg) {
+      const ig = h.stat.int >= 400, r = () => Math.random() * 100;
+      if (r() < (ig ? 5 : 15)) aoe(h, tg, 120, h.stat.str * 960, 'pierce', ig);
+      if (r() < (ig ? 10 : 30)) aoe(h, tg, 240, h.stat.agi * 300, 'magic', ig);
+      if (r() < (ig ? 20 : 60)) aoe(h, tg, 360, h.stat.int * 120, 'chaos', ig);
+    } },
+    // 风暴镜像：20% 在英雄身边召唤剑魂 2 号（3 秒，最多 5 个），180 范围每秒伤害；消失时 180 范围 力量×X 穿刺
+    { onLaunch(h) {
+      if (Math.random() >= 0.2 || G.zones.filter(z => z.owner === h && z.kind === 'js2').length > 4) return;
+      const s = h.stat.str, x = tiers(s, [400, 340, 280, 220, 160, 100, 40], [800, 500, 300, 200, 140, 80, 40, 20]);
+      zone(h, h.x, h.y, 180, 3, JS.mirror[lvBy(h.stat.agi, 20, 10) - 1], 'magic', () => ({ dmg: h.stat.str * x, atk: 'pierce' }), 'bladestorm', { kind: 'js2' });
+    } },
+    // 急速命刃：5% ×50；科技 R00F 攻速 +1000%（受攻速上限限制）
+    { init(h) { h.asBonus += 10; }, critChance: 0.05, critMul: 50 },
+  ],
+  // ---------------------------------------------------------------- 枪神：技能本身只有学习次数（Hy：1 学会、2 再次学习）和致命一击，每次攻击的效果在 HERO_ATTACK.枪神 里
   枪神: [0, 1, 2, 3].map(i => ({ relearn: true, init(h) { qsLearn(h, i, 1); }, crit: h => [QS_CRIT[i][h.qs[i] - 1], QS_CRIT[i][2]] })),
-  // 邪冰：巨型冰雹 / 疯狂爆冰 / 邪恶冰冻都是"攻击时"触发（原图 BPw，EVENT_PLAYER_UNIT_ATTACKED），各自有计数器当冷却：
+  // ---------------------------------------------------------------- 邪冰：巨型冰雹 / 疯狂爆冰 / 邪恶冰冻都是"攻击时"触发（原图 BPw），各自有计数器当冷却：
   // 触发时设为 2 / 3 / 4，每秒减 1（BGU），小于 0 才能再触发。触发后放出一个限时马甲单位，由马甲反复攻击造成伤害
   邪冰: [
     { onLaunch(h, tg) { if (h.xb.hail < 0) { h.xb.hail = 2; xbHail(h, tg.x, tg.y); } } },
     { init(h) { h.stat.str += 20; h.stat.agi += 30; h.stat.int += 40; }, critChance: 0.2, critMul: 40 },
     { onLaunch(h) { if (h.xb.burst < 0) { h.xb.burst = 3; xbBurst(h); } } },
     { onLaunch(h) { if (h.xb.freeze < 0) { h.xb.freeze = 4; xbFreeze(h); } } },
+    // 究极闪冰术：三属性总和 ≥750 才能学；英雄身边永久马甲，每 0.2 秒对 600 范围放闪冰术（55000 魔法，弹 5 个，无视护甲）
+    { canLearn: h => h.stat.str + h.stat.agi + h.stat.int >= 750 ? null : '需要三属性总和达到 750',
+      init(h) {
+        hsum(h, h.x, h.y, 0, { cd: 0.2, range: 600 }, { label: '闪', title: '究极闪冰', silent: true, onLaunch(s, tg) {
+          let p = { x: s.x, y: s.y };
+          for (const m of chainTargets(tg, 5, 200)) { FXS.beam(p.x, p.y, 60, m.x, m.y, 50, '#bfefff', 1.2, 0.15); hurt(m, 55000, 'magic', h, { ignoreArmor: true }); p = m; }
+        } });
+      } },
   ],
+  // ---------------------------------------------------------------- 火魂（BOh 攻击时放 陨石之火 / 召唤炎魔 / 召唤火凤）
   火魂: [
-    { onAttack(h, tg) { tg.burn = { dps: lerpStat(40, 150000, h.stat.str, 350), src: h }; } },
-    { cd: 0.8, cast(h) {
-      const ms = inRange(h.x, h.y, heroStats(h).range); if (!ms.length) return false;
-      const tg = pick(ms), a = h.stat.agi, X = a < 100 ? 10 : a < 200 ? 30 : a < 300 ? 60 : a < 400 ? 120 : a < 500 ? 250 : 420;
-      const fx0 = tg.x, fy0 = tg.y;
-      FXS.fall(fx0, fy0, { z: 500, dur: 0.22, color: '#ff8a3c', core: '#ffe08a', size: 16, onEnd: () => { aoe(h, { x: fx0, y: fy0 }, 200, a * X, 'pierce', false, '#ff8a3c'); FXS.explosion(fx0, fy0, 0.5, '#ff8a3c'); SFX.spell('fireFall', { x: fx0, y: fy0 }); } });
-    } },
-    { cd: 4, cast(h) {
-      const ms = inRange(h.x, h.y, heroStats(h).range); if (!ms.length) return false;
-      const tg = pick(ms);
-      const mx0 = tg.x, my0 = tg.y;
-      FXS.fall(mx0, my0, { z: 1100, dx: -500, dy: 260, dur: 0.45, color: '#ff6a2a', core: '#fff0b0', size: 40, rock: '#3a2014', onEnd: () => {
-        aoe(h, { x: mx0, y: my0 }, 350, lerpStat(50, 30000, h.stat.int, 280), 'magic', true, '#ff5a4f');
-        FXS.explosion(mx0, my0, 1.3, '#ff5a4f'); SFX.spell('meteor', { x: mx0, y: my0 }); FXS.nova(mx0, my0, 380, '#ff7a3a', 0.45); FXS.splat(mx0, my0, '#2a1a10'); FXS.debris(mx0, my0, '#5a3a20');
+    // 焚化之炎（液体火焰）：打中的敌人永久燃烧，不叠加
+    { onAttack(h, tg) { tg.burn = { dps: HH.burn[lvBy(h.stat.str, 35, 10) - 1], src: h }; } },
+    // 爆裂之焰：学会时在英雄处召唤冰龙（永久）；冰龙每次攻击，0.3 秒后目标处 200 范围 敏捷×X 穿刺
+    { init(h) {
+      hsum(h, h.x + 120, h.y - 60, 0, { dmg: 1, cd: 0.8, range: 900, atk: 'pierce' }, { label: '龙', title: '冰龙', kind: 'dragon', onLaunch(s, tg) {
+        const x = tg.x, y = tg.y, a = h.stat.agi, k = tiers(a, [500, 400, 300, 200, 100], [420, 250, 120, 60, 30, 10]);
+        later(0.3, () => { aoeAt(h, x, y, 200, a * k, 'pierce'); FXS.explosion(x, y, 0.5, '#ff8a3c'); });
       } });
     } },
-    { cd: 10, needsTarget: false, cast(h) {
-      if (G.towers.filter(t => t.summonOf === h && t.until > G.t).length >= 4) { msg('炎魔最多同时存在 4 个'); return false; }
-      const ang = Math.random() * Math.PI * 2;
-      const x = h.x + Math.cos(ang) * 250, y = h.y + Math.sin(ang) * 250;
-      G.towers.push({ id: G.nextId++, fam: '炎魔', cat: 'summon', summonOf: h, owner: h, x, y, lv: 0, cdLeft: 0, until: G.t + 30, food: 0, spent: 0,
-        levels: [{ dmg: lerpStat(20, 10000, h.stat.str, 180), cd: 1, range: 600, atk: 'chaos', targets: 1, abils: [] }], title: '炎魔', label: '魔', buff: {}, cds: {}, buffAS: 0, buffDmg: 0, eliteAS: 0, eliteWeak: 0 });
-      FXS.explosion(x, y, 0.6, '#ff5a2a'); SFX.spell('summon', { x, y });
+    // 陨石之火（CD10）：英雄附近（y ± 256）召唤马甲放惊吓：5 秒内每秒若干头野兽，700 范围内随机落点 300 范围伤害
+    { cdKey: 'meteor', cd: () => 10, onLaunch(h) {
+      if (!cdOk(h, 'meteor', 10)) return;
+      const lv = lvBy(h.stat.int, 28, 10), cx = h.x, cy = h.y + Math.sin(rnd(0, TAU)) * 256, n = HH.beasts[lv - 1], dmg = HH.stamp[lv - 1];
+      for (let k = 0; k < 5 * n; k++) later(k / n, () => {
+        const a = rnd(0, TAU), r = rnd(0, 700), x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+        FXS.fall(x, y, { z: 900, dx: -300, dy: 160, dur: 0.35, color: '#ff6a2a', core: '#fff0b0', size: 26, rock: '#3a2014', onEnd: () => { aoeAt(h, x, y, 300, dmg, 'magic'); FXS.explosion(x, y, 0.8, '#ff5a4f'); } });
+      });
+    } },
+    // 召唤炎魔（CD18）：英雄处召唤炎魔 16 秒（会走动），攻击 N 次后分裂成两个；施放时已有的炎魔回到英雄身边
+    { cdKey: 'lava', cd: () => 18, onLaunch(h) {
+      if (!cdOk(h, 'lava', 18)) return;
+      for (const s of heroUnits(h)) if (s.kind === 'lava') { s.x = h.x + rnd(-50, 50); s.y = h.y + rnd(-50, 50); }
+      lavaSpawn(h, h.x + rnd(-50, 50), h.y + rnd(-50, 50), lvBy(h.stat.str, 30, 6));
+      SFX.spell('summon', { x: h.x, y: h.y });
+    } },
+    // 召唤火凤（第 5 个：要先学召唤炎魔，且力量 ≥180）CD8：1000 范围伤害 + 晕 6 秒，英雄处召唤火凤凰 6 秒（打 1000 范围所有敌人）
+    { canLearn: h => !learned(h, 3) ? '需要先学会"召唤炎魔"' : h.stat.str < 180 ? '需要力量达到 180' : null,
+      cdKey: 'phoenix', cd: () => 8, onLaunch(h) {
+        if (!cdOk(h, 'phoenix', 8)) return;
+        const lv = clamp(Math.floor(h.stat.int / 100) + 1, 1, 5);
+        for (const m of inRange(h.x, h.y, 1000)) { hurt(m, HH.stomp[lv - 1], 'magic', h); stun(m, 6); }
+        FXS.nova(h.x, h.y, 1000, '#ff8a3c', 0.6);
+        const [dmg, cd, sp] = t5(h.stat.int, [[50000, 0.2, 350], [30000, 0.4, 300], [20000, 0.45, 250], [15000, 0.5, 200], [10000, 0.55, 200]]);
+        hsum(h, h.x, h.y - 120, 6, { dmg, cd, range: 1000, atk: 'pierce', multi: 88, multiR: 1000, splash: sp }, { label: '凤', title: '火凤凰', kind: 'phoenix' });
+      } },
+  ],
+  // ---------------------------------------------------------------- 战神（BNz 猛力击 / BN2 狂战士 / BN5 圣战士 / BOJ 狙击枪 / BOC 分身术）
+  战神: [
+    // 猛力击：每次攻击，目标处 350 范围 敏捷×30 穿刺、150 范围 智力×70 混乱（目标被圣战士晕住时无视护甲）
+    { onLaunch(h, tg) {
+      const ig = tg.zsUntil > G.t;
+      aoe(h, tg, 350, h.stat.agi * 30, 'pierce', ig); aoe(h, tg, 150, h.stat.int * 70, 'chaos', ig);
+    } },
+    // 狂战士（CD10）：等级 = 敏捷/35；700 范围敌人魔法伤害 + 减速 6 秒；700 范围友军攻速加成 6 秒（不与火速叠加）
+    { cdKey: 'berserk', cd: () => 10, onLaunch(h) {
+      if (!cdOk(h, 'berserk', 10)) return;
+      const lv = h.stat.agi >= 350 ? 10 : lvBy(h.stat.agi, 35, 10);
+      for (const m of inRange(h.x, h.y, 700)) { hurt(m, ZS.berserk[lv - 1], 'magic', h); slowM(m, Math.min(0.95, ZS.slow[lv - 1]), 6); }
+      for (const t of alliesNear(h.x, h.y, 700)) giveBuff(t, 'fire', ZS.as[lv - 1], 6);
+      FXS.nova(h.x, h.y, 700, '#ff5a4f', 0.5); SFX.spell('frostNova', { x: h.x, y: h.y });
+    } },
+    // 圣战士（CD8）：700 范围敌人晕 4 秒；700 范围友军攻击加成 4 秒（等级 = 力量/20，不与兽人咆哮叠加）
+    { cdKey: 'crusade', cd: () => 8, onLaunch(h) {
+      if (!cdOk(h, 'crusade', 8)) return;
+      for (const m of inRange(h.x, h.y, 700)) { stun(m, 4); m.zsUntil = G.t + 4; }
+      const lv = h.stat.str >= 200 ? 10 : lvBy(h.stat.str, 20, 10);
+      for (const t of alliesNear(h.x, h.y, 700)) giveBuff(t, 'roar', ZS.roar[lv - 1], 4);
+      FXS.nova(h.x, h.y, 700, '#ffd257', 0.5);
+    } },
+    // 狙击枪：每 2 秒（K2）攻击时对 1400 范围内一个敌人放风暴之锤（等级 = 智力/25），晕 4 秒
+    { onLaunch(h) {
+      if (!h.sk.k2) return;
+      const m = firstIn(h.x, h.y, 1400); if (!m) return;
+      h.sk.k2 = false;
+      const dmg = ZS.snipe[(h.stat.int >= 250 ? 10 : lvBy(h.stat.int, 25, 10)) - 1];
+      FXS.launch('stormHammer', muzzle(h, 'stormHammer'), m, hit => { if (hit) { hurt(hit, dmg, 'magic', h, { ignoreArmor: true }); stun(hit, 4); } });
+    } },
+    // 分身术：GG 每秒 +1；攻击时 GG ≥8 且分身 <2：GG -4，英雄 256 外召唤时空战士 5 秒（间隔 0.15，射程 900，每击 Qi 通用无视护甲）
+    { onLaunch(h) {
+      if (h.sk.gg < 8 || countSum(h, 'clone') >= 2) return;
+      h.sk.gg -= 4;
+      const a = rnd(0, TAU);
+      hsum(h, h.x + Math.cos(a) * 256, h.y + Math.sin(a) * 256, 5, { cd: 0.15, range: 900, atk: 'hero' }, { label: '分', title: '时空战士', kind: 'clone', silent: true, onLaunch(s, tg) {
+        hurt(tg, zsQi(h), 'hero', h, { ignoreArmor: true }); FXS.beam(s.x, s.y, 80, tg.x, tg.y, 50, '#ffd257', 1, 0.08);
+      } });
     } },
   ],
+  // ---------------------------------------------------------------- 水魔（BNT 冰原力 / BNQ 水元素 / BNN 暴风雪 / BNW 水魔环 / BNc 噬水魂）
+  水魔: [
+    // 冰原力：攻击时（触发器开着）：嗜血（等级 = 力量/25）+ 弹幕打射程内所有敌人；力量 >200 持续 5 秒、>100 4 秒、否则 3 秒，8 秒一轮
+    { onLaunch(h) {
+      if (h.sk.iceBusy) return;
+      h.sk.iceBusy = true;
+      const s = h.stat.str, lv = s >= 250 ? 10 : lvBy(s, 25, 10), on = s > 200 ? 5 : s > 100 ? 4 : 3;
+      giveBuff(h, 'bloodlust', SM.lust[lv - 1], SM.lustDur[lv - 1]);
+      h.sk.allUntil = G.t + on;
+      later(8, () => { h.sk.iceBusy = false; });
+      FXS.ring(h.x, h.y, 160, '#7ab8ff', 0.5, 4);
+    } },
+    // 水元素：攻击时 10%（每种水元素都 <5 只）在目标处召唤水元素 8 秒（弹射 6 个，穿刺）
+    { onLaunch(h, tg) {
+      if (Math.random() >= 0.1 || countSum(h, 'elem') >= 5) return;
+      const [, dmg, cd] = SM.elem.find(([a]) => h.stat.agi >= a);
+      hsum(h, tg.x, tg.y, 8, { dmg, cd, range: 600, atk: 'pierce', bounce: 6, jump: 500 }, { label: '水', title: '水元素', kind: 'elem', mobile: { speed: 300, leash: 1400 } });
+    } },
+    // 暴风雪：F1 每 5 秒置 1；攻击时若 F1：英雄处 1000 范围 敏捷×敏捷/3 普通，并带 1.2 秒减防光环（等级 = 智力/60，和减防光环取大）
+    { onLaunch(h) {
+      if (!h.sk.f1) return;
+      h.sk.f1 = false;
+      const x = h.x, y = h.y, a = h.stat.agi, armor = SM.armor[(h.stat.int >= 360 ? 6 : lvBy(h.stat.int, 60, 6)) - 1];
+      for (const m of inRange(x, y, 1000)) debuffM(m, 'blade', armor, 1.5);
+      later(0.7, () => { aoeAt(h, x, y, 1000, a / 3 * a, 'normal'); for (let k = 0; k < 14; k++) FXS.snow(x + rnd(-900, 900), y + rnd(-900, 900), 40, 0.8); });
+    } },
+    // 水魔环：英雄身边减速光环（等级 = 敏捷/25，与减速光环叠加）；打被它减速的敌人：200 范围 智力×50 普通
+    { onLaunch(h, tg) {
+      const lv = lvBy(h.stat.agi, 25, 10);
+      if (dist2(h.x, h.y, tg.x, tg.y) <= SM.ringR[lv - 1] ** 2) aoe(h, tg, 200, h.stat.int * 50, 'normal');
+    } },
+    // 噬水魂：攻击时 10%：英雄处马甲 2.1 秒，每 0.2 秒攻击一次，目标处 150 范围 力量×35 通用
+    { onLaunch(h) {
+      if (Math.random() >= 0.1) return;
+      hsum(h, h.x, h.y, 2.1, { cd: 0.2, range: 1000, atk: 'hero' }, { label: '噬', title: '噬水魂', silent: true, onLaunch(s, tg) {
+        aoe(h, tg, 150, h.stat.str * 35, 'hero', false, '#7ab8ff'); FXS.beam(s.x, s.y, 120, tg.x, tg.y, 40, '#7ab8ff', 1, 0.12);
+      } });
+    } },
+  ],
+  // ---------------------------------------------------------------- 电法（BM9 刺电 / BNE+BNH 爆电 / BNK 云电 / BM6 链电）
+  电法: [
+    // 云电：攻击时 10%：目标处闪电 2 号 3 秒，攻击力 = 敏捷×智力，间隔 0.2，射程 500，普通，额外 2 个目标
+    { onLaunch(h, tg) {
+      if (Math.random() >= 0.1) return;
+      hsum(h, tg.x, tg.y, 3, { dmg: h.stat.agi * h.stat.int, cd: 0.2, range: 500, atk: 'normal', multi: 2, multiR: 500 }, { label: '云', title: '云电' });
+    } },
+    // 爆电（CD4）：800 范围随机一个敌人处放电球，1 秒后爆炸：400 范围 智力×X 混乱无视护甲（学了神电再来一次），减速 100% 6 秒
+    { cdKey: 'ball', cd: () => 4, onLaunch(h) {
+      const m = pickIn(h.x, h.y, 800);
+      if (!m || !cdOk(h, 'ball', 4)) return;
+      const x = m.x, y = m.y;
+      FXS.ring(x, y, 400, '#7ab8ff', 1, 3);
+      later(1, () => {
+        const dmg = h.stat.int * tiers(h.stat.agi, [400, 320, 240, 160, 80], [600, 300, 150, 80, 60, 40]);
+        for (const o of inRange(x, y, 400)) { slowM(o, 0.95, 6); hurt(o, dmg, 'chaos', h, { ignoreArmor: true }); if (learned(h, 4)) hurt(o, dmg, 'chaos', h, { ignoreArmor: true }); }
+        FXS.explosion(x, y, 1.2, '#9fd8ff'); FXS.nova(x, y, 400, '#7ab8ff', 0.4);
+      });
+    } },
+    // 刺电：每次攻击目标处 250 范围 力量×X 穿刺
+    { onLaunch(h, tg) {
+      const x = tiers(h.stat.agi, [370, 290, 210, 130, 50], [160, 80, 40, 20, 10, 5]), d = h.stat.str * x;
+      aoe(h, tg, 250, d, 'pierce'); popText(tg.x, tg.y + 40, fmt(d) + '！', '#ff5a4f');
+    } },
+    // 链电（CD6）：英雄处召唤闪电 1 号 4 秒，对射程 800 内的敌人反复放闪电链（等级 = 智力/20）
+    { cdKey: 'chain', cd: () => 6, onLaunch(h) {
+      if (!cdOk(h, 'chain', 6)) return;
+      hsum(h, h.x, h.y, 4, { cd: 0.4, range: 800, atk: 'magic' }, { label: '链', title: '闪电链', silent: true, onLaunch(s, tg) {
+        const i = h.stat.int, lv = i >= 380 && learned(h, 4) ? 11 : i >= 200 ? 10 : lvBy(i, 20, 10);
+        let p = { x: s.x, y: s.y };
+        for (const m of chainTargets(tg, DF.chainN[lv - 1], 700)) { FXS.beam(p.x, p.y, 120, m.x, m.y, 50, '#9fd8ff', 1.4, 0.18); hurt(m, DF.chain[lv - 1], 'magic', h, { ignoreArmor: true }); p = m; }
+      } });
+    } },
+    // 神电：爆电再炸一次；智力 ≥380 时链电用 11 级（70000，弹 10 个）
+    {},
+  ],
 };
+Object.assign(HERO_KITS, {
+  // ---------------------------------------------------------------- 风神（BMi / BMl / BMo / BMr / BMg）
+  风神: [
+    // 风暴之锤（弹幕）：等级 = (智力+敏捷)/40；额外攻击 900 范围 1~9 个（10 级全部）敌人；每次攻击英雄周围 900 范围 等级²×100 普通
+    { onLaunch(h) { const lv = lvBy(h.stat.int + h.stat.agi, 40, 10); aoeAt(h, h.x, h.y, 900, lv * lv * 100, 'normal'); } },
+    // 刀风之锁：等级 = 敏捷/30；(5+等级)% 锁住目标（残废）；风神攻击被锁住的敌人：600 范围 智力×65 混乱
+    { onLaunch(h, tg) {
+      const lv = lvBy(h.stat.agi, 30, 10);
+      if (tg.lockUntil > G.t) aoe(h, tg, 600, h.stat.int * 65, 'chaos');
+      if (Math.random() * 100 < 5 + lv) { const d = FS.lockDur[lv - 1]; stun(tg, d); tg.lockUntil = G.t + d; FXS.ring(tg.x, tg.y, 90, '#bfefff', d, 3); }
+    } },
+    // 嗜血狂风：攻击时 10%：目标处刺客 3 秒，身上的永久献祭每隔一段时间烧 250 范围（魔法）
+    { onLaunch(h, tg) {
+      if (Math.random() >= 0.1) return;
+      const [dmg, every] = tiers(h.stat.int, [320, 240, 160, 80], [[12000, 0.1], [3600, 0.14], [900, 0.16], [300, 0.18], [50, 0.2]]);
+      field(h, tg.x, tg.y, 250, 3, { color: 'rgba(255,90,79,.12)', tick(z, dt) { z.acc = (z.acc || 0) + dt; while (z.acc >= every) { z.acc -= every; aoeAt(h, z.x, z.y, 250, dmg, 'magic'); } } });
+    } },
+    // 狂风肆虐（攻击时放，CD 12~5 秒，等级 = 敏捷/30）：英雄处土匪 5 秒，每 0.2 秒对 900 范围所有敌人穿刺 1000×(1+[智力/32 级加成])
+    { cdKey: 'ramp', cd: h => FS.rampCd[lvBy(h.stat.agi, 30, 8) - 1], onLaunch(h) {
+      if (!cdOk(h, 'ramp', FS.rampCd[lvBy(h.stat.agi, 30, 8) - 1])) return;
+      const k = 1 + FS.bandit[lvBy(h.stat.int, 32, 10) - 1];
+      hsum(h, h.x, h.y, 5, { cd: 0.2, range: 900, atk: 'pierce' }, { label: '风', title: '狂风肆虐', silent: true, onLaunch(s) {
+        for (const m of inRange(s.x, s.y, 900)) hurt(m, 1000 * k, 'pierce', h);
+        FXS.nova(s.x, s.y, 900, '#cfe8ff', 0.2);
+      } });
+    } },
+    // 混乱飓风：GF 每秒 +1；攻击时若 GF ≥4：GF=0，从英雄放一道弹跳（混乱，射程 1000，弹射 600）
+    { onLaunch(h) {
+      if (h.sk.gf < 4) return;
+      const m = nearest(h.x, h.y, 1000); if (!m) return;
+      h.sk.gf = 0;
+      const [dmg, n] = tiers(h.stat.str, [200, 160, 120, 80, 40], [[160000, 16], [40000, 14], [10000, 12], [3000, 10], [1000, 8], [300, 6]]);
+      let p = { x: h.x, y: h.y };
+      for (const o of chainTargets(m, n, 600)) { FXS.beam(p.x, p.y, 100, o.x, o.y, 50, '#c48bff', 1.4, 0.2); hurt(o, dmg, 'chaos', h); p = o; }
+    } },
+  ],
+  // ---------------------------------------------------------------- 大巫师（BSi 攻击时放技能 / BSo 施放时的伤害 / BSl 巫祭）
+  大巫师: [
+    // 巫伤：+80% 攻速；升级时多给技能点；放技能 30% 刷新冷却
+    { init(h) { h.asBonus += 0.8; } },
+    // 恐怖嚎叫（CD7；学了巫缓变 2 级 CD4）：700 范围护甲 -120 7 秒（2 级 -220 4 秒，不和恐惧 / 巫魔叠加）+ 智力×X×等级 穿刺
+    { cdKey: 'howl', cd: h => learned(h, 4) ? 4 : 7, onLaunch(h) {
+      const l2 = learned(h, 4);
+      if (!cdOk(h, 'howl', l2 ? 4 : 7)) return;
+      for (const m of inRange(h.x, h.y, 700)) debuffM(m, 'fear', l2 ? 220 : 120, l2 ? 4 : 7);
+      aoeAt(h, h.x, h.y, 700, h.stat.int * tiers(h.stat.int, [700, 500, 300, 100], [18, 15, 12, 9, 6]) * h.level, 'pierce');
+      FXS.nova(h.x, h.y, 700, '#c48bff', 0.5);
+      wsRefresh(h, true);
+    } },
+    // 死亡呐喊（CD6；学了巫缓 2 级 CD3）：700 范围减速 60% 6 秒（2 级 80% 3 秒）+ 智力×X×等级 混乱
+    { cdKey: 'yell', cd: h => learned(h, 4) ? 3 : 6, onLaunch(h) {
+      const l2 = learned(h, 4);
+      if (!cdOk(h, 'yell', l2 ? 3 : 6)) return;
+      for (const m of inRange(h.x, h.y, 700)) slowM(m, l2 ? 0.8 : 0.6, l2 ? 3 : 6);
+      aoeAt(h, h.x, h.y, 700, h.stat.int * tiers(h.stat.int, [700, 500, 300, 100], [24, 16, 10, 6, 2]) * h.level, 'chaos');
+      FXS.nova(h.x, h.y, 700, '#5aa8ff', 0.5);
+      wsRefresh(h, false);
+    } },
+    // 巫驱（巫祭献祭巫师塔（光明）获得，CD3）：1000 范围敌人移速 +300% 20 秒，第二个转弯口 99.5% 遣返；力量×X×等级 通用
+    { canLearn: () => '用"巫祭"献祭一座巫师塔（光明）获得', cdKey: 'expel', cd: () => 3, onLaunch(h) {
+      if (!cdOk(h, 'expel', 3)) return;
+      for (const m of inRange(h.x, h.y, 1000)) { debuffM(m, 'expelSpeed', 3, 20); m.expel = { p: 0.995, until: G.t + 20 }; }
+      const s = h.stat.str, x = s >= 1000 && h.learned.length >= 4 ? 80 : tiers(s, [700, 500, 300, 100], [50, 20, 10, 4, 2]);
+      aoeAt(h, h.x, h.y, 1000, s * x * h.level, 'hero');
+      FXS.ring(h.x, h.y, 1000, '#9fe3ff', 0.5, 4);
+      wsRefresh(h, false);
+    } },
+    // 巫缓（巫祭献祭巫师塔（暗黑）获得）：攻击 100% 晕 5 秒；漩涡 ≤3 个时目标处留下漩涡 5 秒（减速 100%），并 220 范围 敏捷×X×等级 通用无视护甲
+    { canLearn: () => '用"巫祭"献祭一座巫师塔（暗黑）获得', onLaunch(h, tg) {
+      stun(tg, 5);
+      if (G.zones.filter(z => z.owner === h && z.kind === 'vortex').length > 2) return;
+      const a = h.stat.agi, x = a >= 900 && h.learned.length >= 4 ? 5 : tiers(a, [700, 500, 300, 100], [3.5, 2.5, 2, 1.5, 1]);
+      aoe(h, tg, 220, a * x * h.level, 'hero', true);
+      field(h, tg.x, tg.y, 220, 5, { kind: 'vortex', color: 'rgba(122,184,255,.16)', each: m => slowM(m, 0.95, 0.3) });
+    } },
+  ],
+  // ---------------------------------------------------------------- 幻影（BQK 召唤影子 / BQN 智力魔击 / BQQ 科技 / BQU 召唤影子技能）
+  幻影: [
+    // 召唤影子（CD8，攻击时放）：1000 范围随机敌人处召唤影子 16 秒
+    { cdKey: 'shadow', cd: () => 8, onLaunch(h) {
+      const m = pickIn(h.x, h.y, 1000);
+      if (!m || !cdOk(h, 'shadow', 8)) return;
+      hySpawn(h, m.x, m.y, 16);
+      const has = fam => G.towers.some(t => t.fam === fam && isMax(t));
+      if (!has('重击塔')) h.sk.bash = 1; else if (!has('冰霜塔')) h.sk.gk = 0; else if (!has('暴击塔')) h.sk.crit = 1;
+    } },
+    // 力量暴击：25% ×4（暴击塔升到 3 级后 ×5）；R009 改成 力量/50
+    { crit: h => [0.25, h.sk.crit >= 2 ? 5 : 4] },
+    // 敏捷重击：15% 晕 1 秒（重击塔升到 3 级后 1.5 秒）；R00A 改成 敏捷/20
+    { onAttack(h, tg) { if (Math.random() < 0.15) stun(tg, h.sk.bash >= 2 ? 1.5 : 1); } },
+    // 智力魔击：影子攻击时额外 智力×1.5 通用无视护甲；R00B 改成 智力/40
+    {},
+    // 幻影之刺：召唤影子 50% 是远程影子；影子上限 +1
+    {},
+  ],
+  // ---------------------------------------------------------------- 渔人（BQm 召唤鱼人 / BQp 鱼人科技 / BQj 学习与再次学习）
+  渔人: [0, 1, 2, 3].map(i => ({
+    up: { tip: () => '再次学习：技能升到 2 级（大鱼几率 +1%），最多召唤的大鱼 +1', why: h => h.sk.fl[i] >= 2 ? '已经再次学习过了' : null, cost: () => ({ gold: 10000 }),
+      apply(h) { h.sk.fl[i] = 2; h.sk.go++; } },
+    init(h) { h.sk.fl[i] = 1; },
+  })).concat([{ init(h) { h.sk.evo = 1; h.sk.lp = 5; } }]),
+  // ---------------------------------------------------------------- 狂牛（BSI 震荡波 / BSL 祭坛守卫 / BSC+BSF 重生点 / BSO 狂暴重击）
+  狂牛: [
+    // 震荡波：每次攻击，马甲移到目标外 400 处朝目标放震荡波（冷却 0.5）：等级 = 智力/25，魔法无视护甲
+    { onLaunch(h, tg) {
+      if (!cdOk(h, 'wave', 0.5)) return;
+      const a = rnd(0, TAU), x0 = tg.x + Math.cos(a) * 400, y0 = tg.y + Math.sin(a) * 400;
+      const dmg = KN.wave[(h.stat.int >= 250 ? 10 : lvBy(h.stat.int, 25, 10)) - 1];
+      shockwave({ x: x0, y: y0 }, tg.x - x0, tg.y - y0, dmg, false, { owner: h, len: 1200, w0: 125, w1: 200, speed: 1050 });
+    } },
+    // 祭坛守卫：学会时召唤 3 个守卫（永久），每次攻击目标处 120 范围 敏捷×36 穿刺（目标被晕时无视护甲）；英雄和英雄塔原位置各带 800 范围减速 50%
+    { init(h) {
+      for (let k = 0; k < 3; k++) hsum(h, h.home.x + rnd(-150, 150), h.home.y + rnd(-150, 150), 0, { cd: 0.2, range: 300, atk: 'chaos' }, { label: '守', title: '狂牛祭坛守卫', silent: true, onLaunch(s, tg) {
+        aoe(h, tg, 120, h.stat.agi * 36, 'pierce', tg.stunUntil > G.t);
+      } });
+    } },
+    // 重生点（CD3，攻击时放；"再次学习"切换自动 / 手动）：在目标处放守卫，2 秒后英雄瞬移过去，350 范围 力量×300 普通无视护甲 + 晕 8 秒；
+    // 第一次放后 40 秒失效并瞬移回原处，再 12 秒后恢复
+    { up: { tip: h => `切换自动释放（现在：${h.sk.hj ? '自动' : '手动'}）`, why: () => null, cost: () => ({}), apply(h) { h.sk.hj = !h.sk.hj; msg(`重生点：${h.sk.hj ? '自动' : '手动'}释放`); } },
+      init(h) { h.sk.hj = true; h.sk.kn3 = 1; },
+      cdKey: 'ward', cd: () => 3, onLaunch(h, tg) { if (h.sk.hj) knWard(h, tg.x, tg.y); } },
+    // 狂暴重击：攻击 100% 晕 8 秒，并对目标 力量×480 混乱无视护甲
+    { onLaunch(h, tg) { hurt(tg, h.stat.str * 480, 'chaos', h, { ignoreArmor: true }); }, onAttack(h, tg) { stun(tg, 8); } },
+  ],
+  // ---------------------------------------------------------------- 神牛（BRR 学习与升级 / BRU 杀敌加属性 / BRX 神灵 / BRa 神盾）
+  神牛: [0, 1, 2, 3, 4].map(i => ({
+    up: { tip: h => `升到 ${h.sk.g2[i] + 1} 级（需要英雄等级 ≥ ${h.sk.g2[i] * 3 + 3}）`,
+      why: h => h.sk.g2[i] >= 10 ? '已经是最高等级' : h.level < h.sk.g2[i] * 3 + 3 ? `需要英雄等级 ≥ ${h.sk.g2[i] * 3 + 3}` : null,
+      cost: () => ({ gold: SN.up[i][0], mana: SN.up[i][1] }), apply(h) { h.sk.g2[i]++; } },
+    init(h) { h.sk.g2[i] = 1; },
+    onLaunch: i === 3 ? (h, tg) => aoe(h, tg, 50, h.stat.int * (h.stat.int >= 3000 ? 5 : 2.5), 'chaos', true)
+      : i === 4 ? h => aoeAt(h, h.x, h.y, 400, h.stat.agi * ((h.stat.agi >= 3000 ? 8 : 4) + h.sk.g2[4]), 'pierce') : undefined,
+  })),
+  // ---------------------------------------------------------------- 箭灵（BO9 寒冰之箭 / BPD 燃烧之箭 / BPL 邪恶之箭 / BPR 神之箭魂 / BPX 箭灵之殇）
+  箭灵: [
+    // 寒冰之箭：攻击时 10%：英雄旁冰箭 3 秒（进化后 6 秒），打 900 范围所有敌人，带 900 范围减速光环 60%
+    { onLaunch(h) {
+      if (h.sk.ga || Math.random() >= 0.1) return;
+      const [, dmg, cd] = JL.ice.find(([a]) => h.stat.int >= a);
+      hsum(h, h.x, h.y - 20, 3 + h.sk.gc, { dmg, cd, range: 1000, atk: 'normal', multi: 66, multiR: 900 }, { label: '冰', title: '寒冰之箭', aura: { kind: 'slow', r: 900, v: 0.6 } });
+    } },
+    // 燃烧之箭：GB 每秒 +1；攻击时 GB >5：GB=0，火箭马甲 3 秒（进化后 6 秒），间隔 0.1，射程 1200，每击附加伤害并减甲 10 秒（等级 = 敏捷/25）
+    { onLaunch(h) {
+      if (h.sk.ga || h.sk.gb <= 5) return;
+      h.sk.gb = 0;
+      const lv = h.stat.agi >= 250 ? 10 : lvBy(h.stat.agi, 25, 10);
+      hsum(h, h.x, h.y, 3 + h.sk.gc, { dmg: 1 + JL.fire[lv - 1], cd: 0.1, range: 1200, atk: 'pierce' }, { label: '火', title: '燃烧之箭', onHit(s, m) {
+        m.shred = Math.max(m.shredUntil > G.t ? m.shred : 0, JL.fireArmor[lv - 1]); m.shredUntil = G.t + 10;
+      } });
+    } },
+    // 邪恶之箭：弹幕额外 2 个目标（900 范围）；英雄或骷髅杀死的敌人变成骷髅弓箭手（见 HERO_DEF.箭灵.onKill）
+    {},
+    // 进化弓箭：技能点 +30；冰箭 / 火箭持续 +3 秒，骷髅上限 13
+    { init(h) { h.points += 30; h.sk.gc = 3; } },
+    // 神之箭魂（第 5 个：30 级且学会寒冰 / 燃烧 / 邪恶三箭；学会后三箭失效）CD12：英雄身后召唤箭魂 4 秒
+    { canLearn: h => h.level < 30 ? '需要英雄 30 级' : ![0, 1, 2].every(i => learned(h, i)) ? '需要先学会寒冰之箭、燃烧之箭、邪恶之箭' : null,
+      init(h) { h.sk.ga = 1; }, cdKey: 'soul', cd: () => 12, onLaunch(h) {
+        if (!cdOk(h, 'soul', 12)) return;
+        hsum(h, h.x - 150, h.y, 4, { cd: 0.19, range: 1000, atk: 'hero', multi: 5, multiR: 1000 }, { label: '魂', title: '神之箭魂', kind: 'soul',
+          stats: () => ({ dmg: 12000 + 1000 * h.sk.r01b }), aura: [{ kind: 'slow', r: 900, v: 0.8 }, { kind: 'armor', r: 1200, v: 120 }] });
+      } },
+  ],
+  // ---------------------------------------------------------------- 神幻（BRo 召唤三霆 / BRr 三霆伤害 / BRu 附加范围伤害 / BRx 霆杀计数）
+  神幻: [
+    // 流星（弹幕）：攻击 700 范围所有敌人；再次学习（5000 金 + 500 魔法）扩大到 1000
+    { up: { tip: () => '攻击范围扩大到 1000', why: h => h.sk.hc[0] >= 2 ? '已经升级过了' : null, cost: () => ({ gold: 5000, mana: 500 }), apply(h) { h.sk.hc[0] = 2; } },
+      init(h) { h.sk.hc[0] = 1; } },
+    ...[0, 1, 2].map(j => ({   // 雷霆 / 战霆 / 怒霆：再次学习（5000 金 + 500 魔法）技能 2 级、上限 2 个
+      up: { tip: () => '技能升到 2 级，最多同时召唤 2 个', why: h => h.sk.hc[j + 1] >= 2 ? '已经升级过了' : null, cost: () => ({ gold: 5000, mana: 500 }), apply(h) { h.sk.hc[j + 1] = 2; } },
+      init(h) { h.sk.hc[j + 1] = 1; },
+    })),
+    // 霆杀：之后三霆杀敌计数，每击额外 计数×50 无视护甲
+    { init(h) { h.sk.hc[4] = 1; } },
+  ],
+  // ---------------------------------------------------------------- 坦克（BWU 学习 / BWX 能量与火炮 / BWa+BWd 轰炸 / BWg 开关）
+  坦克: [
+    { init(h) { h.sk.nf = 1; } },                      // 多重火箭弹：额外 2 个目标（800 范围）；攻击积累能量更快
+    { init(h) { h.sk.kn = 1; h.sk.w = 1; } },          // 巨型火炮弹（开）
+    { init(h) { h.sk.km = 1; h.sk.e = 2; } },          // 混乱轰炸区（关）
+    { init(h) {                                        // 小型冲锋枪：坦克旁永久冲锋枪
+      h.sk.ko = 1;
+      h.sk.smg = hsum(h, h.x + 110, h.y + 40, 0, { range: 800, atk: 'pierce' }, { label: '枪', title: '小型冲锋枪', kind: 'smg',
+        stats: () => h.sk.ne ? { dmg: 2200 + 200 * tkTech(h), cd: 0.16 } : { dmg: 200 + 200 * tkTech(h), cd: 0.25 } });
+    } },
+    { init(h) { h.sk.ne = 1; } },                      // 战争科技
+  ],
+  // ---------------------------------------------------------------- 古树（BVE 学习 / BVK 清风 / BVN 粘液与精灵 / BVQ / BVZ / BVT 链带）
+  古树: [
+    { init(h) { h.sk.j7++; } },                                   // 清风
+    { init(h) { h.sk.j7++; } },                                   // 粘液
+    { init(h) { h.sk.j7++; } },                                   // 精灵
+    { init(h) { h.sk.j7++; } },                                   // 链带
+    { init(h) {                                                   // 生灵：主古树处召唤龙鹰（2000 通用，弹 16，间隔 4）；清风上限 12 级
+      h.sk.j7++; h.sk.ni = 2;
+      hsum(h, h.x, h.y + 100, 0, { cd: 4, range: 800, atk: 'hero', bounce: 16, jump: 400 }, { label: '鹰', title: '龙鹰骑士', kind: 'eagle',
+        stats: () => ({ dmg: 2000 + 100 * gsTech(h).atk }), onLaunch(s) { gsTreeAttack(h, s); } });
+    } },
+  ],
+});
 // ---- 枪神（原图触发器 BSu 学习 / BSx 每次攻击 / BS0 连击）
 const QS_CRIT = [[0.06, 0.09, 9], [0.09, 0.12, 6], [0.12, 0.15, 3], [0.03, 0.06, 12]];   // 致命一击 1~4（AOcr）：学会 / 再次学习时的概率，倍数
 const QS_NB = [[2, 2], [0, 3], [1, 1], [0, 0]];       // 学会 / 再次学习时火焰喷射暴击率（Nb）增加的百分点
@@ -1410,16 +1867,17 @@ function qsLearn(h, i, n) {
   if (i === 3 && n === 1) h.asBonus += 0.8;           // 增加 80% 攻击速度（A059）
 }
 const popText = (x, y, text, color) => addFx({ kind: 'text', x, y, text, life: 0.8, color });
-// 震荡波：从施法者出发直线 600，起点宽 150、终点宽 300，速度 1050，每个敌人只打一次
-function shockwave(src, dx, dy, dmg, crit) {
-  const L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, x0 = src.x, y0 = src.y, color = crit ? '#ffd257' : '#ff8a3c';
+// 震荡波：从起点出发直线前进，每个敌人只打一次（枪神火焰喷射：长 600、宽 150→300；狂牛震荡波：长 1200、宽 125→200）
+function shockwave(src, dx, dy, dmg, crit, o = {}) {
+  const { owner = src, len = 600, w0 = 150, w1 = 300, speed = 1050 } = o;
+  const L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L, x0 = src.x, y0 = src.y, color = crit ? '#ffd257' : '#ff8a3c';
   for (const m of G.monsters) {
     if (m.dead) continue;
     const ax = m.x - x0, ay = m.y - y0, along = ax * ux + ay * uy, side = Math.abs(ax * uy - ay * ux);
-    if (along < 0 || along > 600 || side > 150 + 150 * along / 600) continue;
-    later(along / 1050, () => { if (!m.dead) hurt(m, dmg, 'magic', src, { ignoreArmor: true }); });
+    if (along < 0 || along > len || side > w0 + (w1 - w0) * along / len) continue;
+    later(along / speed, () => { if (!m.dead) hurt(m, dmg, 'magic', owner, { ignoreArmor: true }); });
   }
-  for (let d = 0; d <= 600; d += 100) later(d / 1050, () => FXS.explosion(x0 + ux * d, y0 + uy * d, (0.35 + d / 1200) * (crit ? 1.4 : 1), color));
+  for (let d = 0; d <= len; d += 100) later(d / speed, () => FXS.explosion(x0 + ux * d, y0 + uy * d, (0.35 + d / (2 * len)) * (crit ? 1.4 : 1), color));
 }
 // 每次攻击（攻击开始时）：火焰喷射、[魔法值×2] 范围穿刺，四种致命里按顺序最多触发一种，再判定一次连击
 const HERO_ATTACK = {
@@ -1481,6 +1939,316 @@ function xbFreeze(h) {
     FXS.snow(x + Math.cos(a) * r, y + Math.sin(a) * r, 40, 0.5);
   });
 }
+// ---- 技能用到的小函数
+// 炎魔（熔岩爆破召唤的）：会走动，攻击 N 次后分裂成两个（新的那个重新计时 16 秒）
+function lavaSpawn(h, x, y, lv) {
+  const [dmg, cd] = HH.lava[lv - 1], need = HH.split[lv - 1];
+  return hsum(h, x, y, 16, { dmg, cd, range: 300, atk: 'chaos' }, { label: '炎', title: '炎魔', kind: 'lava', mobile: { speed: 320, leash: 1600 }, hits: 0,
+    onLaunch(s) { if (++s.hits === need) { lavaSpawn(h, s.x + rnd(-60, 60), s.y + rnd(-60, 60), lv); FXS.explosion(s.x, s.y, 0.5, '#ff5a2a'); } } });
+}
+// 战神分身的伤害 Qi（原图学技能点 / 升级时重算）
+const zsQi = h => { const s = h.stat.str + h.stat.agi, i = h.stat.int; return i >= 200 ? s * 72 : i >= 150 ? s * 36 : i >= 100 ? s * 9 : i >= 50 ? s * 3 : s; };
+// 大巫师：放恐怖嚎叫时（学了巫伤）30% 刷新所有冷却；原图条件的优先级让死亡呐喊 / 巫驱每次都刷新（照搬）
+function wsRefresh(h, howl) {
+  if (howl ? learned(h, 0) && Math.random() < 0.3 : true) { h.cds = {}; popText(h.x, h.y + 90, '刷新', '#ff5a4f'); }
+}
+// 幻影的影子：近战 n055 / 远程 n08Y（学了幻影之刺 50%）；攻击力 80 + R009、攻速吃 R00A；带敏捷重击 / 致命力量（等级 = 英雄的 +1）
+function hySpawn(h, x, y, life) {
+  const far = learned(h, 4) && Math.random() < 0.5;
+  return hsum(h, x, y, life, { cd: far ? 0.25 : 0.45, range: far ? 600 : 120, atk: 'hero', splash: far ? 120 : 60 }, { label: '影', title: far ? '幻影（远程）' : '幻影', kind: 'shadow',
+    stats: () => ({ dmg: 80 + 600 * hyTech(h).atk, as: 0.25 * hyTech(h).as }),
+    onLaunch(s, tg) {
+      if (!far || learned(h, 3)) aoe(h, tg, far ? 120 : 60, h.stat.int * 1.5, 'hero', true, '#9fb8ff');      // 智力魔击（近战影子不学也有，照搬）
+      const b = learned(h, 2) ? (h.sk.bash >= 2 ? 1.5 : 1) : 0;
+      if (b && Math.random() < 0.15) stun(tg, b);
+    },
+    crit: () => learned(h, 1) ? [0.25, h.sk.crit >= 2 ? 3 : 2] : null });
+}
+// 幻影的科技：R009 攻击 +600/级、R00A 攻速 +25%/级、R00B 回魔 +2%/级
+const hyTech = h => ({ atk: Math.min(20, Math.floor(h.stat.str / (learned(h, 1) ? 50 : 100))), as: Math.min(40, Math.floor(h.stat.agi / (learned(h, 2) ? 20 : 40))),
+  mp: Math.min(20, Math.floor(h.stat.int / (learned(h, 3) ? 40 : 80))) });
+// 狂牛重生点：目标处守卫 2 秒，消失时英雄瞬移过去并践踏
+function knWard(h, x, y) {
+  if (h.sk.kn3 === 3 || !cdOk(h, 'ward', 3)) return;
+  FXS.ring(x, y, 120, '#6fd17a', 2, 3);
+  if (h.sk.kn3 === 1) {             // 第一次放：40 秒后失效并瞬移回原处，再 12 秒恢复
+    h.sk.kn3 = 2;
+    later(40, () => { h.sk.kn3 = 3; heroMove(h, h.home.x, h.home.y); later(12, () => { h.sk.kn3 = 1; }); });
+  }
+  later(2, () => {
+    if (h.sk.kn3 === 3) return;
+    for (const m of inRange(x, y, 350)) { hurt(m, h.stat.str * 300, 'normal', h, { ignoreArmor: true }); stun(m, 8); }
+    FXS.nova(x, y, 350, '#ffd257', 0.5); SFX.spell('frostNova', { x, y });
+    heroMove(h, x, y);
+  });
+}
+function heroMove(h, x, y) { FXS.ring(h.x, h.y, 140, '#ffd257', 0.4, 4); h.x = x; h.y = y; FXS.ring(x, y, 140, '#ffd257', 0.4, 4); }
+// 坦克伤害 R01J：+200/级 = 三属性和 / X（只在坦克或冲锋枪杀敌时更新）
+const tkTech = h => h.sk.r01j || 0;
+// 古树链带：R01H 攻击 +100/级 = 力量/20；R01I 攻速 +10%/级 = 敏捷/15（学了链带才有）；主古树杀敌时更新
+const gsTech = h => ({ atk: h.sk.r01h || 0, as: h.sk.r01i || 0 });
+// 古树：任意一棵古树（主古树、召唤古树、龙鹰）攻击时：粘液 / 精灵的触发和计数（BVN）
+function gsTreeAttack(h, tree) {
+  const sk = h.sk;
+  if (sk.j8 >= 12 && learned(h, 3)) { sk.j8 = 0; sk.j9 += 5; for (const t of gsTrees(h)) gsSlime(h, t); }
+  if (Math.random() < 1 / 8 && learned(h, 1)) { gsSlime(h, h); sk.j9++; }
+  if (Math.random() < 0.2 && learned(h, 2) && tree.kind !== 'eagle') { giveBuff(h, 'innerfire', GS.fire[lvBy(h.stat.str, 32, 10) - 1], 3); gsSpirit(h, h); }
+  if (sk.j9 >= 8 && learned(h, 3)) { sk.j9 = 0; for (const t of gsTrees(h)) gsSpirit(h, t); }
+  if (tree.kind === 'eagle' && !(h.sk.b02g > G.t)) {
+    if (sk.nx >= 4) { sk.nx -= 4; h.sk.b02g = G.t + 5; FXS.nova(tree.x, tree.y, 600, '#9fffb0', 0.6); }
+    else sk.nx++;
+  }
+}
+const gsTrees = h => [h, ...heroUnits(h).filter(t => t.kind === 'tree')];
+// 粘液：在古树处 600 范围减速 5 秒并造成伤害（等级 = 敏捷/26，敏捷 ≥400 → 11 级 700 范围）
+function gsSlime(h, t) {
+  const a = h.stat.agi, lv = a >= 400 ? 11 : lvBy(a, 26, 10), r = lv === 11 ? 700 : 600, b = h.sk.b02g > G.t;
+  const dmg = a * (lv === 11 ? 200 : 140) * (b ? 2 : 1);
+  for (const m of inRange(t.x, t.y, r)) { slowM(m, Math.min(0.95, GS.slime[lv - 1]), 5); hurt(m, dmg, b ? 'hero' : 'chaos', h); }
+  FXS.nova(t.x, t.y, r, '#9fffb0', 0.4);
+}
+// 精灵：从古树扑向最近的敌人践踏：200 范围 智力×120（生灵 B02G 时 ×240 通用），定 0.3 秒；J8 +1
+function gsSpirit(h, t) {
+  const m = nearest(t.x, t.y, 1000); if (!m) return;
+  FXS.launch('wisp', { x: t.x, y: t.y, z: 150 }, m, (hit, x, y) => {
+    const b = h.sk.b02g > G.t;
+    for (const o of inRange(x, y, 200)) { hurt(o, h.stat.int * (b ? 240 : 120), b ? 'hero' : 'normal', h); stun(o, 0.3); }
+    FXS.ring(x, y, 200, '#9fffb0', 0.35, 3); h.sk.j8++;
+  });
+}
+// 古树：种一棵召唤古树（500 金 1 人口，数量 = 学会的技能数，最多 4 棵进清风链条）
+function plantAncient(h, x, y) {
+  const n = heroUnits(h).filter(t => t.kind === 'tree').length;
+  if (n >= Math.min(4, h.sk.j7)) return msg('学会更多古树技能才能再种古树');
+  if (G.gold < 500) return msg('金币不足');
+  if (foodUsed() + 1 > G.foodCap) return msg('人口不足');
+  G.gold -= 500;
+  const k = n + 1;
+  hsum(h, x, y, 0, { cd: 1.6, range: 900, atk: 'hero', splash: 120 }, { label: '树', title: `古树（召唤的）${k}`, kind: 'tree', idx: k, solid: true, food: 1, spent: 500,
+    stats: () => ({ dmg: 20 + 100 * gsTech(h).atk, as: 0.1 * gsTech(h).as }), onLaunch(s) { gsTreeAttack(h, s); } });
+  FXS.nova(x, y, 200, '#9fffb0', 0.5); SFX.ui('construct', { x, y });
+}
+// ---- 英雄本身的规则（原图每个英雄单位的触发器）
+// init(h) 建成时    second(h) 每秒（原图 BGU 等 1 秒计时器）    tick(h, dt) 每帧    stats(h) → { dmg, as, multi, multiR } 攻击加成 / 弹幕
+// auras(h) → [{ x, y, r, kind, v }] 光环（kind：towerDmg / towerAS / drums 给塔，armor / slow / heroSlow 给敌人）
+// onLaunch(h, tg) 攻击出手时（在技能之前）    onKill(h, m, src) 英雄或召唤物杀敌    onElite(h, src)    anyAttack(h, t, tg) 任意塔攻击时
+// onLevel(h) 升级时（HERO_LEVEL）    onLevelBtn(h) 点"升级"时（原图 BaJ，在升级之前判断）    towerUpgraded(h, t)    cmds(h) 额外命令    info(h) 信息面板多的几行
+const HERO_DEF = {
+  剑神: {}, 火魂: {},
+  枪神: {},
+  邪冰: {},
+  战神: {
+    init(h) { h.sk.gg = 0; h.sk.k2 = false; },
+    second(h) { h.sk.gg++; if (Math.floor(G.t) % 2 === 0) h.sk.k2 = true; },                   // GG 每秒 +1（BGU）；K2 每 2 秒置 1（Rz）
+    info: h => learned(h, 4) ? [`分身术计数 ${h.sk.gg}（≥8 召唤分身）· 分身伤害 ${fmt(zsQi(h))}`] : [],
+  },
+  水魔: {
+    init(h) { h.sk.f1 = false; h.sk.allUntil = 0; },
+    second(h) { if (Math.floor(G.t) % 5 === 0) h.sk.f1 = true; },                               // F1 每 5 秒置 1
+    stats: h => h.sk.allUntil > G.t ? { multi: 999 } : {},                                       // 冰原力：弹幕打射程内所有敌人
+    auras: h => learned(h, 3) ? [{ x: h.x, y: h.y, r: SM.ringR[lvBy(h.stat.agi, 25, 10) - 1], kind: 'heroSlow', v: SM.ringV[lvBy(h.stat.agi, 25, 10) - 1] }] : [],
+  },
+  电法: {},
+  风神: {
+    init(h) { h.sk.gf = 0; },
+    second(h) { h.sk.gf++; },
+    stats: h => learned(h, 0) ? { multi: FS.hammer[lvBy(h.stat.int + h.stat.agi, 40, 10) - 1], multiR: 900 } : {},
+  },
+  大巫师: {
+    // 升级（HERO_LEVEL，原图 BMR 的 else 链：只取第一个学会的）
+    onLevel(h) { if (learned(h, 0)) h.points++; else if (learned(h, 1)) h.stat.agi++; else if (learned(h, 2)) h.stat.int++; else if (learned(h, 3)) h.stat.str++; },
+    // 点"升级"时（BaJ，<30 级）：巫伤 技能点 +2，死亡呐喊 / 恐怖嚎叫 各 智力 +1
+    onLevelBtn(h) { if (h.level >= 30) return; if (learned(h, 0)) h.points += 2; if (learned(h, 2)) h.stat.int++; if (learned(h, 1)) h.stat.int++; },
+    maxLevelRandom: true,
+    cmds: h => [cmd('G', '祭', '巫祭', '<b>巫祭</b><br>献祭自己的一座塔（直接消失、不返还）：<br>巫医塔（3 木）力量 +30~60；巫术塔（3 木）敏捷 +30~60；巫法塔 随机一项 +60；巫魔塔（3 木）智力 +30~60<br>巫师塔（光明）→ 学会巫驱；巫师塔（暗黑）→ 学会巫缓（占技能名额，木材 / 力量要求同学习技能）',
+      () => { G.pending = 'wuji'; G.placing = null; msg('巫祭：选择要献祭的塔（Esc 取消）'); uiDirty(); }, { active: G.pending === 'wuji', ico: 'learn' })],
+  },
+  幻影: {
+    init(h) { h.sk.bash = 1; h.sk.crit = 1; h.sk.gk = 0; },
+    stats: h => ({ dmg: 600 * hyTech(h).atk, as: 0.25 * hyTech(h).as }),
+    manaRegen: h => 1 + 0.02 * hyTech(h).mp,
+    onLaunch(h, tg) {                                   // 攻击时 (力暴 + 敏重 + 召唤×2)/25 召唤影子 8 秒（总数 < 6 + 幻影之刺 + Gk）
+      const n = (learned(h, 1) ? 1 : 0) + (learned(h, 2) ? 1 : 0) + (learned(h, 0) ? 2 : 0);
+      if (rint(1, 25) <= n && countSum(h, 'shadow') < 6 + (learned(h, 4) ? 1 : 0) + h.sk.gk) hySpawn(h, tg.x, tg.y, 8);
+    },
+    towerUpgraded(h, t) {                               // 暴击塔 / 冰霜塔 / 重击塔升到 3 级（BQX）
+      if (t.lv < 2) return;
+      if (t.fam === '暴击塔') h.sk.crit = 2; if (t.fam === '冰霜塔') h.sk.gk = 2; if (t.fam === '重击塔') h.sk.bash = 2;
+    },
+    info: h => [`影子 ${countSum(h, 'shadow')} 个 · 攻击 +${600 * hyTech(h).atk}（R009 ${hyTech(h).atk}）· 攻速 +${25 * hyTech(h).as}%（R00A ${hyTech(h).as}）`],
+  },
+  渔人: {
+    init(h) { h.sk.fl = [0, 0, 0, 0]; h.sk.go = 1; h.sk.lp = 0; h.sk.evo = 0; h.sk.r00c = 0; },
+    onLaunch(h, tg) {                                   // BQm：学了的每种鱼人，场上没有普通版且 Plus 版 ≤1 时召唤；再判定大鱼
+      YL.fish.forEach((f, i) => {
+        if (!h.sk.fl[i] || countSum(h, 'fishN' + i) || countSum(h, 'fishP' + i) > 1) return;
+        const plus = h.sk.evo, [dmg, cd, range, atk, n, jump, aura] = plus ? f.p : f.n;
+        hsum(h, tg.x + rnd(-80, 80), tg.y + rnd(-80, 80), plus ? 12 : 8, { range, atk, bounce: n, jump }, { label: '甲乙丙丁'[i], title: f.name + (plus ? '（Plus）' : ''), kind: (plus ? 'fishP' : 'fishN') + i,
+          stats: () => ({ dmg: dmg + 200 * h.sk.r00c, cd: cd / (1 + 0.15 * Math.min(50, Math.floor(h.stat.agi / 10))) }), aura });
+      });
+      const chance = h.sk.fl.reduce((s, v) => s + v, 0);
+      if (rint(1, 100) <= chance && countSum(h, 'bigfish') < h.sk.go - h.sk.lp)
+        hsum(h, tg.x, tg.y, h.sk.evo * 20 + 50, { range: 500, atk: 'hero', bounce: 8, jump: 600 }, { label: '鱼', title: '大鱼', kind: 'bigfish',
+          stats: () => ({ dmg: 1200 + 200 * h.sk.r00c, cd: 1 / (1 + 0.15 * Math.min(50, Math.floor(h.stat.agi / 10))) }),
+          onHit(s, m) { if (Math.random() < 0.1) { aoeAt(h, m.x, m.y, 300, 40000, 'hero'); FXS.nova(m.x, m.y, 300, '#5aa8ff', 0.4); } } });
+    },
+    onKill(h, m, src) { if (src === h) h.sk.r00c = Math.min(50, Math.max(h.sk.r00c, Math.floor(h.stat.int / 20) - 2)); },   // R00C 只升不降
+    info: h => [`鱼人攻击 +${200 * h.sk.r00c} · 攻速 +${15 * Math.min(50, Math.floor(h.stat.agi / 10))}% · 大鱼上限 ${Math.max(0, h.sk.go - h.sk.lp)}`],
+  },
+  狂牛: {
+    init(h) { h.home = { x: h.x, y: h.y }; h.sk.hj = false; h.sk.kn3 = 0; },
+    auras: h => learned(h, 1) ? [{ x: h.x, y: h.y, r: 800, kind: 'heroSlow', v: 0.5 }, { x: h.home.x, y: h.home.y, r: 800, kind: 'heroSlow', v: 0.5 }] : [],
+    cmds: h => learned(h, 2) && !h.sk.hj ? [cmd('G', '生', '放重生点', '<b>重生点</b>（手动）<br>选择一个地点：2 秒后英雄瞬移过去并践踏', () => { G.pending = 'kuward'; G.placing = null; msg('重生点：选择地点（Esc 取消）'); uiDirty(); },
+      { active: G.pending === 'kuward', ico: 'blink', cdOf: () => [cdLeft(h, 'ward'), 3] })] : [],
+    info: h => learned(h, 2) ? [`重生点：${h.sk.hj ? '自动' : '手动'}${h.sk.kn3 === 3 ? '（失效中）' : ''}`] : [],
+  },
+  神牛: {
+    init(h) { h.sk.g2 = [0, 0, 0, 0, 0]; h.sk.gz = 0; h.sk.g1 = 0; h.sk.g0 = 0; h.sk.mp = 0; },
+    stats: h => learned(h, 0) ? { multi: SN.multi[h.sk.g2[0] - 1], multiR: 800 } : {},
+    auras: h => learned(h, 4) ? [{ x: h.x, y: h.y, r: 300, kind: 'drums', v: SN.drums[h.sk.g2[4] - 1] }] : [],
+    onKill(h, m, src) {                                 // BRU：英雄亲手杀敌累计属性
+      if (src !== h) return;
+      const s = h.sk;
+      if (s.mp < 1) s.mp = h.stat.str >= 1000 ? 1 : h.stat.agi >= 1000 ? 2 : h.stat.int >= 1000 ? 3 : 0;
+      if (s.gz >= 1) { h.stat.str += s.mp === 1 ? 2 : 1; s.gz -= 1; } else s.gz += s.g2[1] * 0.15 + 0.2;
+      if (s.g1 >= 1) { h.stat.agi += s.mp === 2 ? 2 : 1; s.g1 -= 1; } else s.g1 += s.g2[2] * 0.15;
+      if (s.g0 >= 2) { h.stat.int += s.mp === 3 ? 4 : 2; s.g0 -= 1; } else s.g0 += s.g2[3] * 0.25;
+    },
+  },
+  箭灵: {
+    init(h) { h.sk.gb = 0; h.sk.gc = 0; h.sk.ga = 0; h.sk.jg = 0; h.sk.r01b = 0; },
+    second(h) { h.sk.gb++; },
+    stats: h => ({ dmg: 1000 * h.sk.r01b, multi: learned(h, 2) && !h.sk.ga ? 2 : 0, multiR: 900 }),
+    onKill(h, m, src) {
+      const s = h.sk;
+      // 邪恶之箭：英雄或骷髅杀死的敌人变成骷髅弓箭手 5 秒（总数 < 4 + 3×GC）
+      if (!s.ga && learned(h, 2) && (src === h || src.kind === 'skel') && countSum(h, 'skel') < 4 + 3 * s.gc) {
+        const [, dmg, cd] = JL.skel.find(([a]) => h.stat.str >= a);
+        hsum(h, m.x, m.y, 5, { dmg, cd, range: 400, atk: 'chaos', multi: 2, multiR: 400 }, { label: '骷', title: '骷髅弓箭手', kind: 'skel', mobile: { speed: 270, leash: 1400 } });
+      }
+      // 神之箭魂杀敌：900 范围 [魔法/3000 × 英雄攻击力] 通用无视护甲
+      if (src.kind === 'soul') aoeAt(h, src.x, src.y, 900, h.mana / 3000 * heroStats(h).dmg, 'hero', { ignoreArmor: true });
+      // 箭灵之殇：每杀 50 个 +1000 攻击（最多 30 级）
+      if (++s.jg >= 50 && s.r01b < 30) { s.jg -= 50; s.r01b++; }
+    },
+    info: h => [`箭灵之殇 ${h.sk.r01b} 级（攻击 +${1000 * h.sk.r01b}）· 下一级还要 ${50 - h.sk.jg} 个`],
+  },
+  神幻: {
+    init(h) { h.sk.hc = [0, 0, 0, 0, 0]; h.sk.jt = [1, 1, 1]; },
+    stats: h => learned(h, 0) ? { multi: 999, multiR: h.sk.hc[0] >= 2 ? 1000 : 700 } : {},
+    onLaunch(h, tg) {
+      // 每次攻击：目标处 700 范围 (三霆技能等级之和)×英雄等级×20 通用无视护甲
+      const sum = h.sk.hc[1] + h.sk.hc[2] + h.sk.hc[3];
+      if (sum) aoeAt(h, tg.x, tg.y, 700, sum * h.level * 20, 'hero', { ignoreArmor: true });
+      // 雷霆 10% / 战霆 6% / 怒霆 5%（数量 < 技能等级）
+      [[1, 10, 2.1, 200, '雷', '雷霆'], [2, 6, 3.1, 250, '战', '战霆'], [3, 5, 4.1, 300, '怒', '怒霆']].forEach(([j, p, life, r, label, title]) => {
+        if (!h.sk.hc[j] || rint(1, 100) > p || countSum(h, 'th' + j) >= h.sk.hc[j]) return;
+        hsum(h, tg.x, tg.y, life, { cd: 0.4, range: 500, atk: 'normal' }, { label, title, kind: 'th' + j, silent: true, onLaunch(s, m) {
+          const x = j === 1 ? t5(h.stat.str, [90, 60, 30, 12, 6]) * h.stat.str : j === 2 ? t5(h.stat.agi, [120, 90, 60, 30, 10]) * h.stat.agi
+            : (h.stat.int >= 200 ? t5(h.stat.int, [150, 100, 60, 0, 0]) : h.stat.agi >= 100 ? 30 : 15) * h.stat.int;
+          aoe(h, m, r, x, ['normal', 'magic', 'chaos'][j - 1]); aoe(h, m, r, h.sk.jt[j - 1] * 50, ['normal', 'magic', 'chaos'][j - 1], true);
+          if (j === 1) { m.shred = Math.max(m.shredUntil > G.t ? m.shred : 0, 180); m.shredUntil = G.t + 10; }
+          if (j === 2 && Math.random() < 0.25) stun(m, 10);
+          FXS.beam(s.x, s.y, 300, m.x, m.y, 40, ['#ffd257', '#7ab8ff', '#c48bff'][j - 1], 1.4, 0.15);
+        } });
+      });
+    },
+    onKill(h, m, src) { if (h.sk.hc[4] && /^th[123]$/.test(src.kind || '')) h.sk.jt[+src.kind[2] - 1]++; },
+    info: h => h.sk.hc[4] ? [`霆杀：雷霆 ${h.sk.jt[0]} · 战霆 ${h.sk.jt[1]} · 怒霆 ${h.sk.jt[2]}`] : [],
+  },
+  坦克: {
+    init(h) { Object.assign(h.sk, { kl: 0, kp: 0, nh: 0, nf: 0, kn: 0, km: 0, ko: 0, ne: 0, w: 0, e: 0, r01j: 0, bt: 0 }); },
+    stats: h => ({ dmg: 200 * tkTech(h), multi: h.sk.nf ? 2 : 0, multiR: 800 }),
+    // BWX：学了火炮时英雄自己的攻击、学了轰炸区后任何塔的攻击（原图条件优先级，照搬）都会走一次
+    anyAttack(h, t, tg) {
+      const s = h.sk;
+      if (!((t === h && s.kn) || s.km)) return;
+      if (s.kl >= 100 && s.km) { s.kl -= 100; h.baseBonus += 15; popText(h.x, h.y + 80, '+15', '#7fffd4'); }
+      if (s.kl >= 24 - s.ne * 8 && s.kn && s.w === 1 && tg) {
+        s.kl = 0; s.nh = 18; h.baseBonus += 3;
+        const x = tg.x, y = tg.y, d = heroStats(h).dmg * tiers(h.stat.agi, [210, 140, 70], [9, 6, 3, 1]);
+        later(0.1, () => { aoeAt(h, x, y, 400, d, 'hero'); FXS.explosion(x, y, 1.4, '#ffb347'); FXS.nova(x, y, 400, '#ffb347', 0.4); });
+      } else if (s.e !== 1) {
+        s.kl++;
+        if (s.kp >= 1) { s.kl++; s.kp = s.kp - 1 + s.nf * (h.stat.int / (333 - s.ne * 133)); }
+        else s.kp += s.nf * (h.stat.int / 500);
+      }
+    },
+    tick(h, dt) {                                       // 每 0.2 秒：轰炸区开着时轰炸（BWa）；关着时火炮后 2 秒的余波（BWd）
+      const s = h.sk;
+      s.bt += dt;
+      while (s.bt >= 0.2) {
+        s.bt -= 0.2;
+        if (s.km && s.e === 1) {
+          if (s.kl >= 2) {
+            s.kl--; tkBomb(h, 4);
+            if (s.w === 2) { const k = s.ne ? tiers(h.stat.agi, [210, 140, 70], [12, 8, 5, 2]) : tiers(h.stat.agi, [210, 140, 70], [4, 2.66, 1.66, 0.66]); tkShell(h, k); }
+          }
+          if (s.kl < 2) { s.e = 2; msg('能量不足，混乱轰炸区自动关闭'); uiDirty(); }
+        } else if (s.km && s.nh >= 2) { s.nh--; if (s.nh < 12) tkBomb(h, 4); }
+      }
+    },
+    onKill(h, m, src) {                                 // R01J：坦克或冲锋枪杀敌时更新
+      if (src !== h && src.kind !== 'smg') return;
+      const sum = h.stat.str + h.stat.agi + h.stat.int, x = h.level >= 30 ? 8 : h.level >= 20 ? 20 : h.level >= 10 ? 30 : 40;
+      if (h.sk.r01j <= 100) h.sk.r01j = Math.min(100, Math.floor(sum / x));
+    },
+    onElite(h, src) { if (src === h || src.kind === 'smg') { h.stat.str += 3; msg('坦克击杀精英：力量 +3'); } },   // 原图条件优先级：不需要战争科技
+    cmds: h => [
+      h.sk.kn ? cmd('G', '炮', '巨型火炮弹：' + (h.sk.w === 1 ? '开' : '关'), `<b>巨型火炮弹</b>（点击切换开关）<br>开：能量 ≥${24 - 8 * h.sk.ne} 时攻击发射巨型火炮，400 范围 攻击力×X 通用<br>关：混乱轰炸区里随机落下小一号的巨型火炮`,
+        () => { h.sk.w = h.sk.w === 1 ? 2 : 1; uiDirty(); }, { active: h.sk.w === 1, ico: 'upgrade' }) : null,
+      h.sk.km ? cmd('H', '轰', '混乱轰炸区：' + (h.sk.e === 1 ? '开' : '关'), `<b>混乱轰炸区</b>（点击切换开关）<br>开：每 0.2 秒消耗 1 点能量，坦克周围随机 4 处轰炸（攻击力×${18 + 3 * h.sk.ko} 混乱）；开着时不攒能量，少于 2 点自动关<br>关：巨型火炮之后轰炸 2 秒`,
+        () => { if (h.sk.e !== 1 && h.sk.kl < 2) return msg('能量不足'); h.sk.e = h.sk.e === 1 ? 2 : 1; uiDirty(); }, { active: h.sk.e === 1, ico: 'upgrade' }) : null,
+    ].filter(Boolean),
+    info: h => [`能量 ${h.sk.kl} · 坦克伤害 ${h.sk.r01j} 级（+${200 * h.sk.r01j}）`],
+  },
+  古树: {
+    init(h) { Object.assign(h.sk, { j7: 0, j8: 0, j9: 0, nx: 0, ni: 0, b02g: 0, r01h: 0, r01i: 0, wt: 0 }); },
+    stats: h => ({ dmg: 100 * gsTech(h).atk, as: 0.1 * gsTech(h).as }),
+    onLaunch(h) { gsTreeAttack(h, h); },
+    tick(h, dt) {                                       // 清风：每 0.5 秒沿 1→2→3→4→主古树→1 依次吹
+      if (!learned(h, 0)) return;
+      h.sk.wt += dt;
+      if (h.sk.wt < 0.5) return;
+      h.sk.wt -= 0.5;
+      const trees = heroUnits(h).filter(t => t.kind === 'tree').sort((a, b) => a.idx - b.idx), chain = [...trees, h];
+      if (chain.length < 2) return;
+      const lv = Math.min(10 + h.sk.ni, Math.max(1, Math.floor(h.stat.int / 20))), dmg = GS.wind[lv - 1];
+      for (let k = 0; k < chain.length; k++) { const a = chain[k], b = chain[(k + 1) % chain.length]; gsWind(h, a, b, dmg); }
+    },
+    onKill(h, m, src) {
+      if (src !== h) return;
+      h.sk.r01h = Math.min(40, Math.floor(h.stat.str / 20));
+      if (learned(h, 3)) h.sk.r01i = Math.min(40, Math.floor(h.stat.agi / 15));
+    },
+    cmds: h => [cmd('G', '树', '种古树', `<b>种古树</b> <span class="gold">500 金</span> · 1 人口<br>每学会 1 个技能可以多种 1 棵（最多 4 棵连成清风链条）。现在 ${heroUnits(h).filter(t => t.kind === 'tree').length}/${Math.min(4, h.sk.j7)}`,
+      () => { G.placing = 'ancient'; G.pending = null; uiDirty(); }, { active: G.placing === 'ancient', ico: 'build', disabled: heroUnits(h).filter(t => t.kind === 'tree').length >= Math.min(4, h.sk.j7) })],
+    info: h => [`古树链带：攻击 +${100 * gsTech(h).atk} · 攻速 +${10 * gsTech(h).as}%${h.sk.b02g > G.t ? ' · 生灵激活' : ''}`],
+  },
+};
+// 清风（腐臭蜂群）：从一棵古树吹向下一棵，宽 100→200，长 1100，魔法无视护甲
+function gsWind(h, a, b, dmg) {
+  const dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
+  for (const m of G.monsters) {
+    if (m.dead) continue;
+    const ax = m.x - a.x, ay = m.y - a.y, along = ax * ux + ay * uy, side = Math.abs(ax * uy - ay * ux);
+    if (along < 0 || along > 1100 || side > 100 + 100 * along / 1100) continue;
+    hurt(m, dmg, 'magic', h, { ignoreArmor: true });
+  }
+  FXS.beam(a.x, a.y, 120, a.x + ux * Math.min(L, 1100), a.y + uy * Math.min(L, 1100), 80, '#9fffb0', 1.6, 0.3);
+}
+// 坦克：轰炸区里随机 n 处（坦克 ±700）150 范围 最大攻击力×(18+3×冲锋枪) 混乱
+function tkBomb(h, n) {
+  const d = heroStats(h).dmg * (18 + 3 * h.sk.ko);
+  for (let k = 0; k < n; k++) { const x = h.x + rnd(-700, 700), y = h.y + rnd(-700, 700); aoeAt(h, x, y, 150, d, 'chaos'); FXS.explosion(x, y, 0.6, '#ff8a3c'); }
+}
+function tkShell(h, k) { const x = h.x + rnd(-700, 700), y = h.y + rnd(-700, 700); aoeAt(h, x, y, 200, heroStats(h).dmg * k, 'hero'); FXS.explosion(x, y, 1, '#ffb347'); }
+// 光环：英雄本身的 + 召唤物身上的（鱼人、冰箭、箭魂）
+function heroAuraList(h) {
+  const out = (HERO_DEF[h.heroName].auras || (() => []))(h);
+  for (const s of heroUnits(h)) if (s.aura && (!s.until || s.until > G.t)) for (const a of [].concat(s.aura)) out.push({ x: s.x, y: s.y, ...a });
+  return out;
+}
 const statCN = s => ({ str: '力量', agi: '敏捷', int: '智力' })[s];
 // 原图英雄塔是建筑（h03R 剑神等：1500 金 + 5 木 + 4 人口），建成后触发器把它换成英雄单位；全场唯一，建造后不能回收
 const heroBlock = () => G.hero ? '英雄塔全场只能建造一个' : !G.heroChoice ? '建造栏里没有英雄塔' : null;
@@ -1492,32 +2260,39 @@ function buildHero(x, y) {
   if (foodUsed() + hd.food > G.foodCap) return msg('人口不足');
   G.gold -= hd.gold; G.wood -= hd.wood;
   const h = { id: G.nextId++, isHero: true, fam: 'hero', heroName: hd.name, cat: 'hero', x, y, lv: 0, level: 1, spent: hd.gold, food: hd.food,
-    stat: { str: 10, agi: 10, int: 10 }, growth: 'str', points: 0, mana: 0, learned: [], cdLeft: 0, cds: {}, auto: {}, asBonus: 0,
+    stat: { str: 10, agi: 10, int: 10 }, growth: 'str', points: 3, baseBonus: 0, mana: 0, learned: [], cdLeft: 0, cds: {}, auto: {}, asBonus: 0, sk: {},
     qs: [0, 0, 0, 0], nb: 0, last: { p: 0, m: 0, c: 0 }, xb: { hail: 0, burst: 0, freeze: 0 },   // 枪神学习次数 / 火焰暴击率 / 上次致命；邪冰技能计数器
     kills: 0, dealt: 0, attacks: 0, buff: {}, buffAS: 0, buffDmg: 0, eliteAS: 0, eliteWeak: 0, levels: [{}],
     maxMana() { return D.heroes[this.heroName].mana || 1000; } };
+  h.home = { x, y };
   // 建成时随机成长值（原图 DR / DS / DT：力量 0~7，敏捷 0~剩余，智力补足 7）。每次升级英雄自带全属性 +1，再按成长值加，所以显示时各 +1，合计 10
   const r = rint(0, 7), a = rint(0, 7 - r);
   h.grow = { str: r + 1, agi: a + 1, int: 7 - r - a + 1 };
-  msg(`${hd.name} 英雄成长值（每次升级自动加属性）：力量 ${h.grow.str} · 敏捷 ${h.grow.agi} · 智力 ${h.grow.int}`, 8);
+  msg(`${hd.name} 英雄成长值（每次升级自动加属性）：力量 ${h.grow.str} · 敏捷 ${h.grow.agi} · 智力 ${h.grow.int}；有 3 点技能点可以分配`, 8);
   G.towers.push(h); G.hero = h;
+  const def = HERO_DEF[hd.name];
+  if (def.init) def.init(h);
   return h;
 }
+// 攻击力 = 基础攻击 + 升级累计的 [力量/5] + 力量×5（StrAttackBonus）+ 技能 / 科技加成；攻速 = 1 + 敏捷×1%（AgiAttackSpeedBonus）+ 技能加成，封顶 +400%
 function heroStats(h) {
-  const hd = D.heroes[h.heroName];
-  return { dmg: 9 + h.stat.str * 5, cd: hd.cd / (1 + h.stat.agi * 0.01 + h.asBonus), range: hd.range, atk: hd.atk, targets: 1 };
+  const hd = D.heroes[h.heroName], def = HERO_DEF[h.heroName], x = def.stats ? def.stats(h) : {};
+  const as = Math.min(AS_CAP, 1 + h.stat.agi * 0.01 + h.asBonus + (x.as || 0));
+  return { dmg: hd.dmg + h.baseBonus + h.stat.str * 5 + (x.dmg || 0), cd: hd.cd / as, range: hd.range, atk: hd.atk, targets: 1, multi: x.multi || 0, multiR: x.multiR || hd.range };
 }
 function heroTick(h, dt) {
-  h.mana = Math.min(h.maxMana(), h.mana + dt * h.stat.int * 0.01);   // IntRegenBonus = 0.01
-  const sec = Math.floor(G.t) - Math.floor(G.t - dt);                 // 原图每秒一次的计时器（BGU）把邪冰的计数器减 1
-  if (sec) for (const k in h.xb) h.xb[k] -= sec;
+  const def = HERO_DEF[h.heroName];
+  h.mana = Math.min(h.maxMana(), h.mana + dt * h.stat.int * 0.01 * (def.manaRegen ? def.manaRegen(h) : 1));   // IntRegenBonus = 0.01
+  const sec = Math.floor(G.t) - Math.floor(G.t - dt);                 // 原图每秒一次的计时器（BGU 等）
+  for (let k = 0; k < sec; k++) { for (const key in h.xb) h.xb[key] -= 1; if (def.second) def.second(h); }
   for (const i of h.learned) {
     const s = HERO_KITS[h.heroName][i];
     if (s.tick) s.tick(h, dt);
     if (s.cast && h.auto[i] !== false && skillReady(h, i)) castSkill(h, i, true);     // 自动施放
   }
+  if (def.tick) def.tick(h, dt);
 }
-// 主动技能：冷却剩余秒数 / 是否可放 / 施放
+// 主动技能（手动施放的）：冷却剩余秒数 / 是否可放 / 施放
 const skillCdLeft = (h, i) => Math.max(0, (h.cds['s' + i] || 0) - G.t);
 const skillReady = (h, i) => skillCdLeft(h, i) <= 0;
 function castSkill(h, i, auto) {
@@ -1533,7 +2308,7 @@ function castSkill(h, i, auto) {
   if (!auto) addFx({ kind: 'text', x: h.x, y: h.y + 60, text: D.heroes[h.heroName].skills[i].name, life: 0.8, color: '#9fe3ff' });
 }
 function heroAttack(h, tg, st) {
-  const kit = HERO_KITS[h.heroName], splash = D.heroes[h.heroName].splash;
+  const kit = HERO_KITS[h.heroName], hd = D.heroes[h.heroName], def = HERO_DEF[h.heroName];
   let dmg = st.dmg * h.atkMul;                      // 光环等加成只加普通攻击，技能伤害不加
   for (const i of h.learned) {
     const s = kit[i], c = s.crit ? s.crit(h) : s.critChance && [s.critChance, s.critMul];
@@ -1542,16 +2317,32 @@ function heroAttack(h, tg, st) {
   shot(h, tg);
   // 原图的"攻击时"触发器（EVENT_PLAYER_UNIT_ATTACKED）在出手时就判定，不等投射物命中
   if (HERO_ATTACK[h.heroName]) HERO_ATTACK[h.heroName](h, tg);
+  if (def.onLaunch) def.onLaunch(h, tg);
   for (const i of h.learned) if (kit[i].onLaunch) kit[i].onLaunch(h, tg);
-  const style = missileOf(h);
+  // 目标：弹幕（额外 multi 个，multiR 范围内）；弹射（mbounce）
+  let targets = [tg];
+  if (st.multi) targets = targets.concat(inRange(h.x, h.y, st.multiR).filter(m => m !== tg).slice(0, st.multi));
+  const style = missileOf(h), splash = hd.splash, bounce = hd.bounce;
   SFX.ent(sndKey(h), 'launch', { x: h.x, y: h.y });
-  FXS.launch(style, muzzle(h, style), tg, (hit, x, y) => {
-    SFX.ent(sndKey(h), 'hit', { x, y });
-    // 剑神 / 枪神 / 邪冰的攻击是溅射（msplash）：落点 Farea1 范围内全额伤害；火魂是单体
+  const land = primary => (hit, x, y) => {
+    if (primary) SFX.ent(sndKey(h), 'hit', { x, y });
+    // msplash：落点 Farea1 范围内全额伤害；其他是单体
     if (splash) for (const m of inRange(x, y, splash)) hurt(m, dmg, st.atk, h);
     else if (hit) hurt(hit, dmg, st.atk, h);
-    if (hit) for (const i of h.learned) { const s = kit[i]; if (s.onAttack) s.onAttack(h, hit); }
-  }, { scale: 1.3, ...w3opt(h) });
+    if (hit && primary) for (const i of h.learned) { const s = kit[i]; if (s.onAttack) s.onAttack(h, hit); }
+  };
+  if (hd.instant) {                                 // 瞬间命中（电法）
+    for (const m of targets) { FXS.beam(h.x, h.y, 150, m.x, m.y, 50, '#9fd8ff', 1.2, 0.12); land(m === tg)(m, m.x, m.y); }
+    return;
+  }
+  if (bounce) {                                     // 弹射：依次弹到下一个目标
+    const chain = chainTargets(tg, bounce.n, bounce.jump);
+    const hop = (i, src) => { if (i >= chain.length) return; FXS.launch(style, src, chain[i], (hit, x, y) => { land(i === 0)(hit, x, y); hop(i + 1, { x, y, z: 50 }); }, { scale: 1.3, ...w3opt(h) }); };
+    hop(0, muzzle(h, style));
+    for (const m of targets.slice(1)) FXS.launch(style, muzzle(h, style), m, land(false), { scale: 1.3, ...w3opt(h) });
+    return;
+  }
+  for (const m of targets) FXS.launch(style, muzzle(h, style), m, land(m === tg), { scale: 1.3, ...w3opt(h) });
 }
 function aoe(h, c, r, dmg, atk, ignoreArmor, color) {
   for (const m of inRange(c.x, c.y, r)) hurt(m, dmg, atk, h, { ignoreArmor });
@@ -1562,20 +2353,26 @@ function zone(owner, x, y, r, dur, dps, atk, endFn, style, extra) {
   G.zones.push({ owner, x, y, r, t0: G.t, until: G.t + dur, dps, atk, endFn, style, fxT: 0, ...extra });
 }
 function later(s, fn) { G.timeouts.push({ at: G.t + s, fn }); }
+// 学习技能：第 n 个（已学 DU = n-1 个）要 18×DU 木材、力量 ≥ 80×DU，最多 4 个；有的技能还有额外条件（canLearn）
 const LEARN_COST = [{ wood: 0, str: 0 }, { wood: 18, str: 80 }, { wood: 36, str: 160 }, { wood: 54, str: 240 }];
-function learnSkill(h, i) {
-  if (h.learned.includes(i) && HERO_KITS[h.heroName][i].relearn) return relearnSkill(h, i);
-  if (h.learned.length >= 4 && !h.learned.includes(i)) return msg('最多学习 4 个技能');
-  const c = LEARN_COST[h.learned.length];
-  if (!c) return msg('最多学习 4 个技能');
-  if (h.learned.includes(i)) return msg('你已经学习了这个技能');
-  if (h.stat.str < c.str) return msg(`需要力量达到 ${c.str}`);
-  if (G.wood < c.wood) return msg('木材不足');
-  G.wood -= c.wood; h.learned.push(i);
-  const s = HERO_KITS[h.heroName][i]; if (s.init) s.init(h);
-  msg(`学会了 ${D.heroes[h.heroName].skills[i].name}` + (s.cast ? `，按 ${['Q', 'W', 'E', 'R'][i]} 施放` : '（被动）'));
+function learnBlock(h, i, viaSacrifice) {
+  const kit = HERO_KITS[h.heroName][i], c = LEARN_COST[h.learned.length];
+  if (!c) return '最多学习 4 个技能';
+  if (h.stat.str < c.str) return `需要力量达到 ${c.str}`;
+  if (G.wood < c.wood) return '木材不足';
+  return !viaSacrifice && kit.canLearn ? kit.canLearn(h) : null;
+}
+function learnSkill(h, i, viaSacrifice) {
+  const kit = HERO_KITS[h.heroName][i], name = D.heroes[h.heroName].skills[i].name;
+  if (learned(h, i)) return kit.relearn ? relearnSkill(h, i) : kit.up ? upSkill(h, i) : msg('你已经学习了这个技能');
+  const why = learnBlock(h, i, viaSacrifice);
+  if (why) return msg(why), false;
+  G.wood -= LEARN_COST[h.learned.length].wood; h.learned.push(i);
+  if (kit.init) kit.init(h);
+  msg(`学会了 ${name}`);
   G.menu = 'main';                                   // 学完回到英雄面板，技能就在第一行
   uiDirty();
+  return true;
 }
 // 枪神的技能可以再学一次：10000 金，致命一击升到 2 级（概率 +3%），触发几率 +3%
 function relearnSkill(h, i) {
@@ -1585,22 +2382,70 @@ function relearnSkill(h, i) {
   msg(`再次学习了 ${D.heroes[h.heroName].skills[i].name}`);
   uiDirty();
 }
+// 其他英雄的"再次学习"（渔人 / 神牛 / 神幻升级技能，狂牛切换重生点）
+function upSkill(h, i) {
+  const up = HERO_KITS[h.heroName][i].up, c = up.cost(h), why = up.why(h) || (c.gold && G.gold < c.gold ? '金币不足' : c.mana && h.mana < c.mana ? '魔法值不足' : null);
+  if (why) return msg(why);
+  G.gold -= c.gold || 0; h.mana -= c.mana || 0;
+  up.apply(h); SFX.ui('upgrade', { x: h.x, y: h.y });
+  uiDirty();
+}
+// 升级（原图 A0B6 + BMR）：花 等级×100 金 + 200 魔法；英雄自带全属性 +1，基础攻击 + [力量/5]，再加成长值；技能点 +3（≤10 级）/ +4（≤20）/ +5（≤29）/ +9（30 级）
+// 满级后：500 金 + 400 魔法，属性选择那项 +3（大巫师随机一项）
 function heroLevelUp(h) {
-  const max = h.level >= 30;
+  const max = h.level >= 30, def = HERO_DEF[h.heroName];
   const gold = max ? 500 : h.level * 100, mana = max ? 400 : 200;
   if (G.gold < gold) return msg('金币不足');
   if (h.mana < mana) return msg('魔法值不足（升级需要 ' + mana + ' 魔法）');
   G.gold -= gold; h.mana -= mana; h.spent += gold;
-  if (max) h.stat[h.growth] += 3;
-  else { h.level++; for (const k in h.grow) h.stat[k] += h.grow[k]; }
+  if (def.onLevelBtn) def.onLevelBtn(h);
+  if (max) { const k = def.maxLevelRandom ? pick(['str', 'agi', 'int']) : h.growth; h.stat[k] += 3; msg(`${statCN(k)} +3`); }
+  else {
+    h.level++;
+    for (const k in h.stat) h.stat[k] += 1;
+    h.baseBonus += h.stat.str / 5;
+    for (const k in h.grow) h.stat[k] += h.grow[k] - 1;
+    h.points += h.level <= 10 ? 3 : h.level <= 20 ? 4 : h.level <= 29 ? 5 : 9;
+    if (def.onLevel) def.onLevel(h);
+  }
   SFX.ui('levelup', { x: h.x, y: h.y });
+  uiDirty();
+}
+// 技能点（原图英雄技能 A05Y / A060 / A05Z / A0FL，学了就移除，所以能一直学）：力量 / 敏捷 / 智力 +2；随机：5% 某项 +3，25% 某项 +2，3% 某项 +4，1% 全 +2
+function spendPoint(h, k) {
+  if (h.points < 1) return msg('没有技能点');
+  h.points--;
+  if (k !== 'rand') { h.stat[k] += 2; msg(`${statCN(k)} +2`); }
+  else {
+    const g = rint(1, 100), [st, v] = g <= 5 ? ['str', 3] : g <= 10 ? ['agi', 3] : g <= 15 ? ['int', 3] : g <= 40 ? ['agi', 2] : g <= 65 ? ['int', 2] : g <= 90 ? ['str', 2]
+      : g <= 93 ? ['int', 4] : g <= 96 ? ['agi', 4] : g <= 99 ? ['str', 4] : ['all', 2];
+    if (st === 'all') for (const s in h.stat) h.stat[s] += v; else h.stat[st] += v;
+    msg(`${st === 'all' ? '全属性' : statCN(st)} +${v}`);
+  }
+  uiDirty();
+}
+// 大巫师的巫祭（BSl）：献祭自己的一座塔
+const WUJI = { 巫医塔: 'str', 巫术塔: 'agi', 巫魔塔: 'int' };
+function wujiSacrifice(h, t) {
+  if (!t || !G.towers.includes(t) || t.isHero || t.cat === 'summon') return msg('只能献祭自己的塔');
+  if (WUJI[t.fam]) { if (G.wood < 3) return msg('木材不足（需要 3 木材）'); G.wood -= 3; const v = rint(30, 60); h.stat[WUJI[t.fam]] += v; msg(`献祭成功，增加 ${v} 点${statCN(WUJI[t.fam])}`); }
+  else if (t.fam === '巫法塔') { const k = pick(['agi', 'int', 'str']); h.stat[k] += 60; msg(`献祭成功，增加 60 点${statCN(k)}`); }
+  else if (t.fam === '巫师塔（光明）' || t.fam === '巫师塔（暗黑）') {
+    const i = t.fam === '巫师塔（光明）' ? 3 : 4;
+    if (learned(h, i)) return msg('你已经学习了这个技能');
+    if (!learnSkill(h, i, true)) return;
+    msg(`献祭成功，获得[${D.heroes[h.heroName].skills[i].name}]技能`);
+  } else return msg('只能献祭巫医 / 巫术 / 巫法 / 巫魔塔和巫师塔（光明 / 暗黑）');
+  FXS.nova(t.x, t.y, 200, '#c48bff', 0.6);
+  G.towers = G.towers.filter(o => o !== t);
+  if (G.selected === t) G.selected = h;
   uiDirty();
 }
 
 // ---------------------------------------------------------------- 光环 (每帧重算)
 function applyAuras() {
-  for (const m of G.monsters) { m.auraFocus = 0; m.auraArmorDown = 0; m.auraSlow = 0; m.auraSpeed = 0; m.auraRegen = 0; }
-  for (const t of G.towers) { t.buffAS = 0; t.buffDmg = 0; t.eliteAS = 0; t.eliteWeak = 0; t.selfAS = 0; t.selfAS2 = 0; t.selfAtk = 0; t.selfAtk2 = 0; }
+  for (const m of G.monsters) { m.auraFocus = 0; m.auraArmorDown = 0; m.auraSlow = 0; m.auraSpeed = 0; m.auraRegen = 0; m.heroSlow = 0; }
+  for (const t of G.towers) { t.buffAS = 0; t.buffDmg = 0; t.eliteAS = 0; t.eliteWeak = 0; t.selfAS = 0; t.selfAS2 = 0; t.selfAtk = 0; t.selfAtk2 = 0; t.drums = 0; }
   // 塔自身的加成：原始战速 / 原始战力（等级 = MAX 原始塔数量），各主塔的技能（魔幻塔急速 / 强攻、剑圣塔致速 / 强攻）
   const primal = G.towers.filter(t => t.cat === 'raw' && isMax(t)).length;
   for (const t of G.towers) {
@@ -1620,12 +2465,24 @@ function applyAuras() {
     if (a.fam === '减防光环') armorAuras.push([a, r, -ab.A]);
     if (a.fam === '减速光环') slowAuras.push([a, r, -ab.A]);
   }
+  // 英雄和它的召唤物身上的光环：鱼人的攻击 / 加速 / 减防 / 减速光环和同类光环塔取大；神盾光辉（战鼓）另算；水魔环 / 狂牛的减速与减速光环叠加
+  const heroSlows = [];
+  if (G.hero) for (const a of heroAuraList(G.hero)) {
+    const near = t => dist2(a.x, a.y, t.x, t.y) <= (a.r + FOOT_HALF) ** 2;
+    if (a.kind === 'towerDmg') for (const t of G.towers) { if (near(t)) t.buffDmg = Math.max(t.buffDmg, a.v); }
+    if (a.kind === 'towerAS') for (const t of G.towers) { if (near(t)) t.buffAS = Math.max(t.buffAS, a.v); }
+    if (a.kind === 'drums') for (const t of G.towers) { if (near(t)) t.drums = Math.max(t.drums, a.v); }
+    if (a.kind === 'armor') armorAuras.push([a, a.r, a.v]);
+    if (a.kind === 'slow') slowAuras.push([a, a.r, a.v]);
+    if (a.kind === 'heroSlow') heroSlows.push([a, a.r, a.v]);
+  }
   // 寒冰塔的冰霜光环：600 范围敌人移速 -(5 + 3×(等级-1))%（和减速光环同类，取最大）
   for (const t of G.towers) if (t.fam === '寒冰塔') slowAuras.push([t, 600, 0.05 + 0.03 * (t.ice.aura - 1)]);
   for (const m of G.monsters) {
     if (m.dead) continue;
     for (const [a, r, v] of armorAuras) if (dist2(a.x, a.y, m.x, m.y) <= r * r) m.auraArmorDown = Math.max(m.auraArmorDown, v);
     for (const [a, r, v] of slowAuras) if (dist2(a.x, a.y, m.x, m.y) <= r * r) m.auraSlow = Math.max(m.auraSlow, v);
+    for (const [a, r, v] of heroSlows) if (dist2(a.x, a.y, m.x, m.y) <= r * r) m.heroSlow = Math.max(m.heroSlow, v);
   }
   // 精英怪光环 (900 范围)
   for (const e of G.monsters) {
@@ -2415,7 +3272,7 @@ function draw() {
     ctx = gctx;
     const x = snap(wx(mouse.x, mouse.y)), y = snap(wy(mouse.y)), ok = canPlace(x, y, true);
     const fam = G.placing;
-    const range = fam === 'hero' ? D.heroes[G.heroChoice].range : (D.towers[fam].cat === 'aura' ? (D.towers[fam].levels[0].abils[0] || {}).area || 900 : D.towers[fam].levels[0].range);
+    const range = fam === 'hero' ? D.heroes[G.heroChoice].range : fam === 'ancient' ? 900 : (D.towers[fam].cat === 'aura' ? (D.towers[fam].levels[0].abils[0] || {}).area || 900 : D.towers[fam].levels[0].range);
     const col = ok ? '#6fd17a' : '#ff5a4f';
     rangeCircle(x, y, range, col, 0.08);
     drawBuildGrid(x, y);
@@ -2427,15 +3284,15 @@ function draw() {
     }
     ctx.save(); ctx.shadowColor = col; ctx.shadowBlur = 10 * DPR; ctx.strokeStyle = col; ctx.lineWidth = 2 * DPR;
     footRect(x, y); ctx.stroke(); ctx.restore();
-    const gm = fam === 'hero' ? SHEETS['hero:' + G.heroChoice] : D.towers[fam].cat === 'aura' ? null : SHEETS['tower:' + fam];   // 光环塔没有建筑，只有地面光环
+    const gm = fam === 'hero' ? SHEETS['hero:' + G.heroChoice] : fam === 'ancient' ? SHEETS['hero:古树'] : D.towers[fam].cat === 'aura' ? null : SHEETS['tower:' + fam];   // 光环塔没有建筑，只有地面光环
     const ganim = gm && [Object.keys(gm.actions)[0], G.t];
     if (gm && !model3d(GHOST, gm, x, y, -Math.PI / 2, ganim, 1, ok ? 0.6 : 0.35)) {
-      const gsh = fam === 'hero' ? sheetByKey('hero:' + G.heroChoice) : towerSheet(fam, 1);
+      const gsh = fam === 'hero' ? sheetByKey('hero:' + G.heroChoice) : fam === 'ancient' ? sheetByKey('hero:古树') : towerSheet(fam, 1);
       if (gsh) drawSheet(gsh, { face: -Math.PI / 2 }, x, y, ganim, 1, ok ? 0.6 : 0.35);
     }
     ctx = octx;
   }
-  if (G.pending && mouse) { label(G.pending === 'blink' ? '闪烁到这里' : G.pending.startsWith('xfer:') ? '把魔法转给这座弹跳塔' : G.pending.startsWith('item:') ? '对这里的光环塔使用' : '移动到这里', wx(mouse.x, mouse.y), wy(mouse.y) + 90, '#c8f5c8', 12); }
+  if (G.pending && mouse) { label(G.pending === 'blink' ? '闪烁到这里' : G.pending.startsWith('xfer:') ? '把魔法转给这座弹跳塔' : G.pending === 'wuji' ? '献祭这座塔' : G.pending === 'kuward' ? '在这里放重生点' : G.pending.startsWith('item:') ? '对这里的光环塔使用' : '移动到这里', wx(mouse.x, mouse.y), wy(mouse.y) + 90, '#c8f5c8', 12); }
   TER.drawOverlay(ctx, view);
   ctx = gctx;
   if (U3) { U3.render(G.t - (draw.lastT ?? G.t), gctx.canvas); draw.lastT = G.t; }
@@ -2851,7 +3708,7 @@ function portrait(e, name, color) {
   return im ? `<img src="${im.src}">` : `<div class="pt" style="background:${color}">${name.slice(0, 1)}</div>`;
 }
 function bar(cls, v, max, text) { return `<div class="bar ${cls}"><i style="width:${clamp(v / max, 0, 1) * 100}%"></i><span>${text}</span></div>`; }
-const builderState = b => { const o = b.order; return !o ? '待命' : o.kind === 'build' ? '前往建造 ' + (o.fam === 'hero' ? G.heroChoice : o.fam)
+const builderState = b => { const o = b.order; return !o ? '待命' : o.kind === 'build' ? '前往建造 ' + (o.fam === 'hero' ? G.heroChoice : o.fam === 'ancient' ? '古树' : o.fam)
   : o.kind === 'use' ? `前去使用${o.item.name}` : o.kind === 'fod' ? '前去施放死亡之指' : '移动中'; };
 function renderInfo() {
   const e = G.selected, box = $('info');
@@ -2877,10 +3734,11 @@ function renderInfo() {
       <div class="kv"><span>攻击力</span><b>${fmt(st.dmg)}</b><span>攻击间隔</span><b>${st.cd.toFixed(2)}s</b>
       <span>射程</span><b>${st.range}</b><span>击杀/伤害</span><b>${e.kills} / ${fmt(e.dealt || 0)}</b>
       <span style="color:#ff6b5f">力量</span><b>${e.stat.str}</b><span style="color:#ffd257">敏捷</span><b>${e.stat.agi}</b><span style="color:#7ab8ff">智力</span><b>${e.stat.int}</b>
-      <span>成长值</span><b>力 ${e.grow.str} · 敏 ${e.grow.agi} · 智 ${e.grow.int}</b><span>属性选择</span><b>${statCN(e.growth)}（每杀精英 +1）</b></div>
-      <div class="skills">${hd.skills.slice(0, 4).map((s, i) => `<span class="${e.learned.includes(i) ? 'on' : ''}">${s.name}</span>`).join('')}</div>`;
+      <span>成长值</span><b>力 ${e.grow.str} · 敏 ${e.grow.agi} · 智 ${e.grow.int}</b><span>属性选择</span><b>${statCN(e.growth)}（每杀精英 +1）</b>
+      <span>技能点</span><b>${e.points}</b></div>
+      <div class="skills">${hd.skills.map((s, i) => `<span class="${e.learned.includes(i) ? 'on' : ''}">${s.name}</span>`).join('')}</div>${heroInfo(e) ? `<div class="sub">${heroInfo(e).slice(4)}</div>` : ''}`;
   } else if (e.fam) {
-    if (e.cat === 'summon') { box.innerHTML = `<div class="col-l">${portrait(null, e.label || '魔', '#7a2a10')}</div><div class="col-m"><div class="nm">${e.title || '炎魔'}</div><div class="sub">召唤物 · 剩余 ${Math.ceil(e.until - G.t)} 秒</div></div>`; return; }
+    if (e.cat === 'summon') { box.innerHTML = `<div class="col-l">${portrait(null, e.label || '魔', '#7a2a10')}</div><div class="col-m"><div class="nm">${e.title || '炎魔'}</div><div class="sub">召唤物 · ${summonLeft(e)}</div></div>`; return; }
     const lv = curLevel(e), st = towerStats(e);
     left = portrait(e, e.fam, e.cat === 'aura' ? '#2f7a3b' : '#2a3a4e') + bar('hp', 1, 1, '无敌的') +
       (e.maxMana ? bar('mp', e.mana, e.maxMana, `${Math.floor(e.mana)} / ${e.maxMana}`) : bar('mp', e.lv + 1, e.levels.length, `等级 ${e.lv + 1}/${e.levels.length}`));
@@ -2903,7 +3761,9 @@ function renderInfo() {
 // ---------------------------------------------------------------- 桌面：原版控制台的信息区（头像窗 + 血蓝条 + 中间的信息卡）
 const ATK_ICON = { normal: 'attack-melee', pierce: 'attack-piercing', magic: 'attack-magic', chaos: 'attack-chaos', hero: 'attack-hero', spells: 'attack-magic', siege: 'attack-siege' };
 const ARMOR_ICON = { small: 'armor-small', medium: 'armor-medium', large: 'armor-large', divine: 'armor-divine', hero: 'armor-hero', fort: 'armor-fortified' };
-const HERO_PRIMARY = 'str';                       // 原图 4 个英雄的主属性都是力量
+const HERO_PRIMARY = 'str';                       // 原图 17 个英雄的主属性都是力量
+const summonLeft = e => e.until ? `剩余 ${Math.ceil(e.until - G.t)} 秒` : '永久';
+const heroInfo = h => { const def = HERO_DEF[h.heroName], l = def.info ? def.info(h) : []; return l.length ? '<br>' + l.join('<br>') : ''; };
 const ui = n => `assets/ui/infocard-${n}.png`;
 const stat = (icon, label, val) => `<div class="st"><img src="${ui(icon)}"><div><span>${label}：</span><br><b>${val}</b></div></div>`;
 const INVULN = '<b style="color:#ff4f4f">无敌的</b>';
@@ -2936,10 +3796,10 @@ function renderCard(e) {
     c2 = `<div class="attr"><img src="${ui('heroattributes-' + HERO_PRIMARY)}">${at('str', '力量')}${at('agi', '敏捷')}${at('int', '智力')}</div>`;
     const sk = e.learned.map(i => { const im = img('icon:skill:' + e.heroName + ':' + i); return im ? `<img src="${im.src}" title="${hd.skills[i].name}">` : ''; }).join('');
     extra = `<div class="buffs">状态：${sk || '<b style="color:#999;font-weight:400">还没有学习技能</b>'}</div>
-      <div class="tip">攻击间隔 ${st.cd.toFixed(2)}s · 射程 ${st.range} · 成长值 力 ${e.grow.str} / 敏 ${e.grow.agi} / 智 ${e.grow.int} · 属性选择 ${statCN(e.growth)} · 击杀 ${e.kills}</div>`;
+      <div class="tip">攻击间隔 ${st.cd.toFixed(2)}s · 射程 ${st.range} · 成长值 力 ${e.grow.str} / 敏 ${e.grow.agi} / 智 ${e.grow.int} · 属性选择 ${statCN(e.growth)} · 技能点 ${e.points} · 击杀 ${e.kills}${heroInfo(e)}</div>`;
     hp = '无敌的'; mp = `${Math.floor(e.mana)} / ${e.maxMana()}`;
   } else if (e.fam) {
-    if (e.cat === 'summon') { name = e.title || '炎魔'; sub = `召唤物 · 剩余 ${Math.ceil(e.until - G.t)} 秒`; }
+    if (e.cat === 'summon') { name = e.title || '炎魔'; sub = `召唤物 · ${summonLeft(e)}`; }
     else {
       const lv = curLevel(e), st = towerStats(e);
       name = lv.name; sub = `${CAT_CN[e.cat]}${e.branch ? ' · ' + e.branch + '分支' : ''} · 等级 ${e.lv + 1}/${e.levels.length}`;
@@ -3077,37 +3937,55 @@ function buildCmds() {
     return out;
   }
   if (e.isHero) {
-    const h = e, hd = D.heroes[h.heroName];
+    const h = e, hd = D.heroes[h.heroName], kits = HERO_KITS[h.heroName], def = HERO_DEF[h.heroName];
+    const skIco = i => ({ ico: 'skill-' + h.heroName + '-' + i, iconKey: 'icon:skill:' + h.heroName + ':' + i });
+    // 学习技能：技能书里的 4~5 个，最多学 4 个；学会后有"再次学习"的显示升级
     if (G.menu === 'skills') {
       const c = LEARN_COST[h.learned.length];
-      hd.skills.slice(0, 4).forEach((s, i) => {
-        const learned = h.learned.includes(i), re = learned && HERO_KITS[h.heroName][i].relearn && h.qs[i] < 2;   // 枪神：可以再次学习
-        const need = re ? `<br><b>再次学习：${QS_RELEARN} 金币</b>` : !learned && c ? `<br><b>需要：木材 ${c.wood}，力量 ≥ ${c.str}</b>` : '';
-        out.push(cmd(['Q', 'W', 'E', 'R'][i], s.name.slice(0, 2), s.name, `<b>${s.name}</b>${learned ? ' ✓ 已学习' + (h.qs[i] >= 2 ? '（已再次学习）' : '') : ''}<br>${s.desc.replace(/\n/g, '<br>')}${need}`,
-          () => re ? relearnSkill(h, i) : learned ? msg('已经学会了') : learnSkill(h, i),
-          { learned: learned && !re, disabled: re ? G.gold < QS_RELEARN : !learned && (!c || h.stat.str < c.str || G.wood < c.wood), iconKey: 'icon:skill:' + h.heroName + ':' + i, ico: 'skill-' + h.heroName + '-' + i, cost: re ? QS_RELEARN : 0 }));
+      hd.skills.forEach((s, i) => {
+        const kit = kits[i], has = learned(h, i), re = has && kit.relearn && h.qs[i] < 2, up = has && kit.up;
+        const upWhy = up && (kit.up.why(h) || (kit.up.cost(h).gold && G.gold < kit.up.cost(h).gold ? '金币不足' : kit.up.cost(h).mana && h.mana < kit.up.cost(h).mana ? '魔法值不足' : null));
+        const why = has ? null : learnBlock(h, i);
+        const uc = up && kit.up.cost(h), upCost = up ? [uc.gold && `${uc.gold} 金币`, uc.mana && `${uc.mana} 魔法`].filter(Boolean).join(' + ') : '';
+        const need = re ? `<br><b>再次学习：${QS_RELEARN} 金币</b>` : up ? `<br><b>再次学习${upCost ? '（' + upCost + '）' : ''}：${kit.up.tip(h)}</b>${upWhy ? `<br><b style="color:#ff5a4f">${upWhy}</b>` : ''}`
+          : !has && c ? `<br><b>需要：木材 ${c.wood}，力量 ≥ ${c.str}</b>${why ? `<br><b style="color:#ff5a4f">${why}</b>` : ''}` : '';
+        out.push(cmd(['Q', 'W', 'E', 'R', 'T'][i], s.name.slice(0, 2), s.name, `<b>${s.name}</b>${has ? ' ✓ 已学习' + (h.qs[i] >= 2 ? '（已再次学习）' : '') : ''}<br>${s.desc.replace(/\n/g, '<br>')}${need}`,
+          () => re ? relearnSkill(h, i) : up ? upSkill(h, i) : has ? msg('已经学会了') : learnSkill(h, i),
+          { learned: has && !re && !up, disabled: re ? G.gold < QS_RELEARN : up ? !!upWhy : !has && !!why, ...skIco(i), cost: re ? QS_RELEARN : up ? uc.gold || 0 : 0 }));
       });
       while (out.length < 11) out.push(null); out.push(back); return out;
     }
-    // 第一行：已学的技能（Q W E R 对应技能位置）。主动技能按热键 / 左键施放，右键切换自动施放；被动技能只显示
-    hd.skills.slice(0, 4).forEach((sk, i) => {
-      if (!h.learned.includes(i)) return out.push(null);
-      const kit = HERO_KITS[h.heroName][i], key = ['Q', 'W', 'E', 'R'][i], ico = 'skill-' + h.heroName + '-' + i, iconKey = 'icon:skill:' + h.heroName + ':' + i, desc = sk.desc.replace(/\n/g, '<br>');
+    // 分配技能点：力量 / 敏捷 / 智力 +2，或随机
+    if (G.menu === 'points') {
+      [['Q', 'str', '力量'], ['W', 'agi', '敏捷'], ['E', 'int', '智力']].forEach(([k, st, nm]) =>
+        out.push(cmd(k, nm.slice(0, 1), nm + ' +2', `分配 1 点技能点：${nm} +2（剩余 ${h.points} 点）`, () => spendPoint(h, st), { disabled: h.points < 1, ico: st })));
+      out.push(cmd('R', '随', '随机', `分配 1 点技能点，随机：5% 某项 +3，25% 某项 +2，3% 某项 +4，1% 全属性 +2（剩余 ${h.points} 点）`, () => spendPoint(h, 'rand'), { disabled: h.points < 1, ico: 'learn' }));
+      while (out.length < 11) out.push(null); out.push(back); return out;
+    }
+    // 第一行：学会的技能（按学会的顺序）。原图的主动技能都是攻击时自动放，这里显示冷却
+    for (let k = 0; k < 4; k++) {
+      const i = h.learned[k];
+      if (i == null) { out.push(null); continue; }
+      const sk = hd.skills[i], kit = kits[i], key = ['Q', 'W', 'E', 'R'][k], desc = sk.desc.replace(/\n/g, '<br>');
       if (kit.cast) {
         const auto = h.auto[i] !== false;
         out.push(cmd(key, sk.name.slice(0, 2), sk.name, `<b>${sk.name}</b> <span class="atk atk-magic">主动</span><br>冷却 ${kit.cd} 秒 · 按 <b>${key}</b> 或左键施放（对射程内最近的敌人）<br>右键：自动施放 <b style="color:${auto ? '#6fd17a' : '#ff8f86'}">${auto ? '开' : '关'}</b><br>${desc}`,
-          () => castSkill(h, i), { ico, iconKey, auto, cdOf: () => [skillCdLeft(h, i), kit.cd], rfn: () => { h.auto[i] = !auto; msg(`${sk.name}：自动施放${auto ? '关闭' : '开启'}`); uiDirty(); } }));
-      } else out.push(cmd(key, sk.name.slice(0, 2), sk.name, `<b>${sk.name}</b> <span class="atk atk-normal">被动</span><br>${desc}`, () => {}, { ico, iconKey, passive: true }));
-    });
-    // 第二行：成长属性
+          () => castSkill(h, i), { ...skIco(i), auto, cdOf: () => [skillCdLeft(h, i), kit.cd], rfn: () => { h.auto[i] = !auto; msg(`${sk.name}：自动施放${auto ? '关闭' : '开启'}`); uiDirty(); } }));
+      } else out.push(cmd(key, sk.name.slice(0, 2), sk.name, `<b>${sk.name}</b> <span class="atk atk-normal">${kit.cdKey ? '攻击时自动施放' : '被动'}</span><br>${desc}`, () => {},
+        { ...skIco(i), passive: true, cdOf: kit.cdKey ? () => [cdLeft(h, kit.cdKey), kit.cd(h)] : undefined }));
+    }
+    // 第二行：属性选择（杀精英 +1、满级升级 +3 的那项）+ 技能点
     for (const [k, st, nm] of [['A', 'str', '力量'], ['S', 'agi', '敏捷'], ['D', 'int', '智力']])
       out.push(cmd(k, nm.slice(0, 1), '属性选择：' + nm, `属性选择<b>${nm}</b>：每杀死 1 个精英怪，${nm} +1；满级后再升级 ${nm} +3`, () => { h.growth = st; uiDirty(); }, { active: h.growth === st, ico: st }));
-    out.push(null);
-    // 第三行：升级、学习技能、回收
+    out.push(cmd('F', '点', `技能点（${h.points}）`, `<b>技能点 ${h.points}</b><br>每点可以加 2 点力量 / 敏捷 / 智力，或随机。建成时 3 点；升级时 ≤10 级 +3、≤20 级 +4、≤29 级 +5、30 级 +9`,
+      () => { G.menu = 'points'; uiDirty(); }, { ico: 'upgrade', disabled: h.points < 1 }));
+    // 第三行：升级、学习技能、英雄自己的命令
     const maxed = h.level >= 30, g = maxed ? 500 : h.level * 100, mp = maxed ? 400 : 200;
-    out.push(cmd('U', '↑', '升级', `需要 <b>${g} 金币 + ${mp} 魔法</b><br>${maxed ? '满级后：所选属性 +3' : `等级 +1，按成长值加属性：力量 +${h.grow.str} · 敏捷 +${h.grow.agi} · 智力 +${h.grow.int}`}`, () => heroLevelUp(h), { disabled: G.gold < g || h.mana < mp, ico: 'upgrade', cost: g }));
-    const relearn = h.learned.some(i => HERO_KITS[h.heroName][i].relearn && h.qs[i] < 2);
-    out.push(cmd('L', '书', '学习技能', `最多 4 个。第 1 个免费，第 2/3/4 个需要木材 18/36/54，力量 ≥ 80/160/240${HERO_KITS[h.heroName][0].relearn ? `<br>学会的技能可以花 ${QS_RELEARN} 金币再次学习一次` : ''}`, () => { G.menu = 'skills'; uiDirty(); }, { ico: 'learn', disabled: h.learned.length >= 4 && !relearn }));
+    out.push(cmd('U', '↑', '升级', `需要 <b>${g} 金币 + ${mp} 魔法</b><br>${maxed ? `满级后：${def.maxLevelRandom ? '随机一项' : '所选属性'} +3` : `等级 +1：全属性 +1 再按成长值加（力量 +${h.grow.str} · 敏捷 +${h.grow.agi} · 智力 +${h.grow.int}），基础攻击 +[力量/5]，技能点 +${h.level + 1 <= 10 ? 3 : h.level + 1 <= 20 ? 4 : h.level + 1 <= 29 ? 5 : 9}`}`,
+      () => heroLevelUp(h), { disabled: G.gold < g || h.mana < mp, ico: 'upgrade', cost: g }));
+    const canUp = h.learned.some(i => (kits[i].relearn && h.qs[i] < 2) || kits[i].up);
+    out.push(cmd('L', '书', '学习技能', `最多 4 个。第 1 个免费，第 2/3/4 个需要木材 18/36/54，力量 ≥ 80/160/240${canUp ? '<br>学会的技能有的可以再次学习' : ''}`, () => { G.menu = 'skills'; uiDirty(); }, { ico: 'learn', disabled: h.learned.length >= 4 && !canUp }));
+    if (def.cmds) out.push(...def.cmds(h).slice(0, 2));
     return out;                                      // 英雄塔建造后不能回收（原图英雄塔说明）
   }
   if (e.fam && e.cat !== 'summon') {
@@ -3217,6 +4095,13 @@ function groundClick(x, y, shift) {
     G.pending = null;
     if (G.inv[i]) { if (t && G.towers.includes(t)) orderUse(i, t, shift); else msg(G.inv[i].ok(null)); }
     uiDirty(); return;
+  }
+  if (G.pending === 'wuji') {                                  // 大巫师巫祭：对自己的塔
+    const t = mouse && hitTest(mouse.x, mouse.y);
+    G.pending = null; if (G.hero) wujiSacrifice(G.hero, t); uiDirty(); return;
+  }
+  if (G.pending === 'kuward') {                                // 狂牛手动放重生点
+    G.pending = null; if (G.hero) knWard(G.hero, x, y); uiDirty(); return;
   }
   if (G.pending && G.pending.startsWith('xfer:')) {          // 弹跳塔转移魔法：对另一座弹跳塔
     const src = G.towers.find(o => o.id === +G.pending.slice(5)), t = mouse && hitTest(mouse.x, mouse.y);
@@ -3389,7 +4274,8 @@ function showHelp() {
     <p><b>死亡之指</b>：守卫者的技能（热键 X），对 800 范围内的一个敌人使用，直接杀死它；BOSS 只扣一部分生命。冷却 90 秒，耗 5 点魔法（守卫者魔法上限 10）。</p>
     <p><b>商店</b>：地图中央，守卫者走到 ${RULE.shopReach} 范围内选中商店购买：1 个木材（500 金，冷却 30 秒）、10 个木材（5000 金，冷却 300 秒）、魔力卷轴（英雄塔 +120 魔法）、知识之书（英雄塔随机属性 +10）、天赋卷轴（15 木，MAX 光环塔激活基础天赋，开局 1200 秒后开放）。三种卷轴买下后放进守卫者的<b>物品栏</b>（6 格），选中守卫者点物品（或小键盘 7 8 4 5 1 2），再点目标塔，守卫者走到施法距离内使用。复制 / 收购卷轴要对队友使用，单人用不了。</p>
     <p><b>兔子</b>：每个 BOSS 波（10/20/30/40 波、最终波）开始 ${RULE.rabbitDelay} 秒后，地图随机位置出现一只兔子（小地图粉点），${RULE.rabbitLife} 秒后消失。守卫者走到它 ${RULE.rabbitReach} 范围内，选中兔子就能用<b>当局成就</b>买道具：4 种塔类之球（重新随机建造栏的某一类塔）、5 个木材、魔法药水、知识药水。当局成就开局 ${RULE.startAch} 点，每次 Perfect +${RULE.achPerPerfect}；守卫者的<b>兔子卷轴</b>（${RULE.rabbitScrollAch} 成就）可以额外召唤一次兔子。</p>
-    <p><b>英雄塔</b>：每次随机建造给出 1 个英雄塔（和原图随机模式一样），1500 金 + 5 木材 + 4 人口，全场唯一，建造后不能回收。建成时随机给出力量 / 敏捷 / 智力的成长值（合计 10），每次升级按成长值加属性；属性选择决定杀精英怪 +1 的属性和满级后升级 +3 的属性。升级要 等级×100 金 + 200 魔法（英雄每击杀 +2 魔法）。学技能：第 1 个免费；第 2/3/4 个分别要 18/36/54 木材，且力量 ≥ 80/160/240。</p>
+    <p><b>英雄塔</b>：每次随机建造给出 1 个英雄塔（和原图随机模式一样），1500 金 + 5 木材 + 4 人口，全场唯一，建造后不能回收。建成时随机给出力量 / 敏捷 / 智力的成长值（合计 10），每次升级按成长值加属性；属性选择决定杀精英怪 +1 的属性和满级后升级 +3 的属性。升级要 等级×100 金 + 200 魔法（英雄每击杀 +2 魔法）。学技能：第 1 个免费；第 2/3/4 个分别要 18/36/54 木材，且力量 ≥ 80/160/240，最多 4 个（第 5 个特殊技能有额外条件）。英雄有技能点：建成 3 点、每升一级 3~9 点，每点力量 / 敏捷 / 智力 +2 或随机。
+      随机建造在原图随机模式的 17 个英雄里抽，原图的主动技能都是攻击时自动放。</p>
     <p style="color:#7f9483;font-size:11px">命令图标的图形来自 <a href="https://game-icons.net" target="_blank" style="color:#9fc4a6">game-icons.net</a>（Lorc、Delapouite 等，CC BY 3.0）。</p>
     <div class="row"><button class="primary" id="m-close">继续游戏</button></div>`);
   $('m-close').onclick = () => { hideModal(); G.paused = was; };
@@ -3428,5 +4314,5 @@ newGame('solo');
 showStart();
 requestAnimationFrame(frame);
 window.__G = () => G;   // 调试用
-window.__dbg = { get G() { return G; }, NODES, EDGES, kill, hurt, spawnMonster, FXS, buildTower, upgradeTower, learnSkill, heroLevelUp, step, canPlace, newGame, monstersAlive, towerStats, rerollBuild, orderBuild, orderMove, castSkill, spawnRabbit, buyRabbit, RABBIT_SHOP, SHOP, SHOP_ITEMS, buyShop, orderFinger, KITS, towerAS, towerAtk, effArmor, applyAuras, sellTower, select, hurt, buildCmds, newTower, attack, bounceXfer };
+window.__dbg = { get G() { return G; }, NODES, EDGES, kill, hurt, spawnMonster, FXS, buildTower, upgradeTower, learnSkill, heroLevelUp, step, canPlace, newGame, monstersAlive, towerStats, rerollBuild, orderBuild, orderMove, castSkill, spawnRabbit, buyRabbit, RABBIT_SHOP, SHOP, SHOP_ITEMS, buyShop, orderFinger, KITS, towerAS, towerAtk, effArmor, applyAuras, sellTower, select, hurt, buildCmds, newTower, attack, bounceXfer, spendPoint, upSkill, wujiSacrifice, plantAncient, knWard, heroStats, HERO_KITS, HERO_DEF, heroAuraList };
 })();

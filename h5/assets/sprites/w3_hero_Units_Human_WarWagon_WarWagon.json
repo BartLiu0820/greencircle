@@ -1,0 +1,31 @@
+{
+ "key": "model:hero:Units/Human/WarWagon/WarWagon",
+ "src": "sprites/w3_hero_Units_Human_WarWagon_WarWagon.png",
+ "frameW": 192,
+ "frameH": 192,
+ "cols": 10,
+ "rows": 16,
+ "anchor": [
+  0.5,
+  0.7
+ ],
+ "unitsPerPixel": 2.0,
+ "pitch": 50,
+ "actions": {
+  "idle": {
+   "row": 0,
+   "dirs": 8,
+   "frames": 10,
+   "fps": 10.0,
+   "loop": true
+  },
+  "attack": {
+   "row": 8,
+   "dirs": 8,
+   "frames": 8,
+   "fps": 14,
+   "loop": false
+  }
+ },
+ "modelScale": 1.2
+}

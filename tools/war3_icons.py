@@ -17,8 +17,6 @@ from war3_batch import INDEX, D, U, BUILDER_ID  # noqa: E402
 
 OUT = os.path.join(ROOT, 'h5', 'assets', 'icons', 'war3')
 A = json.load(open(os.path.join(ROOT, 'analysis', 'raw', 'abilities_all.json'), encoding='utf8'))
-H = json.load(open(os.path.join(ROOT, 'analysis', 'data', 'heroes.json'), encoding='utf8'))
-H = {h['id']: h for h in (H if isinstance(H, list) else H.values())}
 ITEMS = json.load(open(os.path.join(ROOT, 'analysis', 'raw', 'items_all.json'), encoding='utf8'))
 # 兔子（成就商店 nshe）卖的道具 + 兔子卷轴 + 地图中央商店（u00L）卖的道具：命令面板图标 ico:item-<物品 ID>
 SHOP_ITEMS = ['I00K', 'I00M', 'I00N', 'I00L', 'I01I', 'I01U', 'I02A', 'I00S'] + U['u00L']['Sellitems'].split(',')
@@ -118,7 +116,7 @@ def main():
             put(f'portrait:tower:{fam}:{i + 1}', U[l['id']].get('Art'))
     for n, h in D['heroes'].items():
         put('icon:hero:' + n, U[h['id']].get('Art')); put('portrait:hero:' + n, U[h['id']].get('Art'))
-        for i, s in enumerate(H[h['id']]['skillPool'][:4]):
+        for i, s in enumerate(h['skills']):                    # 技能书里的 4~5 个技能（tools/add_heroes.py）
             put(f'icon:skill:{n}:{i}', A.get(s['id'], {}).get('Art'))
     for uid in D['units']:
         put('portrait:unit:' + uid, U.get(uid, {}).get('Art'))
