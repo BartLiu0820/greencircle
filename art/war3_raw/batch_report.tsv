@@ -187,3 +187,13 @@ model:hero:Units/Creeps/WindSerpent/WindSerpent	ok	高 2.35 m | ppm 40 | 缺贴�
 model:hero:Units/NightElf/HeroMoonPriestess/HeroMoonPriestess	ok	高 2.77 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无
 model:hero:Units/Creeps/Ogre/Ogre	ok	高 2.68 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death | 光效 无
 model:hero:Units/Human/Phoenix/Phoenix	ok	高 1.86 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 有
+model:tower:Units/NightElf/HeroKeeperOfTheGrove/HeroKeeperoftheGrove	ok	高 3.18 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无
+model:tower:Units/Creeps/SylvanusWindrunner/SylvanusWindrunner	ok	高 2.05 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无
+model:tower:Units/NightElf/HeroDemonHunter/HeroDemonHunter	ok	高 2.40 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无
+model:tower:Units/Human/ArthaswithSword/ArthaswithSword	ok	高 2.20 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无
+model:tower:Units/Creeps/DireWolf/DireWolf	ok	高 1.70 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无
+model:tower:Units/Other/Proudmoore/Proudmoore	ok	高 1.96 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无
+model:tower:Units/Creeps/EarthPandarenBrewmaster/EarthPandarenBrewmaster	ok	高 1.09 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,spell | 光效 无
+model:tower:Units/Undead/HeroLich/HeroLich	ok	高 2.36 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 有
+model:tower:Units/Creeps/CentaurKhan/CentaurKhan	ok	高 2.23 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无
+model:tower:Units/Creeps/Beastmaster/Beastmaster	ok	高 2.29 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无（出图的动作里看不见）

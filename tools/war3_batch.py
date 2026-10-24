@@ -6,6 +6,7 @@
   python3 tools/war3_batch.py --list       # 只打印计划，不出图
   python3 tools/war3_batch.py --portraits  # 信息面板头像（*_Portrait.mdx）
   python3 tools/war3_batch.py --force --cats=tower,hero,builder,fx   # 只重出这几类
+  python3 tools/war3_batch.py --only=风行塔,五行塔                     # 只出这几种塔 / 英雄用的模型
 
 和原图一致：
   - 模型：单位数据里的 file 字段（UnitUI.slk），tft 目录覆盖 roc 目录
@@ -228,7 +229,8 @@ if __name__ == '__main__':
     if '--portraits' in sys.argv:                                       # 头像：python3 tools/war3_batch.py --portraits [--force]
         os.makedirs(PORT, exist_ok=True)
         with ThreadPoolExecutor(int(os.environ.get('JOBS', 6))) as ex:
-            for res in ex.map(lambda m: render_portrait(m, '--force' in sys.argv), [m for m in models.values() if m['cat'] != 'fx']):
+            only = next((a.split('=', 1)[1].split(',') for a in sys.argv if a.startswith('--only=')), None)
+            for res in ex.map(lambda m: render_portrait(m, '--force' in sys.argv), [m for m in models.values() if m['cat'] != 'fx' and (not only or any((u.split(':') + [''])[1] in only for u in m['users']))]):
                 if res[1] != 'skip': print('\t'.join(res), flush=True)
         register_portraits(models, ents); sys.exit()
     print(f'{len(ents)} 个单位 / 塔等级 / 英雄 → {len(models)} 个原版模型；原版包里没有、保留 Hive 版的 {len(missing)} 个：')
@@ -240,7 +242,8 @@ if __name__ == '__main__':
         os.makedirs(OUT, exist_ok=True)
         rows = []
         cats = next((a.split('=', 1)[1].split(',') for a in sys.argv if a.startswith('--cats=')), None)   # 只重出某几类，如 --cats=tower,hero
-        todo = [m for m in models.values() if not cats or m['cat'] in cats]
+        only = next((a.split('=', 1)[1].split(',') for a in sys.argv if a.startswith('--only=')), None)   # 只出这些塔 / 英雄用的模型，如 --only=风行塔,五行塔
+        todo = [m for m in models.values() if (not cats or m['cat'] in cats) and (not only or any((u.split(':') + [''])[1] in only for u in m['users']))]
         with ThreadPoolExecutor(int(os.environ.get('JOBS', 6))) as ex:
             for res in ex.map(lambda m: render(m, '--force' in sys.argv), todo):
                 rows.append(res); print('\t'.join(res), flush=True)

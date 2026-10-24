@@ -1,0 +1,33 @@
+{
+ "key": "tower:将军塔:3",
+ "src": "sprites/w3_tower_Units_Human_ArthaswithSword_ArthaswithSword.png",
+ "frameW": 240,
+ "frameH": 240,
+ "cols": 10,
+ "rows": 2,
+ "anchor": [
+  0.5,
+  0.7
+ ],
+ "unitsPerPixel": 1.7857142857142858,
+ "pitch": 50,
+ "actions": {
+  "idle": {
+   "row": 0,
+   "dirs": 1,
+   "frames": 10,
+   "fps": 3.0,
+   "loop": true
+  },
+  "attack": {
+   "row": 1,
+   "dirs": 1,
+   "frames": 6,
+   "fps": 14,
+   "loop": false
+  }
+ },
+ "modelScale": 1.4,
+ "aliasOf": "model:tower:Units/Human/ArthaswithSword/ArthaswithSword",
+ "war3": true
+}

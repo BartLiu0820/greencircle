@@ -1,0 +1,38 @@
+{
+ "key": "tower:狂狼塔",
+ "src": "sprites/w3_tower_Units_Creeps_DireWolf_DireWolf.png",
+ "frameW": 160,
+ "frameH": 160,
+ "cols": 10,
+ "rows": 2,
+ "anchor": [
+  0.5,
+  0.7
+ ],
+ "unitsPerPixel": 1.5,
+ "pitch": 50,
+ "actions": {
+  "idle": {
+   "row": 0,
+   "dirs": 1,
+   "frames": 10,
+   "fps": 7.32,
+   "loop": true
+  },
+  "attack": {
+   "row": 1,
+   "dirs": 1,
+   "frames": 6,
+   "fps": 14,
+   "loop": false
+  }
+ },
+ "modelScale": 1.2,
+ "aliasOf": "model:tower:Units/Creeps/DireWolf/DireWolf",
+ "war3": true,
+ "tint": [
+  1.0,
+  1.0,
+  0.392
+ ]
+}
