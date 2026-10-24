@@ -1065,6 +1065,98 @@ window.W3_SOUNDS = {
     "sounds/Units/Creeps/Wendigo/WendigoPissed3.wav"
    ]
   },
+  "tower:死亡塔": {
+   "what": [
+    "sounds/Buildings/Human/HumanTower/ArcaneTowerWhat1.wav"
+   ]
+  },
+  "tower:科技塔": {
+   "what": [
+    "sounds/Buildings/Human/HumanTower/ArcaneTowerWhat1.wav"
+   ]
+  },
+  "tower:深渊塔": {
+   "what": [
+    "sounds/Units/Undead/Banshee/BansheeWhat1.wav",
+    "sounds/Units/Undead/Banshee/BansheeWhat2.wav",
+    "sounds/Units/Undead/Banshee/BansheeWhat3.wav",
+    "sounds/Units/Undead/Banshee/BansheeWhat4.wav",
+    "sounds/Units/Undead/Banshee/BansheeWhat5.wav"
+   ],
+   "yes": [
+    "sounds/Units/Undead/Banshee/BansheeYes1.wav",
+    "sounds/Units/Undead/Banshee/BansheeYes2.wav",
+    "sounds/Units/Undead/Banshee/BansheeYes3.wav",
+    "sounds/Units/Undead/Banshee/BansheeYes4.wav",
+    "sounds/Units/Undead/Banshee/BansheeYes5.wav"
+   ],
+   "yesAttack": [
+    "sounds/Units/Undead/Banshee/BansheeYesAttack1.wav",
+    "sounds/Units/Undead/Banshee/BansheeYesAttack2.wav",
+    "sounds/Units/Undead/Banshee/BansheeYesAttack3.wav"
+   ],
+   "pissed": [
+    "sounds/Units/Undead/Banshee/BansheePissed1.wav",
+    "sounds/Units/Undead/Banshee/BansheePissed2.wav",
+    "sounds/Units/Undead/Banshee/BansheePissed3.wav",
+    "sounds/Units/Undead/Banshee/BansheePissed4.wav",
+    "sounds/Units/Undead/Banshee/BansheePissed5.wav"
+   ],
+   "launch": [
+    "sounds/Abilities/Spells/Undead/Impale/ImpaleLand.wav",
+    "sounds/Abilities/Spells/Undead/Impale/ImpaleLaunch1.wav"
+   ],
+   "hit": [
+    "sounds/Abilities/Spells/Undead/Impale/ImpaleHit.wav"
+   ]
+  },
+  "tower:燃烧塔": {
+   "what": [
+    "sounds/Units/Orc/Catapult/CatapultWhat1.wav",
+    "sounds/Units/Orc/Catapult/CatapultWhat2.wav"
+   ],
+   "yes": [
+    "sounds/Units/Orc/Catapult/CatapultYes1.wav",
+    "sounds/Units/Orc/Catapult/CatapultYes2.wav",
+    "sounds/Units/Orc/Catapult/CatapultYes3.wav"
+   ],
+   "yesAttack": [
+    "sounds/Units/Orc/Catapult/CatapultYesAttack1.wav",
+    "sounds/Units/Orc/Catapult/CatapultYesAttack2.wav",
+    "sounds/Units/Orc/Catapult/CatapultYesAttack3.wav"
+   ],
+   "launch": [
+    "sounds/Units/Orc/Catapult/CatapultAttack1.wav"
+   ]
+  },
+  "tower:魔石塔": {
+   "what": [
+    "sounds/Units/Undead/Banshee/BansheeWhat1.wav",
+    "sounds/Units/Undead/Banshee/BansheeWhat2.wav",
+    "sounds/Units/Undead/Banshee/BansheeWhat3.wav",
+    "sounds/Units/Undead/Banshee/BansheeWhat4.wav",
+    "sounds/Units/Undead/Banshee/BansheeWhat5.wav"
+   ],
+   "yes": [
+    "sounds/Units/Undead/Banshee/BansheeYes1.wav",
+    "sounds/Units/Undead/Banshee/BansheeYes2.wav",
+    "sounds/Units/Undead/Banshee/BansheeYes3.wav",
+    "sounds/Units/Undead/Banshee/BansheeYes4.wav",
+    "sounds/Units/Undead/Banshee/BansheeYes5.wav"
+   ],
+   "yesAttack": [
+    "sounds/Units/Undead/Banshee/BansheeYesAttack1.wav",
+    "sounds/Units/Undead/Banshee/BansheeYesAttack2.wav",
+    "sounds/Units/Undead/Banshee/BansheeYesAttack3.wav"
+   ],
+   "pissed": [
+    "sounds/Units/Undead/Banshee/BansheePissed1.wav",
+    "sounds/Units/Undead/Banshee/BansheePissed2.wav",
+    "sounds/Units/Undead/Banshee/BansheePissed3.wav",
+    "sounds/Units/Undead/Banshee/BansheePissed4.wav",
+    "sounds/Units/Undead/Banshee/BansheePissed5.wav"
+   ]
+  },
   "hero:剑神": {
    "what": [
     "sounds/Units/Orc/HeroBladeMaster/HeroBlademasterWhat1.wav",
@@ -2513,6 +2605,31 @@ window.W3_SOUNDS = {
   "unit:nkot": {
    "death": [
     "sounds/Units/Creeps/Kobold/KoboldDeath.wav"
+   ]
+  },
+  "unit:nfgl": {
+   "death": [
+    "sounds/Units/Undead/Abomination/AbominationDeath1.wav"
+   ]
+  },
+  "unit:nogn": {
+   "death": [
+    "sounds/Units/Creeps/Ogre/OgreDeath1.wav"
+   ]
+  },
+  "unit:nglm": {
+   "death": [
+    "sounds/Units/Creeps/GoblinLandMine/GoblinLandMineDeath1.wav"
+   ]
+  },
+  "unit:nogo": {
+   "death": [
+    "sounds/Units/Creeps/SylvanusWindrunner/HeroRangerDeath.wav"
+   ]
+  },
+  "unit:nsw2": {
+   "death": [
+    "sounds/Units/Demon/felhound/FelHoundDeath1.wav"
    ]
   },
   "builder": {

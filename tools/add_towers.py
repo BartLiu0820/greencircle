@@ -61,7 +61,7 @@ def chain(root):
         lv = level(k)
         v = U[k]
         lv['targets'] = int(fl(v, 'targCount1', 1)) or 1
-        if v.get('weapTp1') == 'msplash':                                       # 溅射：攻击目标周围 Farea1 范围同样伤害，Harea1 范围 Hfact1 倍
+        if v.get('weapTp1') in ('msplash', 'artillery'):                        # 溅射（炮火也是）：攻击目标周围 Farea1 范围同样伤害，Harea1 范围 Hfact1 倍
             lv['splash'] = fl(v, 'Farea1')
             if fl(v, 'Harea1') > lv['splash']: lv['splashH'], lv['splashF'] = fl(v, 'Harea1'), fl(v, 'Hfact1')
         if v.get('atkType2') and fl(v, 'dmgplus2') > 0:                        # 第二武器（五行塔金·强化五行 R003、风行塔天赋 R006 用科技打开）
@@ -78,8 +78,16 @@ head, body = open(dpath, encoding='utf-8').read().split('window.GAME_DATA = ', 1
 D = json.loads(body.rstrip().rstrip(';'))
 for name, (cat, uid) in FAMILIES.items():
     D['towers'][name] = dict(name=name, cat=cat, levels=[level(uid)])
+# 随机模式另类塔池（Hg = 1~10）里 gen_data.py 没收的 6 种
+ALT = {'死亡塔': 'h013', '科技塔': 'h02P', '深渊塔': 'n015', '燃烧塔': 'h03T', '炎魔塔': 'n00J', '魔石塔': 'n00Z'}
 for name, uid in MAIN.items():
     D['towers'][name] = dict(name=name, cat='main', levels=chain(uid))
+for name, uid in ALT.items():
+    D['towers'][name] = dict(name=name, cat='alt', levels=chain(uid))
+# 超级深渊塔（n02Q）：深渊塔 MAX 用"升级超级深渊"（A0EQ）变成，不在升级链上
+sup = level('n02Q')
+sup['name'] = cl(sup['name'])
+D['towers']['深渊塔']['super'] = sup
 # 兽王驯化的怪物吃不吃训兽科技 R00Z（+700 攻击 / 级）：看单位的科技列表
 for uid, u in D['units'].items():
     if 'R00Z' in (U.get(uid, {}).get('upgrades') or ''): u['train'] = 1
@@ -88,4 +96,4 @@ bmax = level('h021')
 bmax.update(targets=int(fl(U['h021'], 'targCount1', 1)), tip='伤害类型为【通用】，弹射 17 个目标；每次攻击放灵魂重击')
 D['towers']['弹跳塔']['max'] = bmax
 open(dpath, 'w', encoding='utf-8').write(head + 'window.GAME_DATA = ' + json.dumps(D, ensure_ascii=False, separators=(',', ':')) + ';\n')
-print('data.js 补进塔：', ' '.join(f'{n}({c})' for n, (c, _) in FAMILIES.items()), ' 主塔：', ' '.join(MAIN))
+print('data.js 补进塔：', ' '.join(f'{n}({c})' for n, (c, _) in FAMILIES.items()), ' 主塔：', ' '.join(MAIN), ' 另类塔：', ' '.join(ALT))

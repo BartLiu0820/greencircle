@@ -23,7 +23,8 @@ EXTRA += ['units/critters/villagerman1/villagerman1.mdx', 'units/critters/villag
           'units/creeps/mammoth/mammoth.mdx', 'units/creeps/seaturtle/seaturtle.mdx', 'units/creeps/whitewolf/whitewolf.mdx', 'units/undead/shade/shade.mdx',
           'units/critters/penguin/penguin.mdx', 'units/creeps/wareagle/wareagle.mdx', 'units/critters/sheep/sheep.mdx', 'units/creeps/murgultidewarrior/murgultidewarrior.mdx',
           'units/critters/packhorse/packhorse.mdx', 'units/critters/frog/frog.mdx', 'units/critters/flyingsheep/flyingsheep.mdx',
-          'abilities/spells/other/tinkerrocket/tinkerrocketmissile.mdx']
+          'abilities/spells/other/tinkerrocket/tinkerrocketmissile.mdx',
+          'units/demon/heropitlord/heropitlord.mdx', 'units/undead/herodeathknight/herodeathknight.mdx', 'units/creeps/revenant/revenant.mdx']   # 超级深渊塔的深渊领主 / 霸主 / 魔主
 
 
 def norm(p):

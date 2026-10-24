@@ -65,6 +65,7 @@ def entities():
         lv = t['levels']
         out.append(('tower:' + fam, 'tower', lv[0]['id']))
         out += [(f'tower:{fam}:{i + 1}', 'tower', l['id']) for i, l in enumerate(lv) if i]
+        if t.get('super'): out.append((f'tower:{fam}:{len(lv) + 1}', 'tower', t['super']['id']))   # 超级深渊塔：接在深渊塔 MAX 后面
     out += [('hero:' + n, 'hero', h['id']) for n, h in D['heroes'].items()]
     out.append(('builder', 'builder', BUILDER_ID))
     out.append(('shop', 'tower', SHOP_ID))                            # 地图中央的商店（模型是"摇滚阿尔萨斯"）

@@ -220,3 +220,8 @@ model:tower:Units/Creeps/StormPandarenBrewmaster/StormPandarenBrewmaster	ok	高 
 model:tower:Units/Creeps/FirePandarenBrewmaster/FirePandarenBrewmaster	ok	高 1.15 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,spell | 光效 无
 model:tower:Units/Undead/Necromancer/Necromancer	ok	高 1.65 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,death | 光效 无
 model:tower:Units/Undead/Kelthuzad/Kelthuzad	ok	高 1.65 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,death | 光效 无
+model:tower:Units/Undead/Acolyte/Acolyte	ok	高 1.56 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death | 光效 无
+model:tower:Abilities/Spells/Human/DivineShield/DivineShieldTarget	ok	高 2.00 m | ppm 40 | 缺贴图 0 | 动作 idle,death | 光效 有
+model:tower:Buildings/Undead/SacrificialPit/SacrificialPit	ok	高 1.35 m | ppm 40 | 缺贴图 0 | 动作 idle,death | 光效 无
+model:tower:Units/Orc/Catapult/Catapult	ok	高 0.97 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death | 光效 无
+model:tower:Doodads/Cinematic/EyeOfSargeras/EyeOfSargeras	ok	高 0.60 m | ppm 40 | 缺贴图 0 | 动作 idle,death | 光效 有

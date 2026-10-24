@@ -1071,6 +1071,114 @@ window.SPRITE_SHEETS = {
   "aliasOf": "model:tower:Units/Orc/StasisTotem/StasisTotem_glow",
   "war3": true
  },
+ "glow:tower:科技塔": {
+  "key": "glow:tower:科技塔",
+  "src": "sprites/w3_tower_Abilities_Spells_Human_DivineShield_DivineShieldTarget_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 14.29,
+    "loop": true
+   }
+  },
+  "modelScale": 1.0,
+  "glow": true,
+  "aliasOf": "model:tower:Abilities/Spells/Human/DivineShield/DivineShieldTarget_glow",
+  "war3": true
+ },
+ "glow:tower:科技塔:2": {
+  "key": "glow:tower:科技塔:2",
+  "src": "sprites/w3_tower_Abilities_Spells_Human_DivineShield_DivineShieldTarget_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 14.29,
+    "loop": true
+   }
+  },
+  "modelScale": 1.0,
+  "glow": true,
+  "aliasOf": "model:tower:Abilities/Spells/Human/DivineShield/DivineShieldTarget_glow",
+  "war3": true
+ },
+ "glow:tower:科技塔:3": {
+  "key": "glow:tower:科技塔:3",
+  "src": "sprites/w3_tower_Abilities_Spells_Human_DivineShield_DivineShieldTarget_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 14.29,
+    "loop": true
+   }
+  },
+  "modelScale": 1.0,
+  "glow": true,
+  "aliasOf": "model:tower:Abilities/Spells/Human/DivineShield/DivineShieldTarget_glow",
+  "war3": true
+ },
+ "glow:tower:科技塔:4": {
+  "key": "glow:tower:科技塔:4",
+  "src": "sprites/w3_tower_Abilities_Spells_Human_DivineShield_DivineShieldTarget_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 14.29,
+    "loop": true
+   }
+  },
+  "modelScale": 1.0,
+  "glow": true,
+  "aliasOf": "model:tower:Abilities/Spells/Human/DivineShield/DivineShieldTarget_glow",
+  "war3": true
+ },
  "glow:tower:精灵塔": {
   "key": "glow:tower:精灵塔",
   "src": "sprites/w3_tower_Buildings_NightElf_AncientOfWonder_AncientOfWonder_glow.webp",
@@ -1402,6 +1510,114 @@ window.SPRITE_SHEETS = {
   "modelScale": 1.2,
   "glow": true,
   "aliasOf": "model:tower:Units/Human/BloodElfSpellThief/BloodElfSpellThief_glow",
+  "war3": true
+ },
+ "glow:tower:魔石塔": {
+  "key": "glow:tower:魔石塔",
+  "src": "sprites/w3_tower_Doodads_Cinematic_EyeOfSargeras_EyeOfSargeras_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 7.69,
+    "loop": true
+   }
+  },
+  "modelScale": 0.6,
+  "glow": true,
+  "aliasOf": "model:tower:Doodads/Cinematic/EyeOfSargeras/EyeOfSargeras_glow",
+  "war3": true
+ },
+ "glow:tower:魔石塔:2": {
+  "key": "glow:tower:魔石塔:2",
+  "src": "sprites/w3_tower_Doodads_Cinematic_EyeOfSargeras_EyeOfSargeras_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 7.69,
+    "loop": true
+   }
+  },
+  "modelScale": 0.6,
+  "glow": true,
+  "aliasOf": "model:tower:Doodads/Cinematic/EyeOfSargeras/EyeOfSargeras_glow",
+  "war3": true
+ },
+ "glow:tower:魔石塔:3": {
+  "key": "glow:tower:魔石塔:3",
+  "src": "sprites/w3_tower_Doodads_Cinematic_EyeOfSargeras_EyeOfSargeras_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 7.69,
+    "loop": true
+   }
+  },
+  "modelScale": 0.6,
+  "glow": true,
+  "aliasOf": "model:tower:Doodads/Cinematic/EyeOfSargeras/EyeOfSargeras_glow",
+  "war3": true
+ },
+ "glow:tower:魔石塔:4": {
+  "key": "glow:tower:魔石塔:4",
+  "src": "sprites/w3_tower_Doodads_Cinematic_EyeOfSargeras_EyeOfSargeras_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 7.69,
+    "loop": true
+   }
+  },
+  "modelScale": 0.6,
+  "glow": true,
+  "aliasOf": "model:tower:Doodads/Cinematic/EyeOfSargeras/EyeOfSargeras_glow",
   "war3": true
  },
  "glow:unit:ndsa": {
@@ -5628,6 +5844,191 @@ window.SPRITE_SHEETS = {
    104
   ]
  },
+ "tower:死亡塔": {
+  "key": "tower:死亡塔",
+  "src": "sprites/w3_tower_Units_Undead_Acolyte_Acolyte.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 1.2307692307692308,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.82,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.3,
+  "aliasOf": "model:tower:Units/Undead/Acolyte/Acolyte",
+  "war3": true,
+  "vis": [
+   55,
+   60
+  ]
+ },
+ "tower:死亡塔:2": {
+  "key": "tower:死亡塔:2",
+  "src": "sprites/w3_tower_Units_Undead_Acolyte_Acolyte.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 1.3846153846153846,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.82,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.3,
+  "aliasOf": "model:tower:Units/Undead/Acolyte/Acolyte",
+  "war3": true,
+  "vis": [
+   62,
+   68
+  ]
+ },
+ "tower:死亡塔:3": {
+  "key": "tower:死亡塔:3",
+  "src": "sprites/w3_tower_Units_Undead_Acolyte_Acolyte.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 1.5384615384615383,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.82,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.3,
+  "aliasOf": "model:tower:Units/Undead/Acolyte/Acolyte",
+  "war3": true,
+  "vis": [
+   69,
+   75
+  ]
+ },
+ "tower:死亡塔:4": {
+  "key": "tower:死亡塔:4",
+  "src": "sprites/w3_tower_Units_Undead_Acolyte_Acolyte.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 1.6923076923076923,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.82,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.3,
+  "aliasOf": "model:tower:Units/Undead/Acolyte/Acolyte",
+  "war3": true,
+  "vis": [
+   76,
+   83
+  ]
+ },
+ "tower:死亡塔:5": {
+  "key": "tower:死亡塔:5",
+  "src": "sprites/w3_tower_Units_Undead_Acolyte_Acolyte.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.82,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.3,
+  "aliasOf": "model:tower:Units/Undead/Acolyte/Acolyte",
+  "war3": true,
+  "vis": [
+   90,
+   98
+  ]
+ },
  "tower:毒塔": {
   "key": "tower:毒塔",
   "src": "sprites/w3_tower_Units_Creeps_SkeletonArcher_SkeletonArcher.webp",
@@ -5821,6 +6222,176 @@ window.SPRITE_SHEETS = {
   "vis": [
    200,
    130
+  ]
+ },
+ "tower:深渊塔": {
+  "key": "tower:深渊塔",
+  "src": "sprites/w3_tower_Buildings_Undead_SacrificialPit_SacrificialPit.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.62
+  ],
+  "unitsPerPixel": 1.142857142857143,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 3.0,
+    "loop": true
+   }
+  },
+  "modelScale": 0.7,
+  "aliasOf": "model:tower:Buildings/Undead/SacrificialPit/SacrificialPit",
+  "war3": true,
+  "tint": [
+   1.0,
+   1.0,
+   0.392
+  ],
+  "vis": [
+   125,
+   114
+  ]
+ },
+ "tower:深渊塔:2": {
+  "key": "tower:深渊塔:2",
+  "src": "sprites/w3_tower_Buildings_Undead_SacrificialPit_SacrificialPit.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.62
+  ],
+  "unitsPerPixel": 1.142857142857143,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 3.0,
+    "loop": true
+   }
+  },
+  "modelScale": 0.7,
+  "aliasOf": "model:tower:Buildings/Undead/SacrificialPit/SacrificialPit",
+  "war3": true,
+  "tint": [
+   1.0,
+   0.392,
+   1.0
+  ],
+  "vis": [
+   125,
+   114
+  ]
+ },
+ "tower:深渊塔:3": {
+  "key": "tower:深渊塔:3",
+  "src": "sprites/w3_tower_Buildings_Undead_SacrificialPit_SacrificialPit.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.62
+  ],
+  "unitsPerPixel": 1.142857142857143,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 3.0,
+    "loop": true
+   }
+  },
+  "modelScale": 0.7,
+  "aliasOf": "model:tower:Buildings/Undead/SacrificialPit/SacrificialPit",
+  "war3": true,
+  "tint": [
+   0.392,
+   1.0,
+   1.0
+  ],
+  "vis": [
+   125,
+   114
+  ]
+ },
+ "tower:深渊塔:4": {
+  "key": "tower:深渊塔:4",
+  "src": "sprites/w3_tower_Buildings_Undead_SacrificialPit_SacrificialPit.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.62
+  ],
+  "unitsPerPixel": 1.4285714285714286,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 3.0,
+    "loop": true
+   }
+  },
+  "modelScale": 0.7,
+  "aliasOf": "model:tower:Buildings/Undead/SacrificialPit/SacrificialPit",
+  "war3": true,
+  "tint": [
+   1.0,
+   0.078,
+   0.0
+  ],
+  "vis": [
+   156,
+   143
+  ]
+ },
+ "tower:深渊塔:5": {
+  "key": "tower:深渊塔:5",
+  "src": "sprites/w3_tower_Buildings_Undead_SacrificialPit_SacrificialPit.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.62
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 3.0,
+    "loop": true
+   }
+  },
+  "modelScale": 0.7,
+  "aliasOf": "model:tower:Buildings/Undead/SacrificialPit/SacrificialPit",
+  "war3": true,
+  "vis": [
+   218,
+   200
   ]
  },
  "tower:混乱塔": {
@@ -6224,6 +6795,206 @@ window.SPRITE_SHEETS = {
   "vis": [
    70,
    116
+  ]
+ },
+ "tower:燃烧塔": {
+  "key": "tower:燃烧塔",
+  "src": "sprites/w3_tower_Units_Orc_Catapult_Catapult.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 1.4,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.0,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "aliasOf": "model:tower:Units/Orc/Catapult/Catapult",
+  "war3": true,
+  "vis": [
+   97,
+   105
+  ]
+ },
+ "tower:燃烧塔:2": {
+  "key": "tower:燃烧塔:2",
+  "src": "sprites/w3_tower_Units_Orc_Catapult_Catapult.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 1.4,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.0,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "aliasOf": "model:tower:Units/Orc/Catapult/Catapult",
+  "war3": true,
+  "tint": [
+   1.0,
+   1.0,
+   0.392
+  ],
+  "vis": [
+   97,
+   105
+  ]
+ },
+ "tower:燃烧塔:3": {
+  "key": "tower:燃烧塔:3",
+  "src": "sprites/w3_tower_Units_Orc_Catapult_Catapult.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 1.4,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.0,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "aliasOf": "model:tower:Units/Orc/Catapult/Catapult",
+  "war3": true,
+  "tint": [
+   0.392,
+   1.0,
+   1.0
+  ],
+  "vis": [
+   97,
+   105
+  ]
+ },
+ "tower:燃烧塔:4": {
+  "key": "tower:燃烧塔:4",
+  "src": "sprites/w3_tower_Units_Orc_Catapult_Catapult.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 1.6,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.0,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "aliasOf": "model:tower:Units/Orc/Catapult/Catapult",
+  "war3": true,
+  "tint": [
+   1.0,
+   0.0,
+   1.0
+  ],
+  "vis": [
+   110,
+   120
+  ]
+ },
+ "tower:燃烧塔:5": {
+  "key": "tower:燃烧塔:5",
+  "src": "sprites/w3_tower_Units_Orc_Catapult_Catapult.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.0,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "aliasOf": "model:tower:Units/Orc/Catapult/Catapult",
+  "war3": true,
+  "vis": [
+   138,
+   150
   ]
  },
  "tower:牛头塔": {
@@ -6895,6 +7666,141 @@ window.SPRITE_SHEETS = {
   "vis": [
    108,
    200
+  ]
+ },
+ "tower:科技塔": {
+  "key": "tower:科技塔",
+  "src": "sprites/w3_tower_Abilities_Spells_Human_DivineShield_DivineShieldTarget.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 14.29,
+    "loop": true
+   }
+  },
+  "modelScale": 1.0,
+  "aliasOf": "model:tower:Abilities/Spells/Human/DivineShield/DivineShieldTarget",
+  "war3": true,
+  "tint": [
+   1.0,
+   0.392,
+   1.0
+  ],
+  "vis": [
+   0,
+   0
+  ]
+ },
+ "tower:科技塔:2": {
+  "key": "tower:科技塔:2",
+  "src": "sprites/w3_tower_Abilities_Spells_Human_DivineShield_DivineShieldTarget.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 14.29,
+    "loop": true
+   }
+  },
+  "modelScale": 1.0,
+  "aliasOf": "model:tower:Abilities/Spells/Human/DivineShield/DivineShieldTarget",
+  "war3": true,
+  "tint": [
+   0.392,
+   1.0,
+   0.392
+  ],
+  "vis": [
+   0,
+   0
+  ]
+ },
+ "tower:科技塔:3": {
+  "key": "tower:科技塔:3",
+  "src": "sprites/w3_tower_Abilities_Spells_Human_DivineShield_DivineShieldTarget.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 14.29,
+    "loop": true
+   }
+  },
+  "modelScale": 1.0,
+  "aliasOf": "model:tower:Abilities/Spells/Human/DivineShield/DivineShieldTarget",
+  "war3": true,
+  "vis": [
+   0,
+   0
+  ]
+ },
+ "tower:科技塔:4": {
+  "key": "tower:科技塔:4",
+  "src": "sprites/w3_tower_Abilities_Spells_Human_DivineShield_DivineShieldTarget.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 14.29,
+    "loop": true
+   }
+  },
+  "modelScale": 1.0,
+  "aliasOf": "model:tower:Abilities/Spells/Human/DivineShield/DivineShieldTarget",
+  "war3": true,
+  "tint": [
+   1.0,
+   0.0,
+   0.0
+  ],
+  "vis": [
+   0,
+   0
   ]
  },
  "tower:箭塔": {
@@ -8488,6 +9394,141 @@ window.SPRITE_SHEETS = {
   "vis": [
    0,
    0
+  ]
+ },
+ "tower:魔石塔": {
+  "key": "tower:魔石塔",
+  "src": "sprites/w3_tower_Doodads_Cinematic_EyeOfSargeras_EyeOfSargeras.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 7.69,
+    "loop": true
+   }
+  },
+  "modelScale": 0.6,
+  "aliasOf": "model:tower:Doodads/Cinematic/EyeOfSargeras/EyeOfSargeras",
+  "war3": true,
+  "vis": [
+   44,
+   40
+  ]
+ },
+ "tower:魔石塔:2": {
+  "key": "tower:魔石塔:2",
+  "src": "sprites/w3_tower_Doodads_Cinematic_EyeOfSargeras_EyeOfSargeras.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 7.69,
+    "loop": true
+   }
+  },
+  "modelScale": 0.6,
+  "aliasOf": "model:tower:Doodads/Cinematic/EyeOfSargeras/EyeOfSargeras",
+  "war3": true,
+  "tint": [
+   1.0,
+   0.392,
+   0.392
+  ],
+  "vis": [
+   44,
+   40
+  ]
+ },
+ "tower:魔石塔:3": {
+  "key": "tower:魔石塔:3",
+  "src": "sprites/w3_tower_Doodads_Cinematic_EyeOfSargeras_EyeOfSargeras.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 7.69,
+    "loop": true
+   }
+  },
+  "modelScale": 0.6,
+  "aliasOf": "model:tower:Doodads/Cinematic/EyeOfSargeras/EyeOfSargeras",
+  "war3": true,
+  "tint": [
+   0.392,
+   0.392,
+   1.0
+  ],
+  "vis": [
+   44,
+   40
+  ]
+ },
+ "tower:魔石塔:4": {
+  "key": "tower:魔石塔:4",
+  "src": "sprites/w3_tower_Doodads_Cinematic_EyeOfSargeras_EyeOfSargeras.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 7.69,
+    "loop": true
+   }
+  },
+  "modelScale": 0.6,
+  "aliasOf": "model:tower:Doodads/Cinematic/EyeOfSargeras/EyeOfSargeras",
+  "war3": true,
+  "tint": [
+   1.0,
+   0.098,
+   0.078
+  ],
+  "vis": [
+   44,
+   40
   ]
  },
  "unit:Nalc": {
@@ -22525,6 +23566,55 @@ window.SPRITE_SHEETS = {
   },
   "modelScale": 1.0
  },
+ "model:tower:Abilities/Spells/Human/DivineShield/DivineShieldTarget": {
+  "key": "model:tower:Abilities/Spells/Human/DivineShield/DivineShieldTarget",
+  "src": "sprites/w3_tower_Abilities_Spells_Human_DivineShield_DivineShieldTarget.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 14.29,
+    "loop": true
+   }
+  },
+  "modelScale": 1.0
+ },
+ "model:tower:Abilities/Spells/Human/DivineShield/DivineShieldTarget_glow": {
+  "key": "model:tower:Abilities/Spells/Human/DivineShield/DivineShieldTarget_glow",
+  "src": "sprites/w3_tower_Abilities_Spells_Human_DivineShield_DivineShieldTarget_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 14.29,
+    "loop": true
+   }
+  },
+  "modelScale": 1.0,
+  "glow": true
+ },
  "model:tower:Abilities/Spells/Other/Doom/DoomTarget": {
   "key": "model:tower:Abilities/Spells/Other/Doom/DoomTarget",
   "src": "sprites/w3_tower_Abilities_Spells_Other_Doom_DoomTarget.webp",
@@ -22903,6 +23993,30 @@ window.SPRITE_SHEETS = {
   },
   "modelScale": 1.0
  },
+ "model:tower:Buildings/Undead/SacrificialPit/SacrificialPit": {
+  "key": "model:tower:Buildings/Undead/SacrificialPit/SacrificialPit",
+  "src": "sprites/w3_tower_Buildings_Undead_SacrificialPit_SacrificialPit.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.62
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 3.0,
+    "loop": true
+   }
+  },
+  "modelScale": 0.7
+ },
  "model:tower:Buildings/Undead/Ziggurat/Ziggurat": {
   "key": "model:tower:Buildings/Undead/Ziggurat/Ziggurat",
   "src": "sprites/w3_tower_Buildings_Undead_Ziggurat_Ziggurat.webp",
@@ -22926,6 +24040,55 @@ window.SPRITE_SHEETS = {
    }
   },
   "modelScale": 0.8
+ },
+ "model:tower:Doodads/Cinematic/EyeOfSargeras/EyeOfSargeras": {
+  "key": "model:tower:Doodads/Cinematic/EyeOfSargeras/EyeOfSargeras",
+  "src": "sprites/w3_tower_Doodads_Cinematic_EyeOfSargeras_EyeOfSargeras.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 7.69,
+    "loop": true
+   }
+  },
+  "modelScale": 0.6
+ },
+ "model:tower:Doodads/Cinematic/EyeOfSargeras/EyeOfSargeras_glow": {
+  "key": "model:tower:Doodads/Cinematic/EyeOfSargeras/EyeOfSargeras_glow",
+  "src": "sprites/w3_tower_Doodads_Cinematic_EyeOfSargeras_EyeOfSargeras_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 7.69,
+    "loop": true
+   }
+  },
+  "modelScale": 0.6,
+  "glow": true
  },
  "model:tower:Doodads/Cinematic/RockinArthas/RockinArthas": {
   "key": "model:tower:Doodads/Cinematic/RockinArthas/RockinArthas",
@@ -23788,6 +24951,37 @@ window.SPRITE_SHEETS = {
   },
   "modelScale": 0.9
  },
+ "model:tower:Units/Orc/Catapult/Catapult": {
+  "key": "model:tower:Units/Orc/Catapult/Catapult",
+  "src": "sprites/w3_tower_Units_Orc_Catapult_Catapult.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.0,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0
+ },
  "model:tower:Units/Orc/Grunt/grunt": {
   "key": "model:tower:Units/Orc/Grunt/grunt",
   "src": "sprites/w3_tower_Units_Orc_Grunt_grunt.webp",
@@ -23991,6 +25185,37 @@ window.SPRITE_SHEETS = {
    }
   },
   "modelScale": 1.2
+ },
+ "model:tower:Units/Undead/Acolyte/Acolyte": {
+  "key": "model:tower:Units/Undead/Acolyte/Acolyte",
+  "src": "sprites/w3_tower_Units_Undead_Acolyte_Acolyte.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.82,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.3
  },
  "model:tower:Units/Undead/Banshee/Banshee": {
   "key": "model:tower:Units/Undead/Banshee/Banshee",

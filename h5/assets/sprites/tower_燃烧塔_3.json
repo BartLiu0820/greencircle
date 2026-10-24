@@ -1,0 +1,38 @@
+{
+ "key": "tower:燃烧塔:3",
+ "src": "sprites/w3_tower_Units_Orc_Catapult_Catapult.png",
+ "frameW": 160,
+ "frameH": 160,
+ "cols": 10,
+ "rows": 2,
+ "anchor": [
+  0.5,
+  0.7
+ ],
+ "unitsPerPixel": 1.4,
+ "pitch": 50,
+ "actions": {
+  "idle": {
+   "row": 0,
+   "dirs": 1,
+   "frames": 10,
+   "fps": 6.0,
+   "loop": true
+  },
+  "attack": {
+   "row": 1,
+   "dirs": 1,
+   "frames": 6,
+   "fps": 14,
+   "loop": false
+  }
+ },
+ "modelScale": 1.0,
+ "aliasOf": "model:tower:Units/Orc/Catapult/Catapult",
+ "war3": true,
+ "tint": [
+  0.392,
+  1.0,
+  1.0
+ ]
+}

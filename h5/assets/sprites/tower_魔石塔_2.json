@@ -1,0 +1,31 @@
+{
+ "key": "tower:魔石塔:2",
+ "src": "sprites/w3_tower_Doodads_Cinematic_EyeOfSargeras_EyeOfSargeras.png",
+ "frameW": 160,
+ "frameH": 160,
+ "cols": 10,
+ "rows": 1,
+ "anchor": [
+  0.5,
+  0.7
+ ],
+ "unitsPerPixel": 2.0,
+ "pitch": 50,
+ "actions": {
+  "idle": {
+   "row": 0,
+   "dirs": 1,
+   "frames": 10,
+   "fps": 7.69,
+   "loop": true
+  }
+ },
+ "modelScale": 0.6,
+ "aliasOf": "model:tower:Doodads/Cinematic/EyeOfSargeras/EyeOfSargeras",
+ "war3": true,
+ "tint": [
+  1.0,
+  0.392,
+  0.392
+ ]
+}

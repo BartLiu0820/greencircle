@@ -1,0 +1,31 @@
+{
+ "key": "tower:科技塔:2",
+ "src": "sprites/w3_tower_Abilities_Spells_Human_DivineShield_DivineShieldTarget.png",
+ "frameW": 160,
+ "frameH": 160,
+ "cols": 10,
+ "rows": 1,
+ "anchor": [
+  0.5,
+  0.7
+ ],
+ "unitsPerPixel": 2.0,
+ "pitch": 50,
+ "actions": {
+  "idle": {
+   "row": 0,
+   "dirs": 1,
+   "frames": 10,
+   "fps": 14.29,
+   "loop": true
+  }
+ },
+ "modelScale": 1.0,
+ "aliasOf": "model:tower:Abilities/Spells/Human/DivineShield/DivineShieldTarget",
+ "war3": true,
+ "tint": [
+  0.392,
+  1.0,
+  0.392
+ ]
+}

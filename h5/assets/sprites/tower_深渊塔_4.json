@@ -1,0 +1,31 @@
+{
+ "key": "tower:深渊塔:4",
+ "src": "sprites/w3_tower_Buildings_Undead_SacrificialPit_SacrificialPit.png",
+ "frameW": 160,
+ "frameH": 160,
+ "cols": 10,
+ "rows": 1,
+ "anchor": [
+  0.5,
+  0.62
+ ],
+ "unitsPerPixel": 1.4285714285714286,
+ "pitch": 50,
+ "actions": {
+  "idle": {
+   "row": 0,
+   "dirs": 1,
+   "frames": 10,
+   "fps": 3.0,
+   "loop": true
+  }
+ },
+ "modelScale": 0.7,
+ "aliasOf": "model:tower:Buildings/Undead/SacrificialPit/SacrificialPit",
+ "war3": true,
+ "tint": [
+  1.0,
+  0.078,
+  0.0
+ ]
+}

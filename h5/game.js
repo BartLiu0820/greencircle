@@ -200,7 +200,8 @@ const FAM = Object.values(D.towers);
 const byCat = c => FAM.filter(f => f.cat === c).map(f => f.name);
 const SLOT_POOL = { main: ['main'], raw: ['raw'], aura: ['aura'], newsup: ['big', 'witch'], sup: ['sup'], alt: ['alt'], uniq: ['uniq'] };
 const SLOTS = Object.keys(SLOT_POOL);
-const slotPool = s => SLOT_POOL[s].flatMap(byCat);
+const NOT_RANDOM = new Set(['图腾塔']);     // 图腾塔不在原图另类塔随机池（Hg = 1~10）里
+const slotPool = s => SLOT_POOL[s].flatMap(byCat).filter(f => !NOT_RANDOM.has(f));
 const slotOf = fam => SLOTS.find(s => SLOT_POOL[s].includes(D.towers[fam].cat));
 function rerollBuild(free) {
   if (!free) {
@@ -237,6 +238,7 @@ function hurt(m, amount, atk, src, opt = {}) {
   if (m.magicImmune && atk === 'magic') return 0;          // 魔法免疫（ACm3）：魔法攻击打不动
   let dmg = amount * typeMult(atk, m);
   if (!opt.ignoreArmor && !(m.ignoreArmorUntil > G.t)) dmg *= armorMult(effArmor(m));   // 灵魂锁链：目标护甲被无视
+  if (opt.noKill) dmg = Math.min(dmg, Math.max(0, m.hp - 1));   // 烧不死的（炎魔塔的烈焰燃烧）
   m.hp -= dmg;
   const owner = src && src.cat === 'summon' && src.owner && !src.owner.isHero ? src.owner : src;   // 冰雹狮鹫等召唤物的伤害算在塔上
   if (owner) owner.dealt = (owner.dealt || 0) + dmg;
@@ -442,6 +444,7 @@ function canPlace(x, y, withOrders = false) {
   return footCells(x, y).every(([cx, cy]) => cellBuildable(cx, cy) && !cellTaken(cx, cy, withOrders));
 }
 // 数量限制（原图用"只能建造一个主塔 / 只能建造2个新辅助 / 只能建造1个巫系辅助 / 全场只能建造一个"这些占位单位实现）
+const ONLY_ONE = new Set(['科技塔', '灵魂塔', '精灵塔']);
 function buildBlock(fam) {
   const f = D.towers[fam], n = fn => G.towers.filter(t => mine(t) && fn(t)).length;
   // 弹跳塔不占主塔名额（原图要求的是 n01U，不是 ovln）：随机模式最多 3 座（Bbt），有弹跳塔 MAX 后不能再建（n01U 被删掉）
@@ -451,6 +454,7 @@ function buildBlock(fam) {
   if (f.cat === 'big' && n(t => t.cat === 'big' || t.cat === 'evo') >= 2) return '只能建造 2 个新辅助（大辅助）';
   if (f.cat === 'witch' && n(t => t.cat === 'witch') >= 1) return '只能建造 1 个巫系辅助';
   if (f.cat === 'uniq' && n(t => t.fam === fam) >= 1) return '全场唯一，只能建造一个';
+  if (ONLY_ONE.has(fam) && n(t => t.fam === fam) >= 1) return '只能建造一个';         // 科技塔 owtw、灵魂塔 otrb、精灵塔 obea
   return null;
 }
 function newTower(fam, x, y, extra) {
@@ -1010,6 +1014,18 @@ function frozenBurst(m) {
 // 区域效果（落地的漩涡、陷阱、守卫、恐惧之眼）：每帧对范围内的怪调用 each(m, dt)，tick(z, dt) 处理自己的逻辑
 function field(owner, x, y, r, dur, o) { G.zones.push({ owner, x, y, r, t0: G.t, until: G.t + dur, dps: 0, fxT: 0, ...o }); }
 
+// ---------------------------------------------------------------- 另类塔给别的塔的加成（按玩家算，回收后归零）
+const ownTower = (pid, fam) => G.towers.find(o => o.fam === fam && o.cat !== 'summon' && pidOf(o) === pid);
+const techLv = t => { const o = ownTower(pidOf(t), '科技塔'); return o ? o.lv + 1 : 0; };                     // 原图 C1 = C2：科技塔等级
+const stoneLv = (t, k) => { const o = ownTower(pidOf(t), '魔石塔'); return o && o.ms.sel === k ? o.lv + 1 : 0; };   // 魔石塔 1 DZ 剑圣 / 2 DY 天神 / 3 Da 炎魔 / 4 Db 灵魂
+const STONE_FOR = ['剑圣塔', '天神塔', '炎魔塔', '灵魂塔'];
+const ABYSS_SUP = { 腐蚀塔: 'pierce', 重击塔: 'chaos', 冰霜塔: 'magic', 暴击塔: 'normal' };     // 深渊塔给辅助塔的附加伤害类型
+const ABYSS_LORD = [{ name: '深渊领主', dmg: 19999, cd: 0.23, range: 200, speed: 522, mdx: 'units/demon/heropitlord/heropitlord.mdx', scale: 1 },
+  { name: '深渊霸主', dmg: 24999, cd: 0.2, range: 300, speed: 522, mdx: 'units/undead/herodeathknight/herodeathknight.mdx', scale: 1.8 },
+  { name: '深渊魔主', dmg: 24999, cd: 0.25, range: 600, speed: 200, mdx: 'units/creeps/revenant/revenant.mdx', scale: 1.8 }];   // n06L / n077 / n099
+const BURN_OIL = [300, 400, 500, 600, 700, 800, 900, 1000, 1100, 3300, 7300];                       // 燃烧塔 MAX 的燃烧之油 A02V 1~11 级（每 0.2 秒）
+const YANMO = { burn: [20, 50, 120, 250, 500, 900, 1500, 2500, 4000, 6000],                         // 炎魔塔马甲的火焰燃烧 A06I…A06O（每秒）
+  rainB: [10, 20, 50, 120, 250, 500, 900, 1500, 2500, 4000], rainE: [20, 50, 120, 250, 500, 900, 1500, 2500, 4000, 6000] };   // 火焰雨 A07V
 const KITS = {
   // ---------------------------------------------------------------- 主塔
   // 魔幻塔：三种成长（切换成长类型 A051）。当前成长的技能吃魔法自动升级：雷霆闪电 100+20×等级、穿刺之镖 150+10×等级、混乱流星 180；
@@ -1082,20 +1098,23 @@ const KITS = {
     init(t, mem) { t.maxMana = 4000; t.mana = mem ? mem.mana : 0; t.holy = { type: 0, cont: 1 }; },
     attack(t, target) {
       const ty = HOLY.types[t.holy.type]; if (!ty) return;
-      const r = HOLY.r[t.lv], d = HOLY.d[t.lv] + t.mana;
+      const r = HOLY.r[t.lv], d = KITS.神圣塔.dmg(t);
       aoeAt(t, target.x, target.y, r, d, ty);
       FXS.nova(target.x, target.y, r, ATK_COLOR[ty], 0.3);
+      // 神圣塔 MAX 且有地精塔 MAX（原图 zt）：400 范围 魔法×(1+科技塔等级/32) 英雄伤害
+      if (isMax(t) && G.towers.some(o => o.fam === '地精塔' && isMax(o) && pidOf(o) === pidOf(t))) aoeAt(t, target.x, target.y, 400, t.mana * (1 + techLv(t) / 32), 'hero');
     },
+    dmg: t => HOLY.d[t.lv] + t.mana + techLv(t) * HOLY.d[t.lv] / 2,     // 科技塔每级 + 基础伤害的一半
     kill(t) { if (t.mana <= t.holy.cont * 200) addMana(t, HOLY.gain[t.lv]); },
     cmds(t) {
-      const h = t.holy, out = ['普通', '穿刺', '魔法', '混乱'].map((nm, i) => costCmd(t, 'QWER'[i], '切换' + nm, `神圣攻击改成 <b>${nm}</b> 伤害（每种切换冷却 90 秒）`, {},
-        () => { h.type = i + 1; setCd(t, 'type' + i, 90); msg(`神圣塔：神圣攻击切换为${nm}伤害`); },
-        { why: h.type === i + 1 ? '当前就是这种伤害' : cdReady(t, 'type' + i) ? null : '冷却中', o: { active: h.type === i + 1, cdOf: () => [cdLeft(t, 'type' + i), 90], atk: HOLY.types[i + 1] } }));
+      const h = t.holy, cd = 90 - 5 * techLv(t), out = ['普通', '穿刺', '魔法', '混乱'].map((nm, i) => costCmd(t, 'QWER'[i], '切换' + nm, `神圣攻击改成 <b>${nm}</b> 伤害（每种切换冷却 ${cd} 秒）`, {},
+        () => { h.type = i + 1; setCd(t, 'type' + i, cd); msg(`神圣塔：神圣攻击切换为${nm}伤害`); },
+        { why: h.type === i + 1 ? '当前就是这种伤害' : cdReady(t, 'type' + i) ? null : '冷却中', o: { active: h.type === i + 1, cdOf: () => [cdLeft(t, 'type' + i), cd], atk: HOLY.types[i + 1] } }));
       out.push(costCmd(t, 'A', '魔法容器', `容器 ${h.cont} 级：魔法值不超过 <b>${h.cont * 200}</b> 时杀敌才得魔法；每级 +200<br>回收时返还容器的金币`,
         { gold: h.cont < 20 ? 3000 : 0 }, () => { h.cont++; }, { why: h.cont >= 20 ? '已经是最高等级' : null }));
       return out;
     },
-    info(t) { const ty = t.holy.type; return [`神圣攻击：${ty ? ATK_CN[HOLY.types[ty]] + '，' + HOLY.r[t.lv] + ' 范围 ' + fmt(HOLY.d[t.lv] + t.mana) : '<b style="color:#ffb347">还没选伤害类型（按 Q W E R 选）</b>'}`,
+    info(t) { const ty = t.holy.type; return [`神圣攻击：${ty ? ATK_CN[HOLY.types[ty]] + '，' + HOLY.r[t.lv] + ' 范围 ' + fmt(KITS.神圣塔.dmg(t)) : '<b style="color:#ffb347">还没选伤害类型（按 Q W E R 选）</b>'}`,
       `魔法容器 ${t.holy.cont} 级（上限 ${t.holy.cont * 200}），杀敌 +${HOLY.gain[t.lv]} 魔法`]; },
     sell(t) { G.gold += (t.holy.cont - 1) * 3000; G.mem.神圣塔 = { mana: Math.max(t.mana, G.mem.神圣塔 ? G.mem.神圣塔.mana : 0) }; },
   },
@@ -1158,7 +1177,7 @@ const KITS = {
   // 并获得 1~4 点魔法。开启最高伤害：每次攻击造成上限伤害、消耗 2 魔法。雷霆一击（每 10 秒）：900 范围 魔法值×(8/10/12/14) 随机类型伤害 + 减速 80%
   天神塔: {
     init(t, mem) { t.maxMana = 30000; t.mana = mem ? mem.mana : 0; t.god = { pair: 1, cap: 1, power: 1, max: false }; },
-    hi: t => Math.max(Math.floor(t.mana), godStep() * t.god.cap + curLevel(t).dmg),
+    hi: t => Math.max(Math.floor(t.mana), godStep(t) * t.god.cap + curLevel(t).dmg),
     attack(t, target) {
       const g = t.god, x = target.x, y = target.y, lo = Math.floor(t.mana), hi = KITS.天神塔.hi(t);
       if (g.power > 1) aoeAt(t, x, y, 300, Math.floor(hi / 50) * (g.power - 1) + 120 * (g.power - 1), 'hero', { ignoreArmor: true });   // 天神之力
@@ -1183,7 +1202,7 @@ const KITS = {
       return [
         costCmd(t, 'Q', '切换伤害类型', `当前：<b>${cn(g.pair)}</b> → ${cn(g.pair % 6 + 1)}（冷却 5 秒）`, { mana: 1 },
           () => { g.pair = g.pair % 6 + 1; setCd(t, 'pair', 5); }, { why: cdReady(t, 'pair') ? null : '冷却中', o: { cdOf: () => [cdLeft(t, 'pair'), 5], ico: 'switchdmg' } }),
-        costCmd(t, 'W', '增加攻击上限', `等级 ${g.cap}/20：每级攻击上限 +${godStep()}${G.petFx.gq ? '（含宠物加成）' : ''}<br>10 级起每次还要 1000 魔法；回收返还每级 800 金`,
+        costCmd(t, 'W', '增加攻击上限', `等级 ${g.cap}/20：每级攻击上限 +${godStep(t)}${G.petFx.gq || stoneLv(t, 2) ? '（含宠物 / 魔石塔加成）' : ''}<br>10 级起每次还要 1000 魔法；回收返还每级 800 金`,
           { gold: g.cap < 20 ? 1500 : 0, mana: g.cap >= 10 && g.cap < 20 ? 1000 : 0 }, () => { g.cap++; }, { why: g.cap >= 20 ? '已经是最高等级' : null }),
         costCmd(t, 'E', g.max ? '关闭最高伤害' : '开启最高伤害', g.max ? '恢复成两种伤害随机，可以获得魔法' : `每次攻击造成上限伤害（${fmt(hi)}），每次消耗 2 魔法，不再获得魔法<br>魔法值要不少于上限的一半（${fmt(hi / 2)}）`,
           {}, () => { g.max = !g.max; }, { why: !g.max && t.mana < hi / 2 ? '魔法值不足最高伤害的一半' : null, o: { active: g.max } }),
@@ -1203,13 +1222,14 @@ const KITS = {
     self(t) { const l = t.bm.lv; return { atk2: SWORD.atk[l[2] - 1], as2: SWORD.as[l[1] - 1] }; },
     attack(t, target, st, a) {
       const k = KITS.剑圣塔, l = t.bm.lv;
-      if (k.on(t, 0) && G.zones.filter(z => z.owner === t && z.style === 'bladestorm').length <= 1) {   // 剑刃之魂：目标处的剑刃风暴
+      const storms = G.zones.filter(z => z.owner === t && z.style === 'bladestorm').length, dz = stoneLv(t, 1);
+      if (k.on(t, 0) && (storms <= 1 || (rint(1, 4) <= dz && storms <= 2))) {   // 剑刃之魂：目标处的剑刃风暴（魔石塔 DZ 多一次机会，原图 BBr）
         const armor = SWORD.bladeArmor[t.lv];
         zone(t, target.x, target.y, l[0] === 11 ? 350 : 250, 0.6, SWORD.blade[l[0] - 1], 'magic', null, 'bladestorm', { each: m => debuffM(m, 'blade', armor, 0.3) });
       }
-      if (k.on(t, 1) && ++t.bm.hits >= 5) {    // 风暴之魂：每 5 次攻击，800 范围 150×等级² 混乱伤害
+      if (k.on(t, 1) && ++t.bm.hits >= 5 - techLv(t)) {    // 风暴之魂：每 5 次攻击（科技塔每级少 1 次），800 范围 150×等级² + DZ×等级×60 混乱伤害
         t.bm.hits = 0;
-        aoeAt(t, t.x, t.y, 800, 150 * l[1] * l[1], 'chaos');
+        aoeAt(t, t.x, t.y, 800, 150 * l[1] * l[1] + dz * l[1] * 60, 'chaos');
         FXS.nova(t.x, t.y, 800, '#9fe3ff', 0.4); SFX.spell('bladestorm', { x: t.x, y: t.y });
       }
       if (k.on(t, 2) && l[2] < 11) {           // 致命一击：15% 倍数暴击；25% 额外 等级²×200、5% 额外 等级²×1000 普通伤害
@@ -1235,7 +1255,7 @@ const KITS = {
     info(t) {
       const l = t.bm.lv, on = i => KITS.剑圣塔.on(t, i) ? '' : '（未生效）';
       return [`成长：${SWORD.modes[t.bm.mode - 1]}`, `剑刃之魂 ${l[0]} 级${on(0)}：${SWORD.blade[l[0] - 1]}/秒，减甲 ${SWORD.bladeArmor[t.lv]}`,
-        `风暴之魂 ${l[1]} 级${on(1)}：每 5 击 ${150 * l[1] * l[1]}，致速 +${pctTxt(SWORD.as[l[1] - 1])}`,
+        `风暴之魂 ${l[1]} 级${on(1)}：每 ${5 - techLv(t)} 击 ${150 * l[1] * l[1] + stoneLv(t, 1) * l[1] * 60}，致速 +${pctTxt(SWORD.as[l[1] - 1])}`,
         `致命一击 ${l[2]} 级${on(2)}：15% ${SWORD.crit[l[2] - 1]} 倍，强攻 +${pctTxt(SWORD.atk[l[2] - 1])}`];
     },
     sell(t) { G.wood += meritSpent(t, () => 8); G.mem.剑圣塔 = { lv: t.bm.lv.slice(), mana: t.mana }; },
@@ -1243,7 +1263,7 @@ const KITS = {
   // 扫射塔：杀敌 +1 魔法，强化（200 魔法）提升射线长度和伤害倍数，共 7 级
   扫射塔: {
     init(t, mem) { t.maxMana = 1000; t.mana = mem ? mem.mana : 0; t.sw = { k: mem ? mem.k : 1 }; },
-    kill(t) { addMana(t, 1); },
+    kill(t) { addMana(t, 1 + 0.2 * techLv(t)); },     // 科技塔每级 +0.2（原图 C1）
     cmds(t) {
       const k = t.sw.k;
       return [costCmd(t, 'Q', '强化', `强化 ${k}/7：射线长 ${k === 7 ? 900 : 550 + k * 50}，伤害 ×${SWEEP_MUL[k - 1]}${k < 7 ? `<br>下一级：长 ${k + 1 === 7 ? 900 : 600 + k * 50}，伤害 ×${SWEEP_MUL[k]}` : ''}`,
@@ -2010,16 +2030,19 @@ const KITS = {
 
   // ---------------------------------------------------------------- 另类塔
   // 灵魂塔：灵魂锁链（自动）对攻击目标造成魔法伤害，并让它的护甲被无视 1 秒
+  // 魔石塔选了灵魂（Db）：+Db×15（1 级）/ Db×80（原图 BEC）。天赋（25 木材，A0S3 2 级）：MAX 冷却 2 → 1 秒
   灵魂塔: {
+    chain: t => { const [d, cd] = [[1000, 3], [5000, 3], [20000, 3], [40000, 2]][t.lv], db = stoneLv(t, 4); return [d + db * (t.lv ? 80 : 15), t.talent ? 1 : cd]; },
     attack(t, target) {
-      const [d, cd] = [[1000, 3], [5000, 3], [20000, 3], [40000, 2]][t.lv];
+      const [d, cd] = KITS.灵魂塔.chain(t);
       if (!cdReady(t, 'chain')) return;
       setCd(t, 'chain', cd);
       hurt(target, d, 'magic', t); target.ignoreArmorUntil = G.t + 1;
       FXS.beam(t.x, t.y, 160, target.x, target.y, 50, '#c48bff', 1.4, 0.3); FXS.souls(target.x, target.y, 60, '#c48bff');
       for (const o of G.towers) if (o.fam === '兽王塔' && mine(o) === mine(t)) addMana(o, [0.4, 0.6, 0.8, 1][t.lv]);   // 原图 BCE：灵魂锁链给兽王魔法
     },
-    info(t) { const [d, cd] = [[1000, 3], [5000, 3], [20000, 3], [40000, 2]][t.lv]; return [`灵魂锁链：${d} 魔法伤害 + 无视护甲 1 秒，冷却 ${cd} 秒`]; },
+    talent: { wood: 25, name: '灵魂之指（速技）', max: true, tip: '灵魂锁链冷却 2 → 1 秒' },
+    info(t) { const [d, cd] = KITS.灵魂塔.chain(t); return [`灵魂锁链：${d} 魔法伤害 + 无视护甲 1 秒，冷却 ${cd} 秒`]; },
   },
   // 弹跳塔（原图触发器 BE5 提升 / BE8 杀敌得魔法 / BFc 转移魔法 / BFS 合成 / BFW 天赋快建 / BBr 灵魂重击）：
   // 杀敌 +1 魔法（上限 300）。提升基础攻击 / 攻速是玩家科技，对所有弹跳塔（含 MAX）生效，回收不返还。
@@ -2088,13 +2111,14 @@ const KITS = {
       if (!cdReady(t, 'wisp')) return;
       const ms = inRange(t.x, t.y, 1000); if (!ms.length) return;
       const [n, d, root, cd] = KITS.精灵塔.lv(t);
-      setCd(t, 'wisp', cd);
+      setCd(t, 'wisp', t.talent ? 2.5 : cd);
       for (let i = 0; i < n; i++) FXS.launch('wisp', { x: t.x, y: t.y, z: 150 }, pick(ms), (hit, x, y) => {
         for (const m of inRange(x, y, 200)) { hurt(m, d, 'magic', t); stun(m, root); }
         FXS.ring(x, y, 200, '#9fffb0', 0.35, 3);
       });
     },
-    info(t) { const [n, d, root, cd] = KITS.精灵塔.lv(t); return [`召唤精灵：每 ${cd} 秒 ${n} 个，每个 ${d} 魔法伤害、纠缠 200 范围 ${root} 秒`]; },
+    talent: { wood: 25, name: '召唤精灵（捷技）', max: true, tip: '召唤精灵冷却 3.2 → 2.5 秒（A06B 2 级）' },
+    info(t) { const [n, d, root, cd] = KITS.精灵塔.lv(t); return [`召唤精灵：每 ${t.talent ? 2.5 : cd} 秒 ${n} 个，每个 ${d} 魔法伤害、纠缠 200 范围 ${root} 秒`]; },
   },
   // 地精塔：魔法满 10 点时火箭群激活——这次和之后 3 次攻击打 1000 范围内所有敌人，消耗 10 魔法；每秒回魔 0.5/1/1/1.5，杀敌 +1
   地精塔: {
@@ -2130,6 +2154,207 @@ const KITS = {
       ];
     },
     info(t) { const n = t.ba.lv - 1; return [`双刃箭（${t.ba.mode === 1 ? '单体' : '范围'}）：伤害等级 ${n}，${t.ba.mode === 1 ? 1500 * n : 250 * n} 伤害，每次 2 魔法`]; },
+  },
+  // 死亡塔（原图 BBp：每次攻击放雷霆一击"死亡呐喊"和恐怖嚎叫"死亡"，冷却好了才放出来）：650 范围敌人护甲 -10~-50（4 秒，冷却 2 秒），
+  // 攻速 / 移速 -18%~-50%（3~4 秒，冷却 3 秒，MAX 2 秒）。MAX 杀敌 +1 魔法（最多 400，升级时保留）。天赋（25 木材）：减甲 70、减速 70%
+  死亡塔: {
+    tick(t) { t.maxMana = isMax(t) ? 400 : 0; },
+    attack(t) {
+      const lv = curLevel(t), howl = abil(lv, 'ANht'), clap = abil(lv, 'AHtc'), tl = t.talent;
+      if (howl && cdReady(t, 'howl')) {
+        setCd(t, 'howl', howl.cool || 2);
+        for (const m of inRange(t.x, t.y, howl.area || 650)) debuffM(m, 'fear', tl ? 70 : howl.B, howl.dur || 4);
+        FXS.nova(t.x, t.y, howl.area || 650, '#9a4dff', 0.4);
+      }
+      if (clap && cdReady(t, 'clap')) {
+        setCd(t, 'clap', clap.cool || 3);
+        for (const m of inRange(t.x, t.y, clap.area || 650)) slowM(m, tl ? 0.7 : clap.D, clap.dur || 3);
+        FXS.ring(t.x, t.y, clap.area || 650, '#c0c0ff', 0.4, 4);
+      }
+    },
+    kill(t) { if (isMax(t)) addMana(t, 1); },
+    talent: { wood: 25, name: '呐喊尖啸（强化）', max: true, tip: '死亡减护甲 50 → 70，死亡呐喊减速 50% → 70%' },
+    info(t) {
+      const lv = curLevel(t), howl = abil(lv, 'ANht') || {}, clap = abil(lv, 'AHtc') || {};
+      return [`死亡：650 范围护甲 -${t.talent ? 70 : howl.B} ${howl.dur} 秒（冷却 ${howl.cool} 秒）`,
+        `死亡呐喊：攻速 / 移速 -${pctTxt(t.talent ? 0.7 : clap.D)} ${clap.dur} 秒（冷却 ${clap.cool} 秒）${isMax(t) ? '；杀敌 +1 魔法' : ''}`];
+    },
+  },
+  // 科技塔（原图 C1 / C2 = 科技塔等级 1~4，回收归零；只能建造一个）：本身只有普通攻击，给自己别的塔加成（techLv）——
+  // 剑圣塔风暴之魂每 5-等级 次攻击放一次；神圣塔神圣攻击 + 等级×基础伤害/2、切换伤害冷却 90-5×等级 秒；扫射塔杀敌魔法 1+0.2×等级；
+  // 神圣塔 MAX 且有地精塔 MAX 时每次攻击再加 400 范围 魔法×(1+等级/32) 英雄伤害；科技塔 MAX 时深渊塔升级超级深渊召唤深渊霸主
+  科技塔: {
+    info(t) {
+      const c = t.lv + 1;
+      return [`科技等级 ${c}：剑圣塔风暴之魂每 ${5 - c} 次攻击；神圣攻击 +${c * 50}% 基础伤害、切换冷却 ${90 - 5 * c} 秒`,
+        `扫射塔杀敌 +${fmt(1 + 0.2 * c)} 魔法；神圣塔 MAX + 地精塔 MAX：额外 400 范围 魔法×${(1 + c / 32).toFixed(3)}${c >= 4 ? '；超级深渊召唤深渊霸主' : ''}`];
+    },
+  },
+  // 深渊塔（原图 DE：1~MAX 级 2 / 4 / 6 / 8，超级 10，回收归零）：自己的腐蚀 / 重击 / 冰霜 / 暴击塔每次攻击，在目标处 100 范围再造成
+  // 90 × 辅助塔等级 × DE 的穿刺 / 混乱 / 魔法 / 普通伤害。
+  // 暴击塔 Bingo：原图条件是"魔法 ≥ 1 且 1/20 且有超级深渊 或 有深渊塔 MAX"（and / or 从左往右算），所以有深渊塔 MAX 时暴击塔每次攻击都 Bingo，
+  // 超级深渊时只有第一座暴击塔 MAX（建成时给 1 点魔法）有 1/20；300 范围 80000×HO。HO：平时 1，四种辅助 MAX + 深渊塔 MAX 或者有超级深渊时 2，
+  // 超级深渊激活天赋后 3（原图建成时才重算 HO，这里随时按条件算）。
+  // 深渊塔 MAX 花 11400 金"升级超级深渊"（A0EQ，要四种辅助 MAX，还要没建主塔——用掉主塔名额）：每 15 秒召唤一个深渊领主（会走动，活 15 秒；
+  // 升级时科技塔 MAX 是深渊霸主，否则魔石塔选了炎魔（Da ≥ 1）是深渊魔主），领主每次攻击在目标 190 范围加 超级深渊魔法×(10+Da) 英雄伤害，
+  // 每 5 次攻击放死亡新星（目标 40000、350 范围 20000）；领主杀敌超级深渊 +1 魔法。天赋（50 木材）：Bingo# 伤害翻倍
+  深渊塔: {
+    init(t) { t.ik = 0; },
+    de: t => t.super ? 10 : 2 * (t.lv + 1),
+    // HO（暴击塔 Bingo 倍数）
+    ho(t) {
+      const pid = pidOf(t), max4 = ['暴击塔', '腐蚀塔', '冰霜塔', '重击塔'].every(f => G.towers.some(o => o.fam === f && isMax(o) && pidOf(o) === pid));
+      return t.super ? (t.talent ? 3 : 2) : max4 && isMax(t) ? 2 : 1;
+    },
+    anyAttack(t, o, target) {
+      const ty = ABYSS_SUP[o.fam];
+      if (!ty || o.cat === 'summon' || pidOf(o) !== pidOf(t) || ownTower(pidOf(t), '深渊塔') !== t) return;   // DE 每个玩家只有一个值：只算第一座深渊塔
+      aoeAt(o, target.x, target.y, 100, 90 * (o.lv + 1) * KITS.深渊塔.de(t), ty);
+      FXS.ring(target.x, target.y, 100, '#b04dff', 0.25, 3);
+      if (o.fam !== '暴击塔') return;
+      const first = G.towers.find(x => x.fam === '暴击塔' && isMax(x) && pidOf(x) === pidOf(t));
+      if (!((first === o && Math.random() < 1 / 20 && t.super) || (!t.super && isMax(t)))) return;
+      const ho = KITS.深渊塔.ho(t), sharp = t.super && t.talent;
+      aoeAt(o, target.x, target.y, 300, 80000 * ho, sharp ? 'hero' : 'normal');
+      popText(target.x, target.y + 40, sharp ? 'Bingo#!' : ho > 1 ? 'Bingo+!' : 'Bingo!', '#ff3030');
+      FXS.nova(target.x, target.y, 300, '#ff3030', 0.35);
+    },
+    tick(t) {
+      if (!t.super || !cdReady(t, 'lord')) return;
+      setCd(t, 'lord', 15);
+      const L = ABYSS_LORD[t.lord - 1];
+      summon(t, { fam: '深渊领主', title: L.name, label: '领', x: t.x, y: t.y, until: G.t + 15, mobile: { speed: L.speed, leash: 2400 }, mdx: L.mdx, scale: L.scale,
+        levels: [{ name: L.name, dmg: L.dmg, cd: L.cd, range: L.range, atk: 'hero', targets: 1, splash: 190, abils: [] }], crit: () => [0.05, 10],
+        onLaunch(s, tg) {
+          if (t.ik >= 4) { t.ik = 0; hurt(tg, 40000, 'magic', s); aoeAt(s, tg.x, tg.y, 350, 20000, 'magic'); FXS.nova(tg.x, tg.y, 350, '#7ab8ff', 0.4); }
+          else t.ik++;
+          aoeAt(s, tg.x, tg.y, 190, Math.floor(t.mana * (10 + stoneLv(t, 3))), 'hero');
+        } });
+      FXS.nova(t.x, t.y, 200, '#b04dff', 0.5);
+    },
+    kill(t, m, src) { if (t.super && src && src.owner === t) addMana(t, 1); },
+    upgrade(t) {
+      t.super = true; t.cat = 'main'; t.levels = t.levels.concat([D.towers.深渊塔.super]); t.lv = t.levels.length - 1;
+      t.spent += 11400; t.maxMana = 2000; t.mana = 0; t.ik = 0; delete t.cds.lord;
+      t.lord = techLv(t) >= 4 ? 2 : stoneLv(t, 3) >= 1 ? 3 : 1;
+      FXS.nova(t.x, t.y, 400, '#b04dff', 0.6);
+      msg(`深渊塔升级为超级深渊塔（召唤${ABYSS_LORD[t.lord - 1].name}）`);
+    },
+    cmds(t) {
+      if (t.super || !isMax(t)) return [];
+      const pid = pidOf(t), miss = Object.keys(ABYSS_SUP).filter(f => !G.towers.some(o => o.fam === f && isMax(o) && pidOf(o) === pid));
+      const main = G.towers.some(o => mine(o) && o.cat === 'main' && o.fam !== '弹跳塔');
+      return [costCmd(t, 'Q', '升级超级深渊', `变成 <b>超级深渊塔</b>（辅助塔附加伤害 DE 8 → 10），占用主塔名额<br>每 15 秒召唤一个深渊领主（19999 英雄伤害、190 溅射，活 15 秒），
+        领主每次攻击再加 超级深渊魔法×(10+Da) 英雄伤害，每 5 次攻击放死亡新星；领主杀敌超级深渊 +1 魔法<br>升级时有科技塔 MAX：召唤深渊霸主；魔石塔选了炎魔：召唤深渊魔主`,
+        { gold: 11400 }, () => KITS.深渊塔.upgrade(t),
+        { why: miss.length ? `需要${miss.join('、')} MAX` : main ? '已经建造了主塔，不能升级超级深渊' : null })];
+    },
+    talent: { wood: 50, name: 'Bingo# 伤害翻倍', only: t => t.super ? null : '只能对超级深渊塔激活', tip: '暴击塔 Bingo 变成 Bingo#：80000×3 英雄伤害' },
+    info(t) {
+      const out = [`辅助塔附加伤害：DE ${KITS.深渊塔.de(t)}（目标 100 范围 90×辅助塔等级×DE）`,
+        `暴击塔 Bingo：${t.super ? '第一座暴击塔 MAX 1/20' : isMax(t) ? '暴击塔每次攻击' : '要深渊塔 MAX'}，300 范围 ${fmt(80000 * KITS.深渊塔.ho(t))}`];
+      if (t.super) out.push(`召唤${ABYSS_LORD[t.lord - 1].name}：${cdReady(t, 'lord') ? '就绪' : Math.ceil(cdLeft(t, 'lord')) + ' 秒'}，附加 ${fmt(Math.floor(t.mana * (10 + stoneLv(t, 3))))} 英雄伤害`);
+      return out;
+    },
+  },
+  // 燃烧塔：炮弹 200 范围溅射 + 燃烧之油（落点 200 范围的敌人烧 3 秒，每 0.2 秒 A 点：1~4 级每秒 25 / 150 / 400 / 1000；同一种油不叠加）。
+  // MAX（原图 BEO / BEQ）：每次攻击把燃烧之油设成 魔法/40 级（不到 40 魔法时不变；1~9 级 A = 300+100×(级-1)，10 级 3300、11 级 7300，烧 3~4 秒），
+  // 杀敌 +2 魔法（上限 200）。天赋（25 木材，A0E9）：魔法上限 +200
+  燃烧塔: {
+    init(t) { t.oil = 1; },
+    tick(t) { t.maxMana = isMax(t) ? (t.talent ? 400 : 200) : 0; },
+    attack(t, target) {
+      const ab = abil(curLevel(t), 'Abof'); if (!ab) return;
+      let A = ab.A, dur = ab.dur || 3;
+      if (isMax(t)) {
+        const L = Math.floor(t.mana / 40); if (L >= 1) t.oil = Math.min(11, L);
+        A = BURN_OIL[t.oil - 1]; dur = t.oil >= 10 ? 4 : 3 + 0.1 * (t.oil - 1);
+      }
+      for (const m of inRange(target.x, target.y, ab.area || 200)) {
+        m.dots = m.dots.filter(d => d.kind !== 'oil');
+        m.dots.push({ kind: 'oil', dps: A / (ab.B || 0.2), until: G.t + dur, atk: 'magic', src: t });
+      }
+      FXS.explosion(target.x, target.y, 0.5, '#ff7a2a');
+    },
+    kill(t) { if (isMax(t)) addMana(t, 2); },
+    talent: { wood: 25, name: '燃烧之油（烈火）', max: true, tip: '魔法上限 +200（燃烧之油能到 10 级）' },
+    info(t) {
+      const ab = abil(curLevel(t), 'Abof') || {}, A = isMax(t) ? BURN_OIL[t.oil - 1] : ab.A;
+      return [`燃烧之油${isMax(t) ? ` ${t.oil} 级` : ''}：200 范围每秒 ${fmt(A / (ab.B || 0.2))}${isMax(t) ? '（魔法/40 级，杀敌 +2 魔法）' : ''}`];
+    },
+  },
+  // 炎魔塔（原图 BBp 攻击 / BDS 按钮）：每次攻击，魔法 ≥ 烈焰燃烧等级 L × (L+10) 就扣掉放一次：
+  //   伤害状态 1：塔旁召唤马甲 1 秒，凤凰火每 0.1 秒烧 900 范围里的一个敌人 6 秒（每秒 20 / 50 / 120 / 250 / 500 / 900 / 1500 / 2500 / 4000 / 6000，烧不死）；
+  //   伤害状态 2（攻击力状态 2 级：攻击 +5000%）：马甲在塔处放火焰雨，900 范围先 B 伤害、再每秒 E 伤害 6 秒。
+  // 不放时攻击得魔法：1~3 级 等级+0.5，MAX 4，再加魔石塔 Da×0.5。增加 / 减少释放等级在 1~10 之间循环。天赋（25 木材）：攻速 +80%
+  炎魔塔: {
+    init(t) { t.ym = { mode: 1, L: 1 }; },
+    self(t) { return { atk: t.ym.mode === 2 ? 50 : 0 }; },
+    asPlus: t => t.talent ? 0.8 : 0,
+    attack(t) {
+      const y = t.ym, L = y.L, cost = L * (L + 10);
+      if (Math.floor(t.mana) < cost) { addMana(t, (isMax(t) ? 4 : t.lv + 1.5) + stoneLv(t, 3) * 0.5); return; }
+      t.mana -= cost;
+      if (y.mode === 1) {
+        for (const m of inRange(t.x, t.y, 900).sort(() => Math.random() - 0.5).slice(0, 10)) {
+          m.dots = m.dots.filter(d => d.kind !== 'yanmo');
+          m.dots.push({ kind: 'yanmo', dps: YANMO.burn[L - 1], until: G.t + 6, atk: 'magic', src: t, noKill: true });
+        }
+        FXS.nova(t.x, t.y, 900, '#ff7a2a', 0.5);
+      } else {
+        aoeAt(t, t.x, t.y, 900, YANMO.rainB[L - 1], 'magic');
+        zone(t, t.x, t.y, 900, 6, YANMO.rainE[L - 1], 'magic', null, null, { color: 'rgba(255,110,40,.12)' });
+        for (let i = 0; i < 6; i++) FXS.fall(t.x + rnd(-500, 500), t.y + rnd(-500, 500), { z: 900, dx: -200, dy: 120, dur: 0.3, color: '#ff7a2a', core: '#ffe0a0', size: 16, rock: '#502010' });
+      }
+      SFX.spell('frostPulse', { x: t.x, y: t.y });
+    },
+    cmds(t) {
+      const y = t.ym, wrap = d => () => { y.L = (y.L + d + 9) % 10 + 1; setCd(t, 'lv', 0.5); uiDirty(); };
+      const rdy = { why: cdReady(t, 'lv') ? null : '冷却中' };
+      return [
+        costCmd(t, 'Q', '切换伤害', `当前 <b>伤害状态 ${y.mode}</b>${y.mode === 2 ? '（攻击 +5000%，放火焰雨）' : '（放烈焰燃烧）'} → 状态 ${3 - y.mode}`, {},
+          () => { y.mode = 3 - y.mode; setCd(t, 'mode', 1); msg(`炎魔塔切换到伤害状态 ${y.mode}`); }, { why: cdReady(t, 'mode') ? null : '冷却中', o: { active: y.mode === 2 } }),
+        costCmd(t, 'W', '增加释放等级', `烈焰燃烧 ${y.L} → ${y.L % 10 + 1} 级（10 级再加回到 1 级）`, {}, wrap(1), rdy),
+        costCmd(t, 'E', '减少释放等级', `烈焰燃烧 ${y.L} → ${(y.L + 8) % 10 + 1} 级（1 级再减回到 10 级）`, {}, wrap(-1), rdy),
+      ];
+    },
+    talent: { wood: 25, name: '增加攻击速度', max: true, tip: '攻击速度 +80%' },
+    info(t) {
+      const y = t.ym, L = y.L;
+      return [`伤害状态 ${y.mode} · 烈焰燃烧 ${L} 级：要 ${L * (L + 10)} 魔法`,
+        y.mode === 1 ? `900 范围 10 个敌人每秒 ${fmt(YANMO.burn[L - 1])}，烧 6 秒（烧不死）` : `火焰雨：900 范围 ${fmt(YANMO.rainB[L - 1])} + 每秒 ${fmt(YANMO.rainE[L - 1])}，6 秒`];
+    },
+  },
+  // 魔石塔：魔石杀（凤凰火，每秒一次）给 600 范围里一个还没烧着的敌人挂上持续燃烧（每秒 40 / 200 / 600 / 2000，一直烧到死）；
+  // 神石气息（永久献祭）：400 范围每秒 20 / 80 / 250 / 800（天赋 25 木材：1000 范围每秒 2000）。
+  // 切换提升塔类（原图 BDX / BDa，冷却 2 秒）：剑圣（DZ）/ 天神（DY）/ 炎魔（Da）/ 灵魂（Db）选中的那个 = 魔石塔等级 1~4，别的为 0（stoneLv）：
+  //   剑圣塔风暴之魂 +DZ×技能等级×60，剑刃之魂多一次机会（场上 ≤2 个且 1~4 ≤ DZ）；天神塔攻击上限每级 +40×DY；
+  //   炎魔塔攻击得魔法 +0.5×Da、深渊领主附加伤害 魔法×(10+Da)；灵魂锁链 +Db×15（1 级）/ Db×80
+  魔石塔: {
+    init(t) { t.ms = { sel: 1 }; },
+    tick(t, dt) {
+      const lv = curLevel(t), px = abil(lv, 'Apxf'), im = abil(lv, 'ANpi');
+      if (px && cdReady(t, 'stone')) {
+        const m = inRange(t.x, t.y, px.area || 600).find(e => !e.dots.some(d => d.kind === 'stone'));
+        if (m) {
+          setCd(t, 'stone', px.cool || 1);
+          FXS.launch('fireball', { x: t.x, y: t.y, z: 150 }, m, hit => { if (hit && !hit.dead) hit.dots.push({ kind: 'stone', dps: px.B, until: G.t + 3600, atk: 'magic', src: t }); });
+        }
+      }
+      if (im) { const [r, dps] = t.talent ? [1000, 2000] : [im.area || 400, im.A * 4]; for (const m of inRange(t.x, t.y, r)) hurt(m, dps * dt, 'magic', t); }
+    },
+    cmds(t) {
+      const s = t.ms;
+      return [costCmd(t, 'Q', '切换提升塔类', `当前提升 <b>${STONE_FOR[s.sel - 1]}</b>（${s.sel === 1 ? 'DZ' : s.sel === 2 ? 'DY' : s.sel === 3 ? 'Da' : 'Db'} = ${t.lv + 1}）→ ${STONE_FOR[s.sel % 4]}<br>
+        剑圣塔：风暴之魂 +等级×技能等级×60、剑刃之魂多一次机会；天神塔：攻击上限每级 +40×等级；炎魔塔：攻击得魔法 +0.5×等级、深渊领主伤害；灵魂塔：灵魂锁链伤害`,
+        {}, () => { s.sel = s.sel % 4 + 1; setCd(t, 'sel', 2); msg(`魔石塔提升${STONE_FOR[s.sel - 1]}`); }, { why: cdReady(t, 'sel') ? null : '冷却中', o: { cdOf: () => [cdLeft(t, 'sel'), 2] } })];
+    },
+    talent: { wood: 25, name: '神石气息（群伤）', max: true, tip: '神石气息变成 1000 范围每秒 2000 伤害' },
+    info(t) {
+      const lv = curLevel(t), px = abil(lv, 'Apxf') || {}, im = abil(lv, 'ANpi') || {};
+      return [`魔石杀：600 范围每秒点燃一个敌人，每秒 ${fmt(px.B)}（烧到死）`, `神石气息：${t.talent ? '1000 范围每秒 2000' : `${im.area} 范围每秒 ${fmt(im.A * 4)}`}`,
+        `提升${STONE_FOR[t.ms.sel - 1]}：${t.lv + 1} 级`];
+    },
   },
 
   // ---------------------------------------------------------------- 大辅助（MAX 效果要用天赋卷轴激活）
@@ -3280,6 +3505,9 @@ const ylBirds = h => { for (let i = 0; i < 4; i++) if (learned(h, i)) ylBird(h, 
 const FM_FAMILY = {   // 家族成员（n06Q / n06P / n06R）：受训兽 R00Z（+700 攻击 / 级，力量/30）和攻速 R011（+10% / 级，敏捷/20）影响
   大地: { dmg: 6000, cd: 2, range: 150, atk: 'chaos', splash: 350 }, 风暴: { dmg: 3000, cd: 1, range: 600, atk: 'magic', splash: 150 }, 火焰: { dmg: 1000, cd: 0.4, range: 250, atk: 'normal', splash: 150 },
 };
+const FM_FAMILY_MAD = {   // 狂暴版（n08E / n08D / n08C）
+  大地: { dmg: 13000, cd: 1.2, range: 300, atk: 'hero', splash: 450 }, 风暴: { dmg: 6000, cd: 0.6, range: 800, atk: 'hero', splash: 150 }, 火焰: { dmg: 2000, cd: 0.2, range: 500, atk: 'hero', splash: 100 },
+};
 // 随从技能（原图 666 / 888 系列，数值是技能表 1~5 级；extra 是触发器 BIr 另加的伤害，原图都用 1 号随从的杀敌数算，照搬）
 const FM_SKILL = {
   咆哮: { cd: [12, 11, 10, 9, 8], cast(s, h, L) { for (const o of alliesNear(s.x, s.y, 800)) giveBuff(o, 'roar', lvl([0.3, 0.6, 0.9, 1.2, 1.5], L), 6); FXS.nova(s.x, s.y, 800, '#ff8a3c', 0.4); return true; } },
@@ -3354,12 +3582,13 @@ function fmCall(h) {
   if (h.stat.str < 80 * jo) return msg(`需要力量达到 ${80 * jo}`);
   if (!fmSlots(h).some(s => !s || !G.towers.includes(s))) return msg('随从已满 3 个');
   G.gold -= 800; h.mana -= 60; setCd(h, 'call', 12);
-  // 10%（或智力 160~180）火焰，否则大地 / 风暴各半。原图有科技塔时出狂暴版，本复刻没有科技塔
+  // 10%（或智力 160~180）火焰，否则大地 / 风暴各半。有科技塔 MAX（原图 Ly = 2）且 已出狂暴次数×80 ≤ 智力 时出狂暴版（n08E / n08D / n08C）
   const kind = Math.random() < 0.1 || (h.stat.int >= 160 && h.stat.int <= 180) ? '火焰' : Math.random() < 0.5 ? '大地' : '风暴';
+  const mad = techLv(h) >= 4 && (h.fmLz || 0) * 80 <= h.stat.int; if (mad) h.fmLz = (h.fmLz || 0) + 1;
   let sk = pick(FM_CALL); if (sk === '风暴之锤' && Math.random() < 0.25) sk = '点金术';
-  const f = FM_FAMILY[kind], talent = { dmg: sk === '加强天赋' ? 8000 : 0, as: sk === '加强天赋' ? 0.8 : 0 };
+  const f = (mad ? FM_FAMILY_MAD : FM_FAMILY)[kind], talent = { dmg: sk === '加强天赋' ? 8000 : 0, as: sk === '加强天赋' ? 0.8 : 0 };
   if (Math.random() < 0.01) { talent.dmg += 15000; talent.as += 1.5; msg('该随从拥有超强天赋'); }
-  fmFollower(h, { x: h.x, y: h.y, label: kind[0], title: kind, family: kind, skill: sk, ...f, speed: 350, tech: true, talent });
+  fmFollower(h, { x: h.x, y: h.y, label: kind[0], title: (mad ? '狂暴的' : '') + kind, family: kind, skill: sk, ...f, speed: 350, tech: true, talent });
 }
 function fmBanish(h) {
   const s = fmSlots(h)[h.sk.fm.sel];
@@ -5059,7 +5288,7 @@ function achCount(k) {
   const [need, name] = ACH_COUNT[k];
   if (++G.achCnt[k] >= need) gainAch(name, 2, `${myName()}完成成就：${name}（当局成就 +2）`);
 }
-// 组合成就（单位 ID 和要求的座数）。深渊塔、科技塔、炎魔塔、燃烧塔本复刻还没有，后三个暂时拿不到；第 4 个原图没写名字
+// 组合成就（单位 ID 和要求的座数）；第 4 个原图没写名字
 const ACH_COMBO = [
   ['高速毒塔', { h010: 1, h00E: 1, n01B: 1, h01J: 1 }],                  // 加速光环 MAX + 萨满塔 + 火速塔 + 毒塔 MAX
   ['强力群攻', { h00P: 1, h00J: 1, h00K: 3 }],                           // 攻击光环 MAX + 兽人塔 + 3 座群攻塔 MAX
@@ -5315,7 +5544,7 @@ const UNIQ_TALENT = new Set(['恐惧塔', '火速塔', '神力塔', '冰封塔',
 const talentName = t => t.talent === 2 ? '至尊天赋' : kitTalent(t) ? kitTalent(t).name : t.talent ? (t.cat === 'aura' ? '基础天赋' : '天赋') : '';
 // 主塔等的天赋写在技能包里（KITS[fam].talent = { wood, name, max, tip, use }）：原图激活时另扣木材（A053 的触发器 Bag）
 const kitTalent = t => t && !t.isHero && KITS[t.fam] && KITS[t.fam].talent;
-const kitTalentWhy = t => { const kt = kitTalent(t); return kt.max && !isMax(t) ? '要升到 MAX 才能激活天赋' : t.talent || (kt.why && kt.why(t)) ? '该单位已经激活' : G.wood < (kt.wood || 0) ? `激活要 ${kt.wood} 木材，木材不足` : null; };
+const kitTalentWhy = t => { const kt = kitTalent(t); return kt.only && kt.only(t) ? kt.only(t) : kt.max && !isMax(t) ? '要升到 MAX 才能激活天赋' : t.talent || (kt.why && kt.why(t)) ? '该单位已经激活' : G.wood < (kt.wood || 0) ? `激活要 ${kt.wood} 木材，木材不足` : null; };
 const SHOP_ITEMS = [
   { id: 'I001', key: 'Q', name: '1个小材', gold: 500, cd: 30, tip: '使用 500 金币购买 1 个木材', use: () => { G.wood += 1; } },
   { id: 'I002', key: 'W', name: '10个木材', gold: 5000, cd: 300, tip: '使用 5000 金币购买 10 个木材', use: () => { G.wood += 10; msg('木材 +10'); } },
@@ -5326,7 +5555,7 @@ const SHOP_ITEMS = [
     pick: '知识之书：选择英雄塔（Esc 取消）', ok: t => t && t.isHero ? null : '只能对英雄塔使用',
     use: h => { const st = pick(['str', 'agi', 'int']); h.stat[st] += 10; msg(`英雄增加${statCN(st)} 10`); } },
   { id: 'I01Y', key: 'A', name: '天赋卷轴', wood: 15, firstAt: 1200, cd: 300, inv: true, range: 750,
-    tip: `激活天赋（原图 A053）：<br>MAX 光环塔：光环升到 2 级（加速 +80% / 攻击 +142% / 减防 -100 / 减速 -70%）<br>大辅助、巫系：技能升到 MAX<br>弹跳塔 MAX：弹跳天赋（MAX 回收后再建弹跳塔，金币 ≥ 58000 时直接变成 MAX）<br>破坏塔 MAX：同时攻击 9 个；通灵塔 MAX：高级通灵；地精塔 MAX：每秒多回 2.5 魔法<br>主塔（激活时另扣 30 木材）：风行塔 MAX 通用伤害、将军塔 MAX 军令状、狂狼塔 MAX 疯狂之狼、五行塔 MAX 额外伤害、巫妖塔提升会心一击、人马塔雷霆（狂暴）、原始指挥官宁静+<br>开局 1200 秒后开放，购买间隔 300 秒`,
+    tip: `激活天赋（原图 A053）：<br>MAX 光环塔：光环升到 2 级（加速 +80% / 攻击 +142% / 减防 -100 / 减速 -70%）<br>大辅助、巫系：技能升到 MAX<br>弹跳塔 MAX：弹跳天赋（MAX 回收后再建弹跳塔，金币 ≥ 58000 时直接变成 MAX）<br>破坏塔 MAX：同时攻击 9 个；通灵塔 MAX：高级通灵；地精塔 MAX：每秒多回 2.5 魔法<br>主塔（激活时另扣 30 木材）：风行塔 MAX 通用伤害、将军塔 MAX 军令状、狂狼塔 MAX 疯狂之狼、五行塔 MAX 额外伤害、巫妖塔提升会心一击、人马塔雷霆（狂暴）、原始指挥官宁静+<br>另类塔 MAX（另扣 25 木材）：死亡塔呐喊尖啸、燃烧塔魔法 +200、炎魔塔攻速 +80%、魔石塔神石气息群伤、灵魂塔锁链冷却 1 秒、精灵塔召唤冷却 2.5 秒；超级深渊塔（另扣 50 木材）Bingo#<br>开局 1200 秒后开放，购买间隔 300 秒`,
     pick: '天赋卷轴：选择一座可以激活天赋的塔（Esc 取消）',
     ok: t => !t || !t.fam ? '只能对塔使用' : UNIQ_TALENT.has(t.fam) ? null : kitTalent(t) ? kitTalentWhy(t) : !(t.cat === 'aura' || TALENT_FAMS.has(t.fam)) ? '只能对光环塔、大辅助、巫系、弹跳塔 MAX、破坏塔 / 通灵塔 / 地精塔、全场唯一塔和有天赋的主塔使用' : !isMax(t) || (t.fam === '弹跳塔' && !t.bmax) ? '要升到 MAX 才能激活天赋' : t.talent ? '该单位已经激活' : null,
     use: t => {
@@ -5559,7 +5788,7 @@ function ulUp(t, n, why) {
   msg(`${why}：${curLevel(t).name}技能 +${n} 级`);
 }
 // 天神塔每级攻击上限：40 ×（10 + 宠物浣熊的 Gq）（原图 zt）
-const godStep = () => 40 * (10 + G.petFx.gq);
+const godStep = t => 40 * (10 + G.petFx.gq + stoneLv(t, 2));     // 原图 A06X 等级 × 40 × (10 + Dy + DY 魔石塔 + Gq 宠物)
 
 // ================================================================ 守护宗师（地图中央商店右边，原图 u01A）
 // 卖的东西：兔子卷轴、重置卷轴、宠物卷轴、糖果、赞、投票卷轴、绑定卷轴、号令卷轴。英雄卷轴、轮回卷轴只能用平台成就币，没有做
@@ -6028,7 +6257,7 @@ function step(dt) {
     if (m.until && G.t >= m.until) { m.dead = true; continue; }     // 限时单位到时间消失（不给赏金）
     moveMonster(m, dt);
     if (m.burn) hurt(m, m.burn.dps * dt, 'magic', m.burn.src, { ignoreArmor: true });
-    for (const d of m.dots) if (d.until > G.t) hurt(m, d.dps * dt, d.atk, d.src);
+    for (const d of m.dots) if (d.until > G.t) hurt(m, d.dps * dt, d.atk, d.src, { noKill: d.noKill });
     m.dots = m.dots.filter(d => d.until > G.t);
     if (!m.dead) m.hp = Math.min(m.maxHp, m.hp + (m.regen + m.auraRegen * m.maxHp) * dt);
     if (m.shredUntil < G.t) m.shred = 0;
