@@ -118,6 +118,9 @@ def main():
         put('icon:' + fam, U[lv[0]['id']].get('Art'))
         for i, l in enumerate(lv):
             put(f'portrait:tower:{fam}:{i + 1}', U[l['id']].get('Art'))
+            # 塔身上的技能（含 data.js 没导出的命令技能，如寒冰塔的选择升级技能 / 功勋）：命令面板配图标（game.js abilIco）
+            for aid in [ab['id'] for ab in l.get('abils', [])] + str(U[l['id']].get('abilList') or '').split(','):
+                if aid in A and 'ico:abil-' + aid not in reg: put('ico:abil-' + aid, A[aid].get('Art'))
     for n, h in D['heroes'].items():
         put('icon:hero:' + n, U[h['id']].get('Art')); put('portrait:hero:' + n, U[h['id']].get('Art'))
         for i, s in enumerate(h['skills']):                    # 技能书里的 4~5 个技能（tools/add_heroes.py）

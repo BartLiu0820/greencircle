@@ -225,6 +225,7 @@ function typeMult(atk, m) {
 // 光环、原始战力等只加塔的"基础攻击"（在 attack() 里乘进攻击伤害），这里不再放大技能、持续伤害和区域伤害
 function hurt(m, amount, atk, src, opt = {}) {
   if (m.dead || !(amount > 0) || m.hitOnly) return 0;   // 同时挡掉 NaN；小偷的生命只按挨打次数算
+  if (HELD) { HELD.push(() => hurt(m, amount, atk, src, opt)); return 0; }   // 出手时的技能伤害：等弹道命中再算（holdHits）
   if (m.magicImmune && atk === 'magic') return 0;          // 魔法免疫（ACm3）：魔法攻击打不动
   let dmg = amount * typeMult(atk, m);
   if (!opt.ignoreArmor && !(m.ignoreArmorUntil > G.t)) dmg *= armorMult(effArmor(m));   // 灵魂锁链：目标护甲被无视
@@ -590,6 +591,16 @@ function nearest(x, y, r) {
 }
 // ---------------------------------------------------------------- 弹道（fx.js）：按塔的种类和攻击属性选择飞行物，伤害在命中时结算
 const FXS = window.FX.create();
+// 出手时就触发的技能（原图"单位被攻击"事件：天神塔的范围伤害、寒冰塔的冰雹……）：伤害、区域和特效先存起来，等主弹道命中再结算，
+// 免得弹道还没飞到怪就死了。holdHits(fn) 跑 fn，返回结算函数（只跑一次）
+let HELD = null;
+for (const k of Object.keys(FXS)) if (!['launch', 'update', 'draw', 'clear', 'count'].includes(k)) { const f = FXS[k]; FXS[k] = (...a) => HELD ? HELD.push(() => f(...a)) : f(...a); }
+function holdHits(fn) {
+  const prev = HELD, q = HELD = [];
+  try { fn(); } finally { HELD = prev; }
+  let done = false;
+  return () => { if (done) return; done = true; for (const f of q) f(); };
+}
 const MISSILE = {
   魔幻塔: 'arcaneDagger', 冰霜塔: 'frostBolt', 灵魂塔: 'soulWisp', 闪电塔: 'lightning', 箭塔: 'arrow', 巨箭塔: 'ballista',
   毒塔: 'poison', 腐蚀塔: 'acid', 群攻塔: 'cannon', 牛头塔: 'boulder', 寒冰塔: 'iceSpear', 神圣塔: 'holyBeam', 天神塔: 'holy',
@@ -648,10 +659,12 @@ function towerUpdate(t, dt) {
   if (target.onAttacked) target.onAttacked(t);            // 原图"单位被攻击"事件：小精灵疾风步、小偷掉东西
   t.cdLeft += st.cd;
   t.attacks++; t.atkT = G.t;
-  if (G.hero && HERO_DEF[G.hero.heroName].anyAttack) HERO_DEF[G.hero.heroName].anyAttack(G.hero, t, target);   // 坦克的能量
-  for (const o of G.towers) { const k = KITS[o.fam]; if (k && k.anyAttack) k.anyAttack(o, t, target); }      // 别的塔攻击时触发的（原始指挥官的宁静）
-  if (t.isHero) return heroAttack(t, target, st);
-  attack(t, target, st);
+  const pre = holdHits(() => {     // 别的塔攻击时触发的伤害，也等这次攻击的弹道命中再结算
+    if (G.hero && HERO_DEF[G.hero.heroName].anyAttack) HERO_DEF[G.hero.heroName].anyAttack(G.hero, t, target);   // 坦克的能量
+    for (const o of G.towers) { const k = KITS[o.fam]; if (k && k.anyAttack) k.anyAttack(o, t, target); }      // 别的塔攻击时触发的（原始指挥官的宁静）
+  });
+  if (t.isHero) return heroAttack(t, target, st, pre);
+  attack(t, target, st, pre);
 }
 // 会走动的召唤物（炎魔、水元素、骷髅）：射程里没有敌人就走向最近的敌人，但不离开英雄 leash 范围
 function summonMove(t, dt, range) {
@@ -663,17 +676,19 @@ function summonMove(t, dt, range) {
 }
 
 // 普通塔一次攻击 (按 WC3 技能代码解释附加效果)
-function attack(t, target, st) {
+function attack(t, target, st, pre = () => {}) {
   const lv = curLevel(t), kit = KITS[t.fam];
   let dmg = st.dmg * t.atkMul;
   // 致命一击（剑圣塔的致命一击由它的技能包按成长模式处理）
   const crit = !(kit && kit.ownCrit) && abil(lv, 'AOcr');
   if (crit && Math.random() * 100 < (crit.A || 25)) { dmg *= crit.B || 3; addFx({ kind: 'text', x: target.x, y: target.y, text: '暴击', life: 0.6, color: '#ffd257' }); }
   // 英雄的召唤物：马甲只跑触发器（silent）；致命一击；出手时的触发器
-  if (t.silent) { shot(t, target); return t.onLaunch(t, target); }
+  if (t.silent) { shot(t, target); pre(); return t.onLaunch(t, target); }
   const sc = t.crit && t.crit();
   if (sc && Math.random() < sc[0]) { dmg *= sc[1]; popText(target.x, target.y, sc[1] + '倍', '#ffd257'); }
-  if (t.onLaunch) t.onLaunch(t, target);
+  // 出手时的触发器（召唤物的 onLaunch、技能包的 attack）里的伤害等主弹道命中再结算
+  const f0 = holdHits(() => { if (t.onLaunch) t.onLaunch(t, target); });
+  let flush = () => { pre(); f0(); };
   // 目标集合
   let targets = [target];
   if (t.fam === '弹跳塔' || t.fam === '通灵塔') targets = chainTargets(target, st.targets, 500);   // 弹射；通灵塔武器是 mbounce：3 个目标、弹射范围 500
@@ -690,8 +705,13 @@ function attack(t, target, st) {
     if (t.necroUntil > G.t) dmg *= t.necroMul;
   }
   const a = { dmg, targets };
-  if (kit && kit.attack && kit.attack(t, target, st, a) === false) return;
+  if (kit && kit.attack) {
+    let r; const f1 = flush, f2 = holdHits(() => { r = kit.attack(t, target, st, a); });
+    flush = () => { f1(); f2(); };
+    if (r === false) return flush();
+  }
   dmg = a.dmg; targets = a.targets;
+  if (!targets.includes(target)) flush();          // 技能包换掉了目标，没有主弹道就当场结算
   const style = missileOf(t), from = muzzle(t, style);
   shot(t, target);
   // 主目标命中后的范围效果（目标在飞行途中死了，就以落点为中心）
@@ -705,7 +725,7 @@ function attack(t, target, st) {
   };
   const land = (m, primary) => (hit, x, y) => {
     if (hit) { hurt(hit, dmg, st.atk, t); onHitEffects(t, lv, hit, st); frozenBurst(hit); if (t.onHit) t.onHit(t, hit); }
-    if (primary) { area(hit, x, y); SFX.ent(sndKey(t), 'hit', { x, y }); }
+    if (primary) { area(hit, x, y); flush(); SFX.ent(sndKey(t), 'hit', { x, y }); }
   };
   SFX.ent(sndKey(t), 'launch', { x: t.x, y: t.y });
   if (t.fam === '弹跳塔' || t.fam === '通灵塔' || lv.bounce) {     // 依次弹到下一个目标
@@ -1033,7 +1053,7 @@ const KITS = {
         costCmd(t, 'Q', '切换成长类型', `当前 <b>${MAGIC.modes[g.mode - 1]}</b> 成长 → 切换到 ${MAGIC.modes[g.mode % 3]}<br>当前成长的技能吃魔法自动升级；不是当前成长的技能不生效，到 5 级后一直生效`,
           { mana: 3 }, () => { g.mode = g.mode % 3 + 1; setCd(t, 'mode', 2); msg(`魔幻塔切换到${MAGIC.modes[g.mode - 1]}成长`); },
           { why: cdReady(t, 'mode') ? null : '冷却中', o: { cdOf: () => [cdLeft(t, 'mode'), 2] } }),
-        meritCmd(t, 'W', m => m + 1, 10, m => (1 + 0.2 * m).toFixed(1)),
+        { ...meritCmd(t, 'W', m => m + 1, 10, m => (1 + 0.2 * m).toFixed(1)), ico: 'abil-A05G' },
       ];
     },
     info(t) {
@@ -1110,8 +1130,8 @@ const KITS = {
       const c = t.ice;
       return [
         cmd('Q', '选', '选择升级技能', `当前：<b>${ICE.names[c.sel - 1]}</b> → ${ICE.names[c.sel % 3]}<br>选中的技能每次攻击都释放，魔法够了自动升级；其他技能按 等级/7 的概率释放`,
-          () => { c.sel = c.sel % 3 + 1; msg(`寒冰塔：选择升级${ICE.names[c.sel - 1]}`); uiDirty(); }),
-        meritCmd(t, 'W', m => m * 3 + 2, 6, m => (0.7 + 0.3 * m).toFixed(1)),
+          () => { c.sel = c.sel % 3 + 1; msg(`寒冰塔：选择升级${ICE.names[c.sel - 1]}`); uiDirty(); }, { ico: 'abil-A033' }),
+        { ...meritCmd(t, 'W', m => m * 3 + 2, 6, m => (0.7 + 0.3 * m).toFixed(1)), ico: 'abil-A035' },
       ];
     },
     info(t) {
@@ -1150,7 +1170,7 @@ const KITS = {
       return [
         costCmd(t, 'Q', '切换伤害类型', `当前：<b>${cn(g.pair)}</b> → ${cn(g.pair % 6 + 1)}（冷却 5 秒）`, { mana: 1 },
           () => { g.pair = g.pair % 6 + 1; setCd(t, 'pair', 5); }, { why: cdReady(t, 'pair') ? null : '冷却中', o: { cdOf: () => [cdLeft(t, 'pair'), 5], ico: 'switchdmg' } }),
-        costCmd(t, 'W', '增加攻击上限', `攻击上限 ${g.cap * godStep()} → ${(g.cap + 1) * godStep()}（另加塔的攻击力 ${curLevel(t).dmg}）${G.petFx.gq ? '（宠物加成：每级 ' + godStep() + '）' : ''}<br>10 级起每次还要 1000 魔法；回收返还每级 800 金`,
+        costCmd(t, 'W', '增加攻击上限', `等级 ${g.cap}/20：每级攻击上限 +${godStep()}${G.petFx.gq ? '（含宠物加成）' : ''}<br>10 级起每次还要 1000 魔法；回收返还每级 800 金`,
           { gold: g.cap < 20 ? 1500 : 0, mana: g.cap >= 10 && g.cap < 20 ? 1000 : 0 }, () => { g.cap++; }, { why: g.cap >= 20 ? '已经是最高等级' : null }),
         costCmd(t, 'E', g.max ? '关闭最高伤害' : '开启最高伤害', g.max ? '恢复成两种伤害随机，可以获得魔法' : `每次攻击造成上限伤害（${fmt(hi)}），每次消耗 2 魔法，不再获得魔法<br>魔法值要不少于上限的一半（${fmt(hi / 2)}）`,
           {}, () => { g.max = !g.max; }, { why: !g.max && t.mana < hi / 2 ? '魔法值不足最高伤害的一半' : null, o: { active: g.max } }),
@@ -1439,7 +1459,7 @@ const KITS = {
         cmd('Q', '切', '切换技能', `当前：<b>${TJ.names[g.sel - 1]}</b> → ${TJ.names[g.sel % 5]}<br>选中的技能每次攻击时魔法够了自动升级；4 级以下的技能切换后关闭，4 级起可以共存`,
           () => { g.sel = g.sel % 5 + 1; for (let i = 0; i < 5; i++) if (g.lv[i] < 4 && g.sel !== (i === 0 ? 6 : i)) g.lv[i] = 6; msg(`天将塔：切换到${TJ.names[g.sel - 1]}`); uiDirty(); }),
         costCmd(t, 'W', '士', `科技 ${G.tjTech}/${TJ.techMax}：天将、天兵、巨炮、雷车攻击 +${TJ.techAtk * G.tjTech}、攻速 +${pctTxt(TJ.techAS * G.tjTech)}<br>每次 +${TJ.techAtk} 攻击、+15% 攻速`,
-          { gold: TJ.techGold, mana: TJ.techMana }, () => { G.tjTech++; msg('升级成功'); }, { why: G.tjTech >= TJ.techMax ? '已经是最高等级' : null }),
+          { gold: TJ.techGold, mana: TJ.techMana }, () => { G.tjTech++; msg('升级成功'); }, { why: G.tjTech >= TJ.techMax ? '已经是最高等级' : null, o: { ico: 'abil-A0J1' } }),
       ];
     },
     info(t) {
@@ -1825,7 +1845,7 @@ const KITS = {
     cmds(t) {
       const y = G.cmd.ys;
       return CMDR.ys.map((c, i) => costCmd(t, 'QWERAS'[i], `强化${c.name}`, `${c.name} ${y[i]}/4 级：宁静范围内的${c.fam} MAX ${c.tip}（再乘 MAX 原始塔数量）`,
-        { wood: y[i] < 4 ? 8 : 0, mana: y[i] < 4 ? c.mana : 0 }, () => { y[i]++; }, { why: y[i] >= 4 ? '已经是最高等级' : null }));
+        { wood: y[i] < 4 ? 8 : 0, mana: y[i] < 4 ? c.mana : 0 }, () => { y[i]++; }, { why: y[i] >= 4 ? '已经是最高等级' : null, o: { ico: 'abil-' + ['A0AN', 'A0AV', 'A0AW', 'A0AX', 'A0AZ', 'A0B0'][i] } }));
     },
     info(t) {
       const C = G.cmd;
@@ -2246,7 +2266,7 @@ const KITS = {
       addMana(t, -0.2 * dt);
       if ((b.wood -= dt) <= 0) { b.wood += 90; const w = t.mana >= 400 ? 2 : t.mana >= 100 ? 1 : 0; if (w) { G.wood += w; msg(`银行塔：木材利息 +${w}`); } }
     },
-    cmds(t) { const r = t.bank.rate, top = 10 + (t.ulv || 0); return [costCmd(t, 'Q', '提升金币利息', `当前每秒 ${r} 金 → ${r + 1} 金<br>回收返还木材`, { wood: r < top ? 8 : 0 }, () => { t.bank.rate++; }, { why: r >= top ? '已经是最高等级' : null })]; },
+    cmds(t) { const r = t.bank.rate, top = 10 + (t.ulv || 0); return [costCmd(t, 'Q', '提升金币利息', `每秒利息 +1 金（现在每秒 ${r} 金）<br>回收返还木材`, { wood: r < top ? 8 : 0 }, () => { t.bank.rate++; }, { why: r >= top ? '已经是最高等级' : null })]; },
     info(t) { return [`利息：每秒 ${t.bank.rate} 金；${Math.ceil(t.bank.wood)} 秒后木材 +${t.mana >= 400 ? 2 : t.mana >= 100 ? 1 : 0}`]; },
     sell(t) { G.wood += Math.max(0, t.bank.rate - 1 - (t.ulv || 0)) * 8; },
   },
@@ -4546,7 +4566,7 @@ function castSkill(h, i, auto) {
   if (tg) h.face = Math.atan2(tg.y - h.y, tg.x - h.x);
   if (!auto) addFx({ kind: 'text', x: h.x, y: h.y + 60, text: D.heroes[h.heroName].skills[i].name, life: 0.8, color: '#9fe3ff' });
 }
-function heroAttack(h, tg, st) {
+function heroAttack(h, tg, st, pre = () => {}) {
   const kit = HERO_KITS[h.heroName], hd = D.heroes[h.heroName], def = HERO_DEF[h.heroName];
   let dmg = st.dmg * h.atkMul;                      // 光环等加成只加普通攻击，技能伤害不加
   for (const i of h.learned) {
@@ -4554,17 +4574,19 @@ function heroAttack(h, tg, st) {
     if (c && Math.random() < c[0]) { dmg *= c[1]; SFX.spell('crit', { x: tg.x, y: tg.y }); popText(tg.x, tg.y, c[1] + '倍', '#ffd257'); break; }
   }
   shot(h, tg);
-  // 原图的"攻击时"触发器（EVENT_PLAYER_UNIT_ATTACKED）在出手时就判定，不等投射物命中
-  if (HERO_ATTACK[h.heroName]) HERO_ATTACK[h.heroName](h, tg);
-  if (def.onLaunch) def.onLaunch(h, tg);
-  for (const i of h.learned) if (kit[i].onLaunch) kit[i].onLaunch(h, tg);
+  // 原图的"攻击时"触发器（EVENT_PLAYER_UNIT_ATTACKED）在出手时就判定，造成的伤害和特效等主投射物命中再结算
+  const f0 = holdHits(() => {
+    if (HERO_ATTACK[h.heroName]) HERO_ATTACK[h.heroName](h, tg);
+    if (def.onLaunch) def.onLaunch(h, tg);
+    for (const i of h.learned) if (kit[i].onLaunch) kit[i].onLaunch(h, tg);
+  }), flush = () => { pre(); f0(); };
   // 目标：弹幕（额外 multi 个，multiR 范围内）；弹射（mbounce）
   let targets = [tg];
   if (st.multi) targets = targets.concat(inRange(h.x, h.y, st.multiR).filter(m => m !== tg).slice(0, st.multi));
   const style = missileOf(h), splash = hd.splash, bounce = hd.bounce;
   SFX.ent(sndKey(h), 'launch', { x: h.x, y: h.y });
   const land = primary => (hit, x, y) => {
-    if (primary) SFX.ent(sndKey(h), 'hit', { x, y });
+    if (primary) { flush(); SFX.ent(sndKey(h), 'hit', { x, y }); }
     // msplash：落点 Farea1 范围内全额伤害；其他是单体
     if (splash) for (const m of inRange(x, y, splash)) hurt(m, dmg, st.atk, h);
     else if (hit) hurt(hit, dmg, st.atk, h);
@@ -4588,6 +4610,7 @@ function aoe(h, c, r, dmg, atk, ignoreArmor, color) {
   addFx({ kind: 'ring', x: c.x, y: c.y, r, life: 0.25, color: color || ATK_COLOR[atk] });
 }
 function zone(owner, x, y, r, dur, dps, atk, endFn, style, extra) {
+  if (HELD) return HELD.push(() => zone(owner, x, y, r, dur, dps, atk, endFn, style, extra));
   if (style === 'bladestorm') SFX.spell('bladestorm', { x, y });
   G.zones.push({ owner, x, y, r, t0: G.t, until: G.t + dur, dps, atk, endFn, style, fxT: 0, ...extra });
 }
@@ -6640,7 +6663,7 @@ function drawMinimap() {
   [[0, 0], [cw, 0], [cw, ch], [0, ch]].forEach(([a, b], i) => { const [x, y] = groundAt(a, b); mctx[i ? 'lineTo' : 'moveTo'](mx(x), my(y)); });
   mctx.closePath(); mctx.stroke();
 }
-function addFx(f) { if (f.kind === 'ring') return FXS.ring(f.x, f.y, f.r, f.color, f.life, 4); if (G.fx.length < 400) G.fx.push(f); }   // 冲击波统一交给 fx.js 画
+function addFx(f) { if (HELD) return HELD.push(() => addFx(f)); if (f.kind === 'ring') return FXS.ring(f.x, f.y, f.r, f.color, f.life, 4); if (G.fx.length < 400) G.fx.push(f); }   // 冲击波统一交给 fx.js 画
 
 // ================================================================ 控制台 UI：信息面板 + 命令面板
 const $ = id => document.getElementById(id);
@@ -7036,13 +7059,24 @@ function buildCmds() {
     const f = famOf(e), kit = KITS[e.fam];
     if (e.cat === 'aura' && e.lv === 0) out.push(cmd('T', '售', e.forSale ? '允许收购（点击关闭）' : '当前不能收购（点击允许）', `原图 A03K：允许收购后，队友可以用收购卷轴买下这座 1 级光环塔，你获得 1500 金币<br>当前：<b>${e.forSale ? '允许收购' : '不能收购'}</b>`,
       () => { e.forSale = !e.forSale; NET.send({ t: 'state', slot: G.me, sale: { tower: e.id, on: e.forSale } }); msg(e.forSale ? '这座光环塔现在允许队友收购' : '这座光环塔现在不能收购'); uiDirty(); }, { active: !!e.forSale, ico: 'sell' }));
-    if (kit && kit.cmds) out.push(...kit.cmds(e));
+    if (kit && kit.cmds) out.push(...kit.cmds(e).map(c => abilIco(e, c)));
     if (f.branches && e.lv === 0 && !e.bmax) Object.keys(f.branches).forEach((k, i) => { const n = f.branches[k][0]; out.push(cmd(['Q', 'W', 'E', 'R'][i], k, k + '分支', `<b>${n.name}</b> ${atkTag(n.atk)}<br><span class="gold">${n.gold} 金</span> · 攻击 ${n.dmg} · 弹射 ${n.targets} 个`, () => upgradeTower(e, k), { atk: n.atk, disabled: G.gold < n.gold, ico: 'branch-' + n.atk, cost: n.gold })); });
     else if (e.levels[e.lv + 1]) { const n = e.levels[e.lv + 1]; out.push(cmd('U', '↑', '升级', `升级到 <b>${n.name}</b><br><span class="gold">${n.gold} 金</span>${e.cat === 'aura' ? '' : ` · 攻击 ${fmt(n.dmg)} · 间隔 ${n.cd}s · 射程 ${n.range}`}<br>${n.tip || ''}`, () => upgradeTower(e), { disabled: G.gold < n.gold, ico: 'upgrade', iconKey: `portrait:tower:${e.fam}:${e.lv + 2}`, cost: n.gold })); }
     while (out.length < 7) out.push(null);
     out.push(cmd('Y', '回', '回收', `返还建造和升级花费的 100% 金币：<b>${e.spent}</b>`, () => sellTower(e), { ico: 'sell' }));
   }
   return out;
+}
+// 塔的命令没指定图标时，按名字找原图塔身上的同名技能，用它的原版图标（tools/war3_icons.py 登记的 ico:abil-<技能 ID>）
+const abilName = s => String(s || '').replace(/\|c[0-9a-f]{8}|\|r/gi, '').replace(/^[-*\s]+|[-*\s]+$/g, '').replace(/[（(\[].*$/, '').trim();
+function abilIco(e, c) {
+  if (!c || c.ico || c.iconKey) return c;
+  const nm = c.name.replace(/^关闭/, '开启'), sp = window.ASSET_MANIFEST.sprites;
+  for (const l of e.levels) for (const a of l.abils || []) {
+    const n = abilName(a.name);
+    if (n && sp['ico:abil-' + a.id] && (n === nm || (Math.min(n.length, nm.length) >= 2 && (nm.includes(n) || n.includes(nm))))) return { ...c, ico: 'abil-' + a.id };
+  }
+  return c;
 }
 let CMDS = [];
 function renderCmds() {
