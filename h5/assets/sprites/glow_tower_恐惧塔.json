@@ -1,0 +1,27 @@
+{
+ "key": "glow:tower:恐惧塔",
+ "src": "sprites/w3_tower_Abilities_Spells_Undead_Curse_CurseTarget_glow.png",
+ "frameW": 160,
+ "frameH": 160,
+ "cols": 10,
+ "rows": 1,
+ "anchor": [
+  0.5,
+  0.46
+ ],
+ "unitsPerPixel": 2.0,
+ "pitch": 50,
+ "actions": {
+  "idle": {
+   "row": 0,
+   "dirs": 1,
+   "frames": 10,
+   "fps": 11.11,
+   "loop": true
+  }
+ },
+ "modelScale": 2.0,
+ "glow": true,
+ "aliasOf": "model:tower:Abilities/Spells/Undead/Curse/CurseTarget_glow",
+ "war3": true
+}

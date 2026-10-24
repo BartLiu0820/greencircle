@@ -24,6 +24,9 @@ const RULE = {
   heroSponsors: [],          // 英雄赞助名单（原图按玩家名字发 n03C，这里先清空）：名单里的玩家随机建造能抽到 18~34 号赞助英雄
   rerollWood: 6,             // 随机建造：第一次免费，之后每次 6 木材（A03C 的触发器 nY / nZ）
   shopReach: 600,            // 商店（u00L，原图摆在地图中央 (0,128)）：守卫者要走到旁边才能买
+  // 无尽关卡（原图 zI / zM / zd）：杀死龙和魔王时 Perfect 分 ≥ 10 才开启；180 秒后（第一波实际在 185 秒）每 20 秒一波，
+  // 每个在场玩家的怪物上限降到 15；超过上限时结束，按无尽积分结算
+  endlessFp: 10, endlessCap: 15, endlessOpen: 185, endlessEvery: 20, endlessCount: 15, endlessBest: 25000,
 };
 const MODES = {
   // 新人随机模式（原图 JI = 1，BcR：半数以上玩家荣誉少于 30 时自动开启）：BcQ 每人 +2000 金、+7 木、+2 人口；
@@ -167,12 +170,15 @@ function newGame(mode, players = 1, player = null, bots = false) {     // player
     pet: null, petFx: { gq: 0, g3: 0, k4: 0, kx: 0, kv: 0, lx: 0, r1: 0, go: 0, hj: 0, kr: 0, gs: 0 },   // 宠物（Rx）和宠物给塔 / 英雄的加成（Gq、G3、K4、Kx、KV、LX、图腾 +9% 攻速 A0R0、Go、Hj、Kr）
     wild: [], catchTries: 0, thief: false,               // 野生宠物（中立被动，用糖果抓）；抓宠累计次数（LT）；小偷出过（Lc）
     wispAt: 100, dropAt: 150, horseAt: 2,                // 小精灵每 100 秒检查、地上每 150 秒掉糖果或金币、马每 2 秒发金
+    achDone: {}, achFr: 0, achCnt: { food: 0, gold: 0, fod: 0 }, bossKills: 0,   // 完成过的当局成就；组合 / 击杀成就的次数（FR）；买人口 ES、换金币 ER、死亡之指 EQ 次数；大红牛 / 大豪猪击杀数（EG[1]）
+    endless: null,           // 无尽关卡（见"无尽关卡"一节）
   };
   seatBots();
   G.selected = G.builder;
   // 开局当局成就：拒绝逃跑 +5，再按账号成就档位 +0~10（原图 qi：至尊称号 +1~10、拒绝逃跑 +5）。演示模式固定剑神，直接给够建英雄的成就
   const tier = player && mode !== 'demo' ? achTier(profileOf(player).pts) : { lv: 0 };
-  G.ach += mode === 'demo' ? RULE.heroAch : tier.lv;
+  const eb = player && mode !== 'demo' ? endlessBonus(profileOf(player).endless || 0) : 0;   // 原图 Oz：平台存的无尽分越高，开局当局成就越多
+  G.ach += mode === 'demo' ? RULE.heroAch : tier.lv + eb;
   if (player && mode !== 'demo') { const p = profileOf(player); p.games++; saveProfiles(); }
   FXS.clear();
   rerollBuild(true);
@@ -181,6 +187,7 @@ function newGame(mode, players = 1, player = null, bots = false) {     // player
   if (player && mode !== 'demo') {
     msg(`完成成就：拒绝逃跑　当局成就 +${RULE.startAch}`, 10);
     if (tier.lv) msg(`${player} 完成成就：${tier.name}　当局成就 +${tier.lv}`, 10);
+    if (eb) msg(`${player} 无尽最高 ${profileOf(player).endless} 分：当局成就 +${eb}`, 10);
   }
   if (MODES[mode].waveGold) msg('新人随机模式：起手多 2000 金币、7 木材、2 人口；全局金币给予量翻倍；魔王降低血量', 10);
 }
@@ -197,6 +204,7 @@ const slotPool = s => SLOT_POOL[s].flatMap(byCat);
 const slotOf = fam => SLOTS.find(s => SLOT_POOL[s].includes(D.towers[fam].cat));
 function rerollBuild(free) {
   if (!free) {
+    if (endlessLock()) return msg('无尽关卡里守卫者没有随机建造');
     if (G.rerolls > 0 && G.wood < RULE.rerollWood) return msg(`木材不足（随机建造需要 ${RULE.rerollWood} 木材，首次免费）`);
     if (G.rerolls > 0) G.wood -= RULE.rerollWood;
     G.rerolls++;
@@ -249,7 +257,9 @@ function kill(m, src) {
       owner.mana = Math.min(owner.maxMana(), owner.mana + 2);                      // 英雄（和它的召唤物）每击杀 +2 魔法
       const def = HERO_DEF[owner.heroName]; if (def.onKill) def.onKill(owner, m, src);
     } else if (owner.fam && G.towers.includes(owner)) towerKilled(owner, m, src);  // 塔的魔法值（功勋）；src 是实际杀死它的单位（塔或召唤物）
+    achKill(src);
   }
+  if (G.endless && !m.neutral) G.endless.score += G.endless.nm + 4;   // 原图 zi：无尽里每杀一只怪 Ds + (NM + 4)
   if (m.elite) {
     const w = rint(1, 3); G.wood += w;
     const owner = src && (src.owner || src);
@@ -276,16 +286,17 @@ function spawnMonster(id, opt = {}) {
   const u = D.units[id];
   if (!u) return null;
   const path = GATES[opt.gate || 0].slice(opt.at || 0), [x, y] = NODES[path[0]];
-  const hpMul = (1 + RULE.hpPerWave * G.wave) * G.hpScale * (opt.hpMul || 1);
+  const hpMul = (opt.noWaveHp ? 1 : 1 + RULE.hpPerWave * G.wave) * G.hpScale * (opt.hpMul || 1);   // 无尽怪物不吃 Rhar，生命按无尽科技（hpMul）
   const m = {
     id: G.nextId++, uid: id, name: u.name, x: x + rnd(-150, 150), y: y + rnd(-150, 150),
-    maxHp: u.hp * hpMul, hp: u.hp * hpMul, armor: u.armor, type: u.armorType, speed: u.speed || 250,
+    maxHp: u.hp * hpMul, hp: u.hp * hpMul, armor: u.armor, type: u.armorType, speed: (u.speed || 250) + (opt.speedPlus || 0),
     bounty: u.bounty, regen: u.regen || 0, path: path.slice(1), prev: null, cur: path[0], lane: rnd(-0.75, 0.75),
     slow: 0, slowUntil: 0, stunUntil: 0, shred: 0, shredUntil: 0, armorDown: 0, armorDownUntil: 0,
     auraFocus: 0, auraArmorDown: 0, auraSlow: 0, auraSpeed: 0, auraRegen: 0, burn: null, dots: [],
     deb: {}, ignoreArmorUntil: 0, frozenUntil: 0, expel: null,       // deb：限时减甲 / 加速（{ v, until }）；expel：被驱逐（遣返用）
     boss: !!opt.boss, r: opt.boss ? 90 : 55, elite: null, gate: opt.gate || 0, at: opt.at || 0,
   };
+  if (opt.mdx) Object.assign(m, { mdx: opt.mdx, scale: opt.scale });   // 原版包里没有模型的怪物，借用相近的模型（无尽的精灵用小精灵）
   if (!opt.noElite && !NO_ELITE.has(id) && Math.random() < RULE.eliteChance) makeElite(m);
   m.cr = colRadius(m);
   G.monsters.push(m);
@@ -473,6 +484,7 @@ function upgradeTower(t, branchKey) {
   G.gold -= next.gold; t.spent += next.gold;
   if (branchKey) { t.levels = [t.levels[0]].concat(f.branches[branchKey]); t.branch = branchKey; }
   t.lv++;
+  achCombo();                             // 原图 rG：升级完成时检查组合成就
   if (G.hero && HERO_DEF[G.hero.heroName].towerUpgraded) HERO_DEF[G.hero.heroName].towerUpgraded(G.hero, t);   // 幻影：暴击 / 冰霜 / 重击塔升到 3 级
   SFX.ui('upgrade');
   uiDirty();
@@ -535,7 +547,7 @@ const FOD = { range: 800, cd: 90, mana: 5, maxMana: 10, regen: 2, mdx: 'abilitie
 const FOD_BOSS = { nsqt: 7000, nsko: 25000, nsoc: 25000, nslm: 1e6, ndrj: 1e5, n06Y: 1e5, Udre: 1e5, Udea: 1e5 };
 const FOD_DRAGON = ['nbzd', 'nrdr', 'nrdk', 'ngrd', 'nkob', 'nkot', 'nkog', 'ngst', 'njga'];
 const fodLeft = () => Math.max(0, G.builder.fodAt - G.t);
-function fodBlock() { return fodLeft() > 0 ? '死亡之指冷却中' : G.builder.mana < FOD.mana ? '魔法值不足' : null; }
+function fodBlock() { return endlessLock() ? '无尽关卡里守卫者没有死亡之指' : fodLeft() > 0 ? '死亡之指冷却中' : G.builder.mana < FOD.mana ? '魔法值不足' : null; }
 function orderFinger(m, queue) {
   if (!m || !m.uid || m.dead) return msg('只能对敌人使用');
   if (m.magicImmune) return msg('目标魔法免疫');
@@ -547,6 +559,7 @@ function castFinger(m) {
   if (why) return msg(why);
   if (m.magicImmune) return msg('目标魔法免疫，死亡之指没有放出');
   b.mana -= FOD.mana; b.fodAt = G.t + FOD.cd; b.spellT = G.t; b.face = Math.atan2(m.y - b.y, m.x - b.x);
+  achCount('fod');
   FXS.beam(b.x, b.y, 120, m.x, m.y, 60, '#c48bff', 1.6, 0.45);
   if (!(U3 && U3.burst(FOD.mdx, m.x, m.y))) FXS.explosion(m.x, m.y, 0.7, '#c48bff');
   const k = G.hpScale;
@@ -4799,8 +4812,8 @@ const NO_ELITE = new Set(['Nfir', 'Nalc', 'Ntin', 'Npbm', 'hhdl', 'nhef', 'njks'
   'nglm', 'nfgl', 'ndrl', 'ndrt', 'ndrn', 'nogo', 'nsw2', 'nogn', 'noga', 'ndsa', 'Udea', 'nbal', 'nchw', 'nchg', 'njga', 'njgb', 'nskg', 'nanm', 'h08S']);
 const HINT_ARMOR = { '物理': 'small', '抗性': 'medium', '魔法': 'large', '神圣': 'divine' };
 function monstersAlive() { return G.monsters.filter(m => !m.dead && !m.neutral).length; }   // 中立单位（小精灵、小偷）不算怪数（原图只数 Player(11)）
-// 场上怪物上限（原图 M3 = C9[1]+…+C9[8]）：每个在场玩家 40
-function cap() { return G.final && G.final.endless ? 15 : G.c9.reduce((a, b) => a + b, 0); }
+// 场上怪物上限（原图 M3 = C9[1]+…+C9[8]）：每个在场玩家 40，无尽关卡里 15
+function cap() { return G.c9.reduce((a, b) => a + b, 0); }
 // 玩家离开（联机用）：原图 SQ 等触发器把他的 C9 每秒 -1 直到 0，上限慢慢降下来；他的出怪口照样出怪
 function playerLeft(slot) {
   const tick = () => { if (G.c9[slot] > 0) { G.c9[slot]--; later(1, tick); } };
@@ -4878,6 +4891,7 @@ function startWave() {
     G.finalCountdown = true; G.timer = 30;
     G.waveNote = '　<b>30 秒后最终 BOSS 波——龙 开启</b>';
     msg('30 秒后最终 BOSS 波——龙 开启');
+    later(5, achFirst);
     return refreshHint();
   }
   if (BOSS_WAVES[fn]) BOSS_WAVES[fn]();
@@ -4897,7 +4911,12 @@ function hintTags(hint) {
 function refreshHint() {
   let cur;
   if (G.phase === 'prep') cur = '准备阶段：选中守卫者，在出怪口附近建塔！';
-  else {
+  else if (G.endless) {
+    const E = G.endless, u = E.unit && D.units[E.unit];
+    cur = (E.wave ? `无尽关卡第 ${E.wave} 波` : `无尽关卡 ${Math.ceil(G.timer)} 秒后开启`) + `　无尽积分 <b style="color:#ffd257">${E.score}</b>` +
+      (u ? `　${u.name}（${ARMOR_CN[u.armorType]}护甲，生命 ${fmt(u.hp * (1 + 0.25 * (E.rhla + E.iy)) * G.hpScale)}，护甲 ${u.armor}，移速 ${u.speed + 5 * E.mg}）` : '');
+    G.hint = cur; return;
+  } else {
     const u = G.curUnit && D.units[G.curUnit];
     cur = `第 ${G.wave} 波` + (u ? `：${u.name}（${ARMOR_CN[u.armorType]}护甲，生命 ${fmt(u.hp * (1 + RULE.hpPerWave * G.wave) * G.hpScale)}，护甲 ${u.armor}，移速 ${u.speed}，赏金 ${u.bounty}）` : '');
   }
@@ -4911,7 +4930,7 @@ const BOSS_WAVES = {
   xH() {
     let killed = 0;
     G.waveNote = '　坚持 60 秒，未杀完 BOSS 不会失败；杀死的大红牛越多，结束后金币越多（每只 +100），60 秒时没杀死的自动消失';
-    G.waveHook = { onSpawn(m) { if (m.uid === 'nsqt') m.onDeath = () => { killed++; }; } };
+    G.waveHook = { onSpawn(m) { if (m.uid === 'nsqt') m.onDeath = () => { killed++; bossCount(32, '大红牛都是钱！'); }; } };
     later(60, () => {
       for (const m of G.monsters) if (m.uid === 'nsqt') m.dead = true;
       for (const p of activePlayers()) addGold(p, killed * 100);        // 原图给 Player(0)~(7) 每人 Dq×100
@@ -4923,7 +4942,7 @@ const BOSS_WAVES = {
   xK() {
     let killed = 0;
     G.waveNote = '　坚持 60 秒，未杀完 BOSS 不会失败；杀死的大豪猪越多，结束后木材越多（每 7 只 +1），60 秒时没杀死的自动消失';
-    G.waveHook = { onSpawn(m) { if (m.uid === 'nsqa' || m.uid === 'n09B') m.onDeath = () => { killed++; }; } };
+    G.waveHook = { onSpawn(m) { if (m.uid === 'nsqa' || m.uid === 'n09B') m.onDeath = () => { killed++; bossCount(112, '大豪猪都是木！'); }; } };
     later(60, () => {
       for (const m of G.monsters) if (m.uid === 'nsqa' || m.uid === 'n09B') m.dead = true;
       const w = Math.floor(killed / 7); for (const p of activePlayers()) addWood(p, w);
@@ -4990,6 +5009,7 @@ function startFinal() {
     }
   };
   later(20, () => {
+    G.final.dragonAt = G.t + 0.3;
     const M3 = cap();
     if (M3 <= 50) dragon(Math.random() < 1 / 4 ? 'nbzd' : Math.random() < 1 / 3 ? 'nrdr' : pick(['nrdk', 'ngrd']), [1, 1]);
     else dragon('nbzd', [1, 2]);
@@ -5015,7 +5035,161 @@ function startFinal() {
       if (G.selected === m) uiDirty();
     }
   });
-  [[59.3, 'njga'], [114.3, 'n07W'], [169.3, 'n07V']].forEach(([t, id]) => later(t, () => { startSpawner('少'); spawnAt('each', id, { boss: true }); }));
+  [[59.3, 'njga'], [114.3, 'n07W'], [169.3, 'n07V']].forEach(([t, id]) => later(t, () => { if (G.endless) return; startSpawner('少'); spawnAt('each', id, { boss: true }); }));   // 无尽开了就不再刷（原图 IsTriggerEnabled(Um)）
+}
+
+// ---------------------------------------------------------------- 当局成就（原图 H3[玩家]）
+// 除了开局的拒绝逃跑 / 至尊档位和每次 Perfect，原图还有这些来源（war3map.j 里所有 "完成成就"）：
+//   计数：购买人口 8 次（人口众多）、木材换金币 100 次（我是来换金币的）、放死亡之指 20 次（电电更健康），各 +2
+//   组合（rG，升级完成时检查）：同时拥有指定的几座塔 +10；击杀（rE）：指定的 MAX 主塔技能练满后杀死一个敌人 +10。
+//   两类共用次数 FR：组合要 FR < 2、击杀要 FR < 1，所以一局最多拿 2 个，先拿了组合就拿不到击杀成就
+//   我是第一（最终 BOSS 倒计时第 5 秒，杀敌排行第一）+5；无尽我来了（开启无尽）+3；刺激（最后 10 秒倒计时里杀死龙和魔王并开启无尽）+2
+//   大红牛都是钱 / 大豪猪都是木（全场杀死 32 只大红牛 / 112 只大豪猪）：给的是平台成就，这里换成账号成就 +1
+// 原图电电更健康、我是第一、无尽我来了的触发器写的是 GetOwningPlayer(GetDyingUnit())，在那里拿不到单位，点数实际加到了不存在的 0 号玩家；
+// 这里按提示文字加给完成的玩家。平台相关的（魔兽RPG会员、与段位少于 20 的玩家游戏）没做
+const myName = () => G.player || me().name || '你';
+function gainAch(key, n, text) {
+  if (G.achDone[key]) return false;
+  G.achDone[key] = true; G.ach += n;
+  msg(text, 10); SFX.ui('hint'); uiDirty();
+  return true;
+}
+const ACH_COUNT = { food: [8, '人口众多'], gold: [100, '我是来换金币的'], fod: [20, '电电更健康'] };
+function achCount(k) {
+  const [need, name] = ACH_COUNT[k];
+  if (++G.achCnt[k] >= need) gainAch(name, 2, `${myName()}完成成就：${name}（当局成就 +2）`);
+}
+// 组合成就（单位 ID 和要求的座数）。深渊塔、科技塔、炎魔塔、燃烧塔本复刻还没有，后三个暂时拿不到；第 4 个原图没写名字
+const ACH_COMBO = [
+  ['高速毒塔', { h010: 1, h00E: 1, n01B: 1, h01J: 1 }],                  // 加速光环 MAX + 萨满塔 + 火速塔 + 毒塔 MAX
+  ['强力群攻', { h00P: 1, h00J: 1, h00K: 3 }],                           // 攻击光环 MAX + 兽人塔 + 3 座群攻塔 MAX
+  ['原始战速团队', { n01G: 1, n01J: 1, n01N: 1 }],                       // 箭塔 / 闪电塔 / 通灵塔 MAX
+  ['', { h01U: 1, n00I: 1, h00L: 1, h002: 1 }],                          // 减速光环 MAX + 精灵塔 MAX + 缓速塔 + 重击塔 MAX
+  ['单杀好像很不错', { h01X: 1, h000: 1, n00X: 1, h019: 1 }],             // 减防光环 MAX + 腐蚀 / 灵魂 / 混乱塔 MAX
+  ['我叫深渊流', { h03H: 1, h000: 1, h003: 1, h002: 1, n02Q: 1 }],        // 暴击 / 腐蚀 / 冰霜 / 重击塔 MAX + 超级深渊塔
+  ['神图科', { h00R: 1, n00P: 1, h02O: 1 }],                             // 神圣 / 图腾 / 科技塔 MAX
+  ['燃烧吧！燃烧吧！', { n01B: 1, n00S: 1, h040: 1 }],                   // 火速塔 + 炎魔 / 燃烧塔 MAX
+];
+function achCombo() {
+  const have = {};
+  for (const t of G.towers) if (mine(t) && t.levels && curLevel(t) && curLevel(t).id) { const id = curLevel(t).id; have[id] = (have[id] || 0) + 1; }
+  for (const [name, need] of ACH_COMBO) {
+    if (G.achFr >= 2) return;
+    if (Object.entries(need).every(([id, n]) => (have[id] || 0) >= n) && gainAch('combo:' + name, 10, `${myName()}完成成就：${name}(当局成就+10)`)) G.achFr++;
+  }
+}
+// 击杀成就：杀死敌人的是这座塔本身（GetKillingUnitBJ，召唤物不算）。原图还有天狂之神（天神塔 MAX 增加攻击上限 ≥ 30 级，技能只有 20 级）
+// 和激情扫射（扫射塔 MAX 身上并没有要求的两个技能），条件永远达不到，没有照搬
+const ACH_KILL = [
+  ['魔幻之巅', t => t.fam === '魔幻塔' && isMax(t) && t.mg.lv.every(v => v === 10)],                  // 雷霆闪电 / 穿刺之镖 / 混乱流星都是 10 级
+  ['至尊剑圣', t => t.fam === '剑圣塔' && isMax(t) && t.bm.lv.every(v => v >= 10)],                   // 剑刃 / 风暴之魂、致命一击 ≥ 10
+  ['寒冰王者', t => t.fam === '寒冰塔' && isMax(t) && t.ice.lv.every(v => v >= 10)],                  // 冰雹 / 闪冰 / 爆冰术 ≥ 10
+  ['神级弹跳', t => !!t.bmax],                                                                        // 弹跳塔 MAX
+  ['功勋将军', t => t.fam === '将军塔' && isMax(t) && [2, 3, 4].every(i => t.gen.store[i] >= 5)],     // 马 / 車 / 象 MAX
+  ['人马首领', t => t.fam === '人马塔' && t.rm.eat >= 11 && t.rm.rage >= 11 && t.rm.bomb >= 10],      // 雷嗜 / 雷怒 ≥ 11、爆雷 ≥ 10
+  ['疯狂五行', t => t.fam === '五行塔' && isMax(t) && G.wx.fu - 1 >= 5],                              // 五行激活成功 ≥ 5 次（GZ）
+  ['天之风行', t => t.fam === '风行塔' && isMax(t) && t.talent && t.wind.lv[2] === 10],              // 天赋（R006）+ 削甲箭 10 级
+];
+function achKill(src) {
+  if (G.achFr >= 1 || !src || !src.fam || !G.towers.includes(src) || !mine(src)) return;
+  for (const [name, ok] of ACH_KILL) if (ok(src) && gainAch('kill:' + name, 10, `${myName()}完成成就：${name}（当局成就 +10）`)) { G.achFr++; return; }
+}
+function achFirst() {
+  const top = board()[0];
+  if (!top) return;
+  if (top.local) gainAch('我是第一', 5, `${top.name}完成成就：我是第一   当局成就+5`);
+  else msg(`${top.name}完成成就：我是第一   当局成就+5`, 5);
+}
+function bossCount(n, name) {
+  if (++G.bossKills !== n) return;
+  msg(`所有玩家完成成就：${name}`, 10);
+  earnAch(1, name);
+}
+
+// ================================================================ 无尽关卡
+// 杀死所有龙和魔王时（原图 zI）：按第一条龙出来后的秒数（C8）加 Perfect 分：≤150 秒 +3、≤250 +2、≤350 +1；Perfect 分 ≥ 10 开启无尽，否则通关结束。
+// 开启后（zM）：180 秒倒计时，80 秒提示"无尽关卡是不能通关的"，120 秒提示怪物上限降到 每人 15；185 秒第一波，之后每 20 秒一波（zd）。
+// 每波随机 10 种怪物之一（鬼、精灵、加理瑟斯、卡尔发丝、鹿神、幽灵、大法、风之希尔、阿尔萨斯、魔），每个出怪口每 0.6 秒 1 只、共 15 只；
+// 每波怪物科技 Rhla +1（生命 +25%）；无尽积分到 10000 后每波再 +1 级 R010（生命 +25%），到 15000 后再 +1 级 R010 和 R01M（移速 +5）。
+// 无尽积分 Ds：每杀一只怪 +(NM+4)，每波 +45（8 人在场）或 离开人数×45 + 空位×54（NM = 4 的 4 人局只有杀怪分，每只 +8）。
+// 第一波开始时守卫者失去随机建造、使用木材、死亡之指；塔类之球不能买。怪数超过上限时结束，按无尽积分结算（原图 RW / zr）
+const ENDLESS_START = [[25000, 15], [24000, 14], [23000, 13], [22000, 12], [21000, 11], [20000, 10], [15000, 8], [10000, 6], [5000, 4], [1, 2]];
+// 开局按玩家档案里的无尽最高分加当局成就（原图 qi 按平台存的无尽分 Oz：≥1 +2 … ≥25000 +15）
+const endlessBonus = best => (ENDLESS_START.find(([s]) => best >= s) || [0, 0])[1];
+const endlessLock = () => !!(G.endless && G.endless.locked);
+// 无尽积分里程碑（原图 SG，每 3 秒检查）：给平台的至尊积分，这里换成账号成就（至尊 +1 = 账号成就 +10）
+const ENDLESS_GOALS = [
+  ['8人无尽达到6000分', 1, E => G.perfect >= 30 && E.score >= 6000 && G.players === 8],
+  ['8人无尽达到4000分', 1, E => G.perfect >= 30 && E.score >= 4000 && G.players === 8],
+  ['8人无尽达到2000分', 1, E => G.perfect >= 30 && E.score >= 2000 && G.players === 8],
+  ['4人无尽达到5000分', 1, E => G.perfect >= 20 && E.score >= 5000 && G.players === 4],
+  ['4人无尽达到3000分', 1, E => G.perfect >= 20 && E.score >= 3000 && G.players === 4],
+  ['多人无尽达到2000分', 1, E => G.perfect >= 30 && E.score >= 2000 && G.players !== 4 && G.players !== 8],
+  ['无尽达到10000分', 1, E => E.score >= 10000],
+  ['无尽达到12000分', 1, E => E.score >= 12000],
+  ['无尽达到15000分', 2, E => E.score >= 15000],
+];
+function finalCleared() {
+  G.final.check = false;
+  if (G.player && G.mode !== 'demo') { profileOf(G.player).clears++; earnAch(PROFILE.clear); }
+  const c8 = G.t - (G.final.dragonAt ?? G.t), fp = c8 <= 150 ? 3 : c8 <= 250 ? 2 : c8 <= 350 ? 1 : 0;
+  if (fp) { G.perfect += fp; msg(`${['', '快速', '超能', '完美'][fp]}杀死龙BOSS获得${fp}点perfect分`); }
+  msg(`perfect分数：${G.perfect}`);
+  if (G.perfect >= RULE.endlessFp) return startEndless(G.timer <= 10);
+  msg('Perfect分数小于10，未达到开启【无尽关卡】条件');
+  victory();
+}
+function startEndless(thrill) {
+  G.endless = { wave: 0, score: 0, rhla: 0, iy: 0, mg: 0, unit: null, locked: false, goals: {}, hintAt: 0, nm: G.players === 4 ? 4 : 0 };
+  G.spawners = []; G.sc = null; G.curUnit = null; G.bossRule = null; G.waveHook = null;     // 原图 zM 关掉最终波的出怪器
+  G.timer = RULE.endlessOpen;
+  G.waveNote = '　<b>无尽关卡</b>：不能通关，分数决定实力';
+  msg(`Perfect分数大于10，【无尽关卡】${RULE.endlessOpen - 5}秒后开启`, 10);
+  gainAch('无尽我来了', 3, '所有玩家完成成就：无尽我来了（当局成就+3）');
+  if (thrill) gainAch('刺激', 2, '完成成就：刺激.......   当局成就+2');
+  if (!G.rabbit) spawnRabbit(null, '我真希望能永远在大家身边！T。T');
+  later(80, () => msg('无尽关卡是不能通关的，分数决定实力', 10));
+  later(120, () => {
+    G.c9 = G.c9.map(v => v > 0 ? RULE.endlessCap : 0);
+    msg(`最大容怪数减少为【当前玩家数x${RULE.endlessCap}】`, 10);
+    msg('守护者去除随机建筑、使用木材、死亡之指；无尽怪物不会出现光环精英怪', 10);
+  });
+  refreshHint(); uiDirty();
+}
+function endlessWave() {
+  const E = G.endless;
+  if (!E.locked) { E.locked = true; if (G.menu === 'wood') G.menu = 'main'; if (G.pending === 'fod') G.pending = null; uiDirty(); }
+  E.wave++; G.timer = RULE.endlessEvery;
+  E.rhla++;
+  if (!E.nm) E.score += G.players === 8 ? 45 : G.roster.filter(p => p && p.out).length * 45 + (MAX_PLAYERS - G.players) * 54;
+  if (E.score >= 10000) E.iy++;
+  if (E.score >= 15000) { E.iy++; E.mg++; }
+  E.unit = pick(D.endless);
+  G.sc = G.curUnit = E.unit;
+  const opt = { noWaveHp: true, noElite: true, hpMul: 1 + 0.25 * (E.rhla + E.iy), speedPlus: 5 * E.mg, ...(E.unit === 'noga' ? { mdx: 'units/nightelf/wisp/wisp.mdx', scale: 1.2 } : {}) };
+  G.spawners = G.spawners.filter(s => s.word !== '无尽');
+  G.spawners.push({ word: '无尽', every: 0.6, left: RULE.endlessCount, next: 0.6, opt });
+  msg(`【无尽关卡第 ${E.wave} 波】`);
+  earnAch(PROFILE.wave);
+  refreshHint();
+}
+function endlessTick() {
+  const E = G.endless;
+  for (const [text, n, ok] of ENDLESS_GOALS) if (!E.goals[text] && ok(E)) { E.goals[text] = true; msg(`所有玩家 ${text}：至尊+${n}`, 10); earnAch(n * 10, text); }
+  if (G.t >= E.hintAt) { E.hintAt = G.t + 0.5; refreshHint(); }
+}
+function endlessEnd() {
+  const E = G.endless, c = monstersAlive();
+  G.phase = 'win'; G.score += 100; SFX.end('victory');
+  let rec = '';
+  if (G.player && G.mode !== 'demo') {
+    const p = profileOf(G.player), s = Math.min(E.score, RULE.endlessBest);
+    if (s > (p.endless || 0)) { p.endless = s; saveProfiles(); rec = '（新纪录）'; }
+  }
+  showModal(`<h2>无尽关卡结束</h2><p>当前怪数 ${c} 超过上限 ${cap()}。无尽关卡是不能通关的，分数决定实力</p>
+    <p>无尽 <b>${E.wave}</b> 波 · 无尽积分 <b style="color:#ffd257">${E.score}</b>${rec} · 击杀 ${G.kills} · Perfect ${G.perfect} · 得分 ${G.score}</p>${achSummary()}
+    <div class="row"><button class="primary" id="m-restart">再来一局</button></div>`);
+  document.getElementById('m-restart').onclick = () => { hideModal(); showStart(); };
 }
 
 // ---------------------------------------------------------------- 兔子（成就商店）
@@ -5026,12 +5200,13 @@ const RABBIT_TALK = ['跑圈啦! 跑圈啦!跑圈啦!', '咦，人呢？找不�
 // 魔法药水、天赋秘籍要选目标（放进守卫者物品栏）。4 种塔类之球每买一个 +1 许愿点；每局第一次在兔子这里买东西（重修药水除外）有 1/20 掉一包糖果（原图 BL1）
 // 魔法药水的目标（原图 BKO：有这些功勋 / 魔法技能的塔 +200，天神塔 +600；英雄没有这些技能，用不了）
 const MP_POTION_FAMS = new Set(['扫射塔', '天将塔', '巫妖塔', '剑圣塔', '魔幻塔', '风行塔', '寒冰塔', '将军塔', '神圣塔', '人马塔', '银行塔', '五行塔', '燃烧塔', '破坏塔', '小熊猫塔', '死亡塔', '狂狼塔', '深渊塔', '兽王塔', '弹跳塔']);
+const noEndless = () => G.endless ? '无尽关卡不能购买' : null;   // 4 种塔类之球原图写着"无尽不能购买"
 const orb = cat => () => { if (rerollSlot(cat) === false) return false; G.wish++; msg(`许愿点 +1（当前 ${G.wish}）`); };
 const RABBIT_SHOP = [
-  { id: 'I00K', key: 'Q', name: '原始之球', ach: 2, wood: 1, tip: '随机 1 次建造栏的原始塔<br>获得 1 点许愿点', use: orb('raw') },
-  { id: 'I00M', key: 'W', name: '光环之球', ach: 2, wood: 1, tip: '随机 1 次建造栏的光环塔<br>获得 1 点许愿点', use: orb('aura') },
-  { id: 'I00N', key: 'E', name: '辅助之球', ach: 2, wood: 1, tip: '随机 1 次建造栏的 2 个辅助塔<br>获得 1 点许愿点', use: orb('sup') },
-  { id: 'I00L', key: 'R', name: '另类之球', ach: 2, wood: 1, tip: '随机 1 次建造栏的另类塔<br>获得 1 点许愿点', use: orb('alt') },
+  { id: 'I00K', key: 'Q', name: '原始之球', ach: 2, wood: 1, why: noEndless, tip: '随机 1 次建造栏的原始塔<br>获得 1 点许愿点', use: orb('raw') },
+  { id: 'I00M', key: 'W', name: '光环之球', ach: 2, wood: 1, why: noEndless, tip: '随机 1 次建造栏的光环塔<br>获得 1 点许愿点', use: orb('aura') },
+  { id: 'I00N', key: 'E', name: '辅助之球', ach: 2, wood: 1, why: noEndless, tip: '随机 1 次建造栏的 2 个辅助塔<br>获得 1 点许愿点', use: orb('sup') },
+  { id: 'I00L', key: 'R', name: '另类之球', ach: 2, wood: 1, why: noEndless, tip: '随机 1 次建造栏的另类塔<br>获得 1 点许愿点', use: orb('alt') },
   { id: 'I01I', key: 'A', name: '5个木材', ach: 1, gold: 2500, cd: 1, tip: '购买 5 个木材', use: () => { G.wood += 5; msg('木材 +5'); } },
   { id: 'I01U', key: 'S', name: '魔法药水', ach: 2, gold: 4000, cd: 6, inv: true, range: 600,
     tip: '对一座有魔法功勋的塔（魔幻、剑圣、寒冰、神圣、扫射、银行、弹跳塔 MAX 等）使用，获得 200 点魔法；天神塔获得 600 点魔法<br>英雄塔不能使用',
@@ -5048,12 +5223,12 @@ const RABBIT_SHOP = [
       const k = growthStat(h); h.stat[k] -= 6; h.points += 3; msg(`英雄重修${statCN(k)} 6 点，技能点 +3`);
     } },
 ];
-function spawnRabbit(by) {
+function spawnRabbit(by, talk) {
   const [a, b, c, d] = W3MAP.rects[pick(['y', 'z', 'BB', 'BC'])];      // 原图 qR：外环外的左、右、上、下四块区域等概率选一块，区域内随机一点
   const x = rnd(a, c), y = rnd(b, d);
   G.rabbit = { isRabbit: true, id: G.nextId++, x, y, hx: x, hy: y, t0: G.t, until: G.t + RULE.rabbitLife, face: rnd(0, TAU), next: G.t + 1 };
   SFX.ui('hint');
-  msg(by ? `${by}召唤了一次兔子，大家快找呀！` : `兔子：${pick(RABBIT_TALK)}`);
+  msg(by ? `${by}召唤了一次兔子，大家快找呀！` : `兔子：${talk || pick(RABBIT_TALK)}`);
   msg(`兔子出现了（小地图上闪烁的粉点），${RULE.rabbitLife} 秒内让守卫者走到它旁边，用当局成就买道具`);
   uiDirty();
 }
@@ -5387,7 +5562,11 @@ function ulUp(t, n, why) {
 const godStep = () => 40 * (10 + G.petFx.gq);
 
 // ================================================================ 守护宗师（地图中央商店右边，原图 u01A）
-// 卖的东西：兔子卷轴、重置卷轴、宠物卷轴、糖果、赞、投票卷轴。绑定 / 号令卷轴要无尽关卡，英雄卷轴、轮回卷轴只能用平台成就币，没有做
+// 卖的东西：兔子卷轴、重置卷轴、宠物卷轴、糖果、赞、投票卷轴、绑定卷轴、号令卷轴。英雄卷轴、轮回卷轴只能用平台成就币，没有做
+// 绑定 / 号令卷轴（原图 BK5 / BK8）：绑定把这局建造栏里的成长塔（17 种主塔之一，原图 Qf）存进平台存档 bd；号令花 20 当局成就，
+// 把建造栏的成长塔换成绑定的那种。这里存进玩家档案。原图绑定写着"20 点成就、2 人或以上到达无尽关卡"，触发器里既不扣也不查，
+// 这里只要求本局到达无尽关卡（单人也能绑）
+const mainSlot = () => SLOTS.indexOf('main');
 const MASTER_ITEMS = [
   { id: 'I00S', key: 'Q', name: '兔子卷轴', ach: RULE.rabbitScrollAch, tip: '额外召唤一次兔子，每局只能额外召唤 1 次',
     why: () => G.rabbitScroll ? '召唤失败，每局只能额外召唤一次' : G.rabbit ? '兔子已经在场上了' : null, use: () => { G.rabbitScroll = true; spawnRabbit('你'); } },
@@ -5400,6 +5579,12 @@ const MASTER_ITEMS = [
   { id: 'I01V', key: 'A', name: '赞', ach: 10, tip: '消耗 10 点成就为一位队友点赞，每局只能为一位队友点赞<br>到达第 48 波后开启', why: likeBlock, use: () => { G.ach += 10; buyLike(); } },
   { id: 'I01Q', key: 'S', name: '投票卷轴', tip: '发起踢出玩家的投票：所有玩家各投一票（每票 +2），票数超过在场人数的玩家被踢出<br>原图写的是 1 点英雄点或 20 成就币，触发器里实际不扣',
     why: voteBlock, use: () => startVote(G.me) },
+  { id: 'I00T', key: 'D', name: '绑定卷轴', tip: '把这局建造栏里的成长塔（主塔）绑定到玩家档案，以后的局可以买号令卷轴把它放进建造栏<br>要到达无尽关卡；再绑定会覆盖上一次的',
+    why: () => !G.endless ? '要到达无尽关卡才能绑定' : !G.player || G.mode === 'demo' ? '没有玩家档案，不能绑定' : null,
+    use: () => { const f = G.build[mainSlot()]; profileOf(G.player).bound = f; saveProfiles(); msg(`绑定成功：${f}`); } },
+  { id: 'I00U', key: 'F', name: '号令卷轴', ach: 20, tip: '把建造栏的成长塔（主塔）换成玩家档案里绑定的那种',
+    why: () => { const b = G.player && profileOf(G.player).bound; return !b ? '未绑定成长塔，号令失败' : G.build[mainSlot()] === b ? `建造栏的成长塔已经是${b}` : null; },
+    use: () => { const b = profileOf(G.player).bound; G.build[mainSlot()] = b; if (G.placing && D.towers[G.placing] && D.towers[G.placing].cat === 'main') G.placing = null; msg(`成就号令成功：建造栏的成长塔换成了${b}`); uiDirty(); } },
 ];
 
 // ================================================================ 地上的物品（原图 CreateItemLoc）
@@ -5804,6 +5989,7 @@ function step(dt) {
   G.timer -= dt;
   if (G.timer <= 0) {
     if (G.phase === 'prep') { G.phase = 'run'; startWave(); }
+    else if (G.endless) endlessWave();
     else if (G.final) return gameOver('300 秒内没有杀死所有龙和魔王');
     else if (G.finalCountdown) startFinal();
     else startWave();
@@ -5815,7 +6001,7 @@ function step(dt) {
   // 出怪
   for (const s of G.spawners) {
     s.next -= dt;
-    while (s.next <= 0 && s.left > 0) { if (G.sc) for (const g of G.gates) spawnMonster(G.sc, { gate: g }); s.left--; s.next += s.every; }   // 每个开着的出怪口各刷 1 只"当前出怪单位"（原图的 Ul）
+    while (s.next <= 0 && s.left > 0) { if (G.sc) for (const g of G.gates) spawnMonster(G.sc, { gate: g, ...s.opt }); s.left--; s.next += s.every; }   // 每个开着的出怪口各刷 1 只"当前出怪单位"（原图的 Ul）
   }
   G.spawners = G.spawners.filter(s => s.left > 0);
   builderUpdate(dt);
@@ -5851,13 +6037,14 @@ function step(dt) {
   G.monsters = G.monsters.filter(m => !m.dead);
   separateMonsters();
   // 规则检查
-  if (G.phase === 'run' && monstersAlive() > cap()) return gameOver(`当前怪数 ${monstersAlive()} 超过上限 ${cap()}`);
+  if (G.phase === 'run' && monstersAlive() > cap()) return G.endless ? endlessEnd() : gameOver(`当前怪数 ${monstersAlive()} 超过上限 ${cap()}`);
+  if (G.endless) endlessTick();
   if (G.bossRule && G.t > G.bossRule.killBy) {
     if (G.bossRule.ids.some(b => b && !b.dead)) return gameOver('100 秒内没有杀死所有 BOSS');
     G.bossRule = null;
   }
   if (G.bossRule && G.bossRule.ids.every(b => !b || b.dead)) { msg('BOSS 已全部击杀！'); G.bossRule = null; }
-  if (G.final && G.final.check && G.final.need.every(m => m.dead)) return victory();
+  if (G.final && G.final.check && !G.endless && G.final.need.every(m => m.dead)) return finalCleared();
   // 特效
   for (const f of G.fx) f.life -= dt;
   FXS.update(dt);
@@ -5867,7 +6054,7 @@ function step(dt) {
 function achSummary() {
   if (!G.player || G.mode === 'demo') return '';
   const p = profileOf(G.player), t = achTier(p.pts);
-  return `<p>${G.player}：本局账号成就 <b style="color:#ff9ad5">+${G.earned}</b>，共 ${p.pts} 点 · ${t.name}（下局开局当局成就 ${RULE.startAch + t.lv}${t.next ? `，${t.next} 点升下一档` : ''}）</p>`;
+  return `<p>${G.player}：本局账号成就 <b style="color:#ff9ad5">+${G.earned}</b>，共 ${p.pts} 点 · ${t.name}${p.endless ? ` · 无尽最高 ${p.endless} 分` : ''}（下局开局当局成就 ${RULE.startAch + t.lv + endlessBonus(p.endless || 0)}${t.next ? `，${t.next} 点升下一档` : ''}）</p>`;
 }
 function gameOver(reason) {
   G.phase = 'over'; SFX.end('defeat');
@@ -5885,9 +6072,8 @@ function demoEnd() {
 }
 function victory() {
   G.phase = 'win'; SFX.end('victory');
-  if (G.player && G.mode !== 'demo') { profileOf(G.player).clears++; earnAch(PROFILE.clear); }
   showModal(`<h2>通关！</h2><p>你杀死了最终 BOSS。击杀 ${G.kills} · Perfect ${G.perfect} · 得分 ${G.score}</p>${achSummary()}
-    <p>${G.perfect >= 10 ? '原版中 Perfect ≥ 10 会开启无尽关卡（本复刻暂未实现）。' : 'Perfect 未达到 10，原版中不能开启无尽关卡。'}</p>
+    <p>Perfect 分未达到 ${RULE.endlessFp}，没有开启无尽关卡（每波开始时场上没有怪 +1，杀死龙越快加得越多）。</p>
     <div class="row"><button class="primary" id="m-restart">再来一局</button></div>`);
   document.getElementById('m-restart').onclick = () => { hideModal(); showStart(); };
 }
@@ -6683,7 +6869,7 @@ function renderTop() {
   $('r-food').textContent = foodUsed() + '/' + G.foodCap;
   $('r-ach').textContent = G.ach;
   $('r-mode').textContent = MODES[G.mode].name;
-  $('w-title').textContent = G.phase === 'prep' ? '准备阶段' : G.wave >= 48 ? '最终BOSS' : `第${G.wave}波`;
+  $('w-title').textContent = G.phase === 'prep' ? '准备阶段' : G.endless ? (G.endless.wave ? `无尽第${G.endless.wave}波` : '无尽关卡') : G.wave >= 48 ? '最终BOSS' : `第${G.wave}波`;
   const t = Math.max(0, Math.ceil(G.timer));
   $('w-timer').textContent = `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
   const c = monstersAlive(), cp = cap();
@@ -6983,18 +7169,18 @@ function buildCmds() {
       out.push(back); return out;
     }
     if (G.menu === 'wood') {
-      out.push(cmd('Q', '人', '购买人口', '用 <b>12 木材</b>购买 1 个人口', () => { if (G.wood < RULE.foodPrice) return msg('木材不足'); G.wood -= RULE.foodPrice; G.foodCap++; msg('用 12 木材兑换了 1 个人口'); uiDirty(); }, { disabled: G.wood < 12, ico: 'buyfood' }));
-      out.push(cmd('W', '金', '兑换金币', '<b>1 木材</b>兑换 300 金币', () => { if (G.wood < 1) return msg('木材不足'); G.wood--; G.gold += RULE.woodToGold; uiDirty(); }, { disabled: G.wood < 1, ico: 'wood2gold' }));
+      out.push(cmd('Q', '人', '购买人口', '用 <b>12 木材</b>购买 1 个人口', () => { if (G.wood < RULE.foodPrice) return msg('木材不足'); G.wood -= RULE.foodPrice; G.foodCap++; msg('用 12 木材兑换了 1 个人口'); achCount('food'); uiDirty(); }, { disabled: G.wood < 12, ico: 'buyfood' }));
+      out.push(cmd('W', '金', '兑换金币', '<b>1 木材</b>兑换 300 金币', () => { if (G.wood < 1) return msg('木材不足'); G.wood--; G.gold += RULE.woodToGold; achCount('gold'); uiDirty(); }, { disabled: G.wood < 1, ico: 'wood2gold' }));
       while (out.length < 11) out.push(null); out.push(back); return out;
     }
     out.push(cmd('M', '➜', '移动', '移动守卫者。也可以选中守卫者后直接右键 / 点击地面', () => { G.pending = 'move'; G.placing = null; uiDirty(); }, { active: G.pending === 'move', ico: 'move' }));
     out.push(cmd('S', '■', '停止', '停止当前命令（包括排队的命令）', () => { e.order = null; e.queue = []; G.pending = null; G.placing = null; uiDirty(); }, { ico: 'stop' }));
     out.push(cmd('F', '✦', '闪烁', '全图闪烁：瞬间移动到目标点，冷却 1 秒', () => { G.pending = 'blink'; G.placing = null; uiDirty(); }, { active: G.pending === 'blink', ico: 'blink' }));
     out.push(cmd('B', '建', '建造', '打开建造栏（当前随机给出的 7 个塔 + 1 个英雄塔）', () => { G.menu = 'build'; uiDirty(); }, { ico: 'build' }));
-    out.push(cmd('R', '🎲', '随机建造', `重新随机建造栏：1 主塔、1 原始塔、1 光环塔、1 新辅助（大辅助 / 巫系）、1 小辅助、1 另类塔、1 全场唯一、1 英雄塔<br>${G.rerolls === 0 ? '首次免费' : `需要 ${RULE.rerollWood} 木材`}`, () => rerollBuild(false), { disabled: G.rerolls > 0 && G.wood < RULE.rerollWood, ico: 'reroll' }));
-    out.push(cmd('U', '木', '使用木材', '购买人口（12 木）、兑换金币（1 木 → 300 金）。买木材去地图中央的商店', () => { G.menu = 'wood'; uiDirty(); }, { ico: 'woodmenu' }));
+    if (!endlessLock()) out.push(cmd('R', '🎲', '随机建造', `重新随机建造栏：1 主塔、1 原始塔、1 光环塔、1 新辅助（大辅助 / 巫系）、1 小辅助、1 另类塔、1 全场唯一、1 英雄塔<br>${G.rerolls === 0 ? '首次免费' : `需要 ${RULE.rerollWood} 木材`}`, () => rerollBuild(false), { disabled: G.rerolls > 0 && G.wood < RULE.rerollWood, ico: 'reroll' }));
+    if (!endlessLock()) out.push(cmd('U', '木', '使用木材', '购买人口（12 木）、兑换金币（1 木 → 300 金）。买木材去地图中央的商店', () => { G.menu = 'wood'; uiDirty(); }, { ico: 'woodmenu' }));
     const fw = fodBlock();
-    out.push(cmd('X', '指', '死亡之指', `<span class="atk atk-magic">主动</span> 射程 ${FOD.range} · 冷却 ${FOD.cd} 秒 · <span style="color:#7ab8ff">${FOD.mana} 魔法</span><br>选择一个敌人：直接杀死它。<br>BOSS 只损失一部分生命（大红牛 7000、大骷髅 2.5 万、直升机 / 游艇 / 魔王 10 万、龙 / 狗头人 BOSS 生命高于 15 万时 10 万，按模式缩放）${fw ? `<br><b style="color:#ff5a4f">${fw}</b>` : ''}`,
+    if (!endlessLock()) out.push(cmd('X', '指', '死亡之指', `<span class="atk atk-magic">主动</span> 射程 ${FOD.range} · 冷却 ${FOD.cd} 秒 · <span style="color:#7ab8ff">${FOD.mana} 魔法</span><br>选择一个敌人：直接杀死它。<br>BOSS 只损失一部分生命（大红牛 7000、大骷髅 2.5 万、直升机 / 游艇 / 魔王 10 万、龙 / 狗头人 BOSS 生命高于 15 万时 10 万，按模式缩放）${fw ? `<br><b style="color:#ff5a4f">${fw}</b>` : ''}`,
       () => { const why = fodBlock(); if (why) return msg(why); G.pending = 'fod'; G.placing = null; msg('死亡之指：选择一个敌人（Esc 取消）'); uiDirty(); },
       { ico: 'fod', active: G.pending === 'fod', cdOf: () => [fodLeft(), FOD.cd] }));
     return out;
@@ -7336,7 +7522,7 @@ function fitDialog() {
 window.addEventListener('resize', () => { if (!$('modal').classList.contains('hidden')) fitDialog(); });
 // 开局先输入玩家名称（代替原图的平台账号）：同名继承账号成就点数，下面列出本机已有的名称可以直接点
 const escHtml = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-const profileLine = name => { const p = profileOf(name), t = achTier(p.pts); return `${p.pts} 点 · ${t.name} · 开局当局成就 ${RULE.startAch + t.lv}`; };
+const profileLine = name => { const p = profileOf(name), t = achTier(p.pts); return `${p.pts} 点 · ${t.name}${p.endless ? ` · 无尽最高 ${p.endless} 分` : ''} · 开局当局成就 ${RULE.startAch + t.lv + endlessBonus(p.endless || 0)}`; };
 function askName() {
   const names = Object.keys(profiles.all).sort((a, b) => profiles.all[b].pts - profiles.all[a].pts).slice(0, 4);
   const foot = `同一个名称继承它的账号成就点数（存在本机浏览器里）。账号成就每到达新的一波 +${PROFILE.wave}、每次 Perfect +${PROFILE.perfect}、通关 +${PROFILE.clear}，攒够档位开局多给当局成就；英雄塔要 ${RULE.heroAch} 点当局成就才能建`;
@@ -7402,8 +7588,15 @@ function showHelp() {
     <p><b>商店</b>：地图中央，守卫者走到 ${RULE.shopReach} 范围内选中商店购买：1 个木材（500 金，冷却 30 秒）、10 个木材（5000 金，冷却 300 秒）、魔力卷轴（英雄塔 +120 魔法）、知识之书（英雄塔随机属性 +10）、天赋卷轴（15 木，MAX 光环塔激活基础天赋，开局 1200 秒后开放）。三种卷轴买下后放进守卫者的<b>物品栏</b>（6 格），选中守卫者点物品（或小键盘 7 8 4 5 1 2），再点目标塔，守卫者走到施法距离内使用。复制 / 收购卷轴要对队友使用（守卫者 / 允许收购的 1 级光环塔）。商店两边还有<b>宠物商人</b>（左）、<b>守护宗师</b>和<b>许愿商人</b>（右）。物品栏的物品在商店旁边右键可以出售。</p>
     <p><b>宠物</b>：宠物商人卖 11 种宠物（8 当局成就，每人一只），跟着守卫者走、自动攻击，攻击每波提升；选中宠物激活普通天赋（10 木）后，对<b>小精灵</b>（外环外每 100 秒刷一只）用<b>糖果</b>（守护宗师 5 成就 5 个，地上也会掉）可以升级宠物技能。10 波 BOSS 后外环外出现野生宠物，用糖果抓（抓到的记进玩家档案，下局用宠物卷轴召唤）。</p>
     <p><b>许愿</b>：兔子的塔类之球每个 +1 许愿点，出售许愿石（BOSS 掉落）/ 梦 +5，凑齐"马上有梦" +20；在许愿商人那里花 20 许愿点把建造栏的一格换成想要的塔。</p>
-    <p><b>守护宗师</b>：兔子卷轴、重置卷轴（重新随机英雄成长值）、宠物卷轴、糖果、赞（48 波后给队友点赞）、投票卷轴（投票踢人：每票 +2，超过在场人数踢出）。每波发金 = 杀敌排行名次 ×8 + 波数 ×2。</p>
+    <p><b>守护宗师</b>：兔子卷轴、重置卷轴（重新随机英雄成长值）、宠物卷轴、糖果、赞（48 波后给队友点赞）、投票卷轴（投票踢人：每票 +2，超过在场人数踢出）、绑定卷轴（到达无尽关卡后把这局的主塔绑定到玩家档案）、号令卷轴（20 成就，把建造栏的主塔换成绑定的那种）。每波发金 = 杀敌排行名次 ×8 + 波数 ×2。</p>
     <p><b>兔子</b>：每个 BOSS 波（10/20/30/40 波、最终波）开始 ${RULE.rabbitDelay} 秒后，地图随机位置出现一只兔子（小地图粉点），${RULE.rabbitLife} 秒后消失。守卫者走到它 ${RULE.rabbitReach} 范围内，选中兔子就能用<b>当局成就</b>买道具：4 种塔类之球（重新随机建造栏的某一类塔）、5 个木材、魔法药水（有魔法功勋的塔 +200，天神塔 +600）、知识药水、重修药水（属性选择那项 -6、技能点 +3，每局 1 支）。当局成就开局 ${RULE.startAch} 点（拒绝逃跑）再加账号成就档位 +0~10，每次 Perfect +${RULE.achPerPerfect}；守护宗师的<b>兔子卷轴</b>（${RULE.rabbitScrollAch} 成就）可以额外召唤一次兔子；兔子还卖天赋秘籍（5 成就 + 20 木，MAX 光环至尊天赋 / 唯一塔技能 +2 级，每局 4 个）。</p>
+    <p><b>当局成就的其他来源</b>：购买人口 8 次（人口众多）、木材换金币 100 次（我是来换金币的）、死亡之指 20 次（电电更健康）各 +2；
+      同时拥有指定组合的塔（升级完成时检查）+10：高速毒塔（加速光环 MAX + 萨满 + 火速 + 毒塔 MAX）、强力群攻（攻击光环 MAX + 兽人 + 3 座群攻塔 MAX）、原始战速团队（箭塔 / 闪电塔 / 通灵塔 MAX）、
+      无名（减速光环 MAX + 精灵塔 MAX + 缓速 + 重击塔 MAX）、单杀好像很不错（减防光环 MAX + 腐蚀 / 灵魂 / 混乱塔 MAX）；MAX 主塔技能练满后亲手杀敌 +10：魔幻之巅、至尊剑圣、寒冰王者、神级弹跳、功勋将军、人马首领、疯狂五行、天之风行。
+      组合和击杀成就一局最多 2 个，已经拿了组合成就就拿不到击杀成就。最终 BOSS 倒计时时杀敌第一 +5（我是第一），开启无尽 +3（无尽我来了），最后 10 秒杀死龙和魔王并开启无尽 +2（刺激）。</p>
+    <p><b>无尽关卡</b>：杀死龙和魔王时按出龙后的秒数加 Perfect 分（≤150 秒 +3、≤250 秒 +2、≤350 秒 +1），Perfect 分 ≥ ${RULE.endlessFp} 就开启无尽关卡，否则直接通关。
+      ${RULE.endlessOpen} 秒后第一波，之后每 ${RULE.endlessEvery} 秒一波，每波随机 10 种怪物之一，每个出怪口 ${RULE.endlessCount} 只，每波生命 +25%（积分 1 万、1.5 万后涨得更快）；怪物上限降到每人 ${RULE.endlessCap}，守卫者失去随机建造、使用木材和死亡之指，塔类之球不能买。
+      无尽不能通关，怪数超过上限时结束，按无尽积分（杀怪 +4、每波按空位加分）结算。玩家档案记下无尽最高分，下局开局多给当局成就（≥1 +2、≥5000 +4、≥1 万 +6、≥1.5 万 +8、≥2 万 +10 …… ≥2.5 万 +15）。</p>
     <p><b>英雄塔</b>：每次随机建造给出 1 个英雄塔（和原图随机模式一样），1500 金 + 5 木材 + 4 人口，还要 <b>${RULE.heroAch} 点当局成就</b>（建成扣掉），全场唯一，建造后不能回收。建成时随机给出力量 / 敏捷 / 智力的成长值（合计 10），每次升级按成长值加属性；属性选择决定杀精英怪 +1 的属性和满级后升级 +3 的属性。升级要 等级×100 金 + 200 魔法（英雄每击杀 +2 魔法）。学技能：第 1 个免费；第 2/3/4 个分别要 18/36/54 木材，且力量 ≥ 80/160/240，最多 4 个（第 5 个特殊技能有额外条件）。英雄有技能点：建成 3 点、每升一级 3~9 点，每点力量 / 敏捷 / 智力 +2 或随机。
       随机建造在原图随机模式的 17 个英雄里抽，原图的主动技能都是攻击时自动放。</p>
     <p><b>账号成就</b>（玩家 ${escHtml(G.player || '—')}：${G.player ? profileLine(G.player) : '未登记'}）：开局输入的玩家名称代替原图的平台账号，同名继承点数，存在本机浏览器里。每到达新的一波 +${PROFILE.wave}、每次 Perfect +${PROFILE.perfect}、通关 +${PROFILE.clear}（演示模式不算）。
