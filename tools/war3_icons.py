@@ -33,6 +33,7 @@ GENERIC = {
     'wood2gold': A['A05L']['Art'], 'gold2wood': 'ReplaceableTextures/CommandButtons/BTNBundleOfLumber', 'learn': A['A05X']['Art'],
     'sell': A['A04B']['Art'], 'switchdmg': A['A06V']['Art'], 'fod': A['A04W']['Art'],   # 守卫者的死亡之指
     'talent': A['A053']['Art'],   # 守卫者"使用木材"里的激活天赋
+    'stomp': A['A03W']['Art'],    # 守卫者的守护神技
     'str': A['A05Y']['Art'], 'agi': A['A060']['Art'], 'int': A['A05Z']['Art'], 'upgrade': A['A0B6']['Art'],   # 英雄的力量 / 敏捷 / 智力、升级
     'branch-pierce': A['A03H']['Art'], 'branch-magic': A['A04E']['Art'], 'branch-normal': A['A04G']['Art'], 'branch-chaos': A['A04H']['Art'],
 }

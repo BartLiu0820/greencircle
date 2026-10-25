@@ -32,7 +32,7 @@ const MODES = {
   // 新人随机模式（原图 JI = 1，BcR：半数以上玩家荣誉少于 30 时自动开启）：BcQ 每人 +2000 金、+7 木、+2 人口；
   // wX 每波 38 秒、发金 名次×12 + 波数×4（普通是 ×8 + ×2）；最终波魔王不带按人数加的物品。怪物生命不变
   rookie: { name: '新人随机', interval: 38, hp: 1, gold: 4000, wood: 12, food: 8, waveGold: [12, 4], plainBoss: true, short: '原图新人模式',
-            desc: '原图的新人随机模式：起手多 2000 金、7 木、2 人口；38 秒/波，每波发金翻倍（名次×12 + 波数×4）；魔王降低血量。怪物生命是原图数值' },
+            desc: '原图的新人随机模式：起手多 2000 金、7 木、2 人口；38 秒/波，每 5 秒发金翻倍（名次×12 + 波数×4）；魔王降低血量。怪物生命是原图数值' },
   origin: { name: '原版数值', interval: 33, hp: 1, food: 6, short: '8 人合作难度', desc: '33 秒/波，原图数值（原图为 8 人合作设计，单人极难）' },
   relax: { name: '休闲', interval: 50, hp: 0.2, food: 10, short: '50 秒一波', desc: '50 秒/波（旧版节奏），怪物生命 ×0.2，起手人口 10' },
   demo: { name: '演示', interval: 38, hp: 0.35, food: 20, desc: '只打前 2 波；固定英雄剑神和 5 种塔，开局 60000 金方便演示升级', hidden: true,
@@ -559,6 +559,19 @@ const FOD = { range: 800, cd: 90, mana: 5, maxMana: 10, regen: 2, mdx: 'abilitie
 const FOD_BOSS = { nsqt: 7000, nsko: 25000, nsoc: 25000, nslm: 1e6, ndrj: 1e5, n06Y: 1e5, Udre: 1e5, Udea: 1e5 };
 const FOD_DRAGON = ['nbzd', 'nrdr', 'nrdk', 'ngrd', 'nkob', 'nkot', 'nkog', 'ngst', 'njga'];
 const fodLeft = () => Math.max(0, G.builder.fodAt - G.t);
+// 守护神技（原图 A03W，守卫者自带的战争践踏）：900 范围敌人晕眩 3 秒，冷却 30 秒，10 魔法。原图按上月段位每 20 段 +1 级（最多 4 级、晕眩 6 秒），
+// 这里没有平台段位，一直是 1 级；无尽关卡里和死亡之指一起被去掉（原图 zL）
+const STOMP = { r: 900, stun: 3, cd: 30, mana: 10 };
+const stompLeft = () => Math.max(0, (G.builder.stompAt || 0) - G.t);
+function stompBlock() { return endlessLock() ? '无尽关卡里守卫者没有守护神技' : stompLeft() > 0 ? '守护神技冷却中' : G.builder.mana < STOMP.mana ? '魔法值不足' : null; }
+function castStomp() {
+  const b = G.builder, why = stompBlock();
+  if (why) return msg(why);
+  b.mana -= STOMP.mana; b.stompAt = G.t + STOMP.cd; b.spellT = G.t;
+  stunArea(b, STOMP.r, STOMP.stun);
+  FXS.nova(b.x, b.y, STOMP.r, '#d8b070', 0.6); FXS.dust(b.x, b.y, '#9a7a50', 24);
+  uiDirty();
+}
 function fodBlock() { return endlessLock() ? '无尽关卡里守卫者没有死亡之指' : fodLeft() > 0 ? '死亡之指冷却中' : G.builder.mana < FOD.mana ? '魔法值不足' : null; }
 function orderFinger(m, queue) {
   if (!m || !m.uid || m.dead) return msg('只能对敌人使用');
@@ -2208,6 +2221,16 @@ const KITS = {
     },
     talent: { wood: 25, name: '召唤精灵（捷技）', max: true, tip: '召唤精灵冷却 3.2 → 2.5 秒（A06B 2 级）' },
     info(t) { const [n, d, root, cd] = KITS.精灵塔.lv(t); return [`召唤精灵：每 ${t.talent ? 2.5 : cd} 秒 ${n} 个，每个 ${d} 魔法伤害、纠缠 200 范围 ${root} 秒`]; },
+  },
+  // 破坏塔 MAX：极速破坏 A0GK（攻速"耐久光环"，和加速光环不叠加）1~4 级攻速 +100% / +200% / +400% / +600%（技能表数值，说明写的是 +100%~+400%）；
+  // 杀敌 +1 魔法（原图 BGc，魔法上限 400、每秒回 0.2），攻击时技能等级升到 魔法÷100（只升不降，原图 BBr 一带）
+  破坏塔: {
+    haste: [1, 2, 4, 6],
+    tick(t) { if (isMax(t)) { t.maxMana = 400; t.manaRegen = 0.2; t.gk = t.gk || 1; } },
+    self: t => isMax(t) ? { as: KITS.破坏塔.haste[t.gk - 1] } : null,
+    attack(t) { if (isMax(t) && t.gk < Math.min(4, Math.floor(t.mana / 100))) { t.gk = Math.min(4, Math.floor(t.mana / 100)); msg(`破坏塔 MAX：极速破坏升到 ${t.gk} 级`); } },
+    kill(t) { if (isMax(t)) addMana(t, 1); },
+    info: t => isMax(t) ? [`极速破坏 ${t.gk || 1} 级：攻速 +${pctTxt(KITS.破坏塔.haste[(t.gk || 1) - 1])}（不和加速光环叠加）${(t.gk || 1) < 4 ? `，魔法 ${(t.gk || 1) * 100 + 100} 时升级` : ''}`] : [],
   },
   // 地精塔：魔法满 10 点时火箭群激活——这次和之后 3 次攻击打 1000 范围内所有敌人，消耗 10 魔法；每秒回魔 0.5/1/1/1.5，杀敌 +1
   地精塔: {
@@ -5207,9 +5230,6 @@ function startWave() {
   if (G.player && G.mode !== 'demo') { const p = profileOf(G.player); if (G.wave > p.best) p.best = G.wave; }
   earnAch(PROFILE.wave);
   G.score -= alive;
-  // 每波发金：排行榜名次 ×8 + 波数 ×2（原图 wX：LeaderboardGetPlayerIndexBJ，按杀敌数排，名次越靠后拿得越多；只有你一人时是第 1 名）；新人随机模式 ×12 + ×4
-  const [gr, gw] = MODES[G.mode].waveGold || [8, 2];
-  for (const p of activePlayers()) addGold(p, rankOf(p.slot) * gr + G.wave * gw);
   G.bossRule = null; G.waveHook = null; G.waveNote = ''; G.curUnit = null;
   const n = G.wave, { fn, row } = G.next;
   SFX.stinger(n);                                  // 原图每波开始放一段音乐（war3map.j 的 PlaySoundBJ）
@@ -5406,13 +5426,14 @@ function achCombo() {
     if (Object.entries(need).every(([id, n]) => (have[id] || 0) >= n) && gainAch('combo:' + name, 10, `${myName()}完成成就：${name}(当局成就+10)`)) G.achFr++;
   }
 }
-// 击杀成就：杀死敌人的是这座塔本身（GetKillingUnitBJ，召唤物不算）。原图还有天狂之神（天神塔 MAX 增加攻击上限 ≥ 30 级，技能只有 20 级）
-// 和激情扫射（扫射塔 MAX 身上并没有要求的两个技能），条件永远达不到，没有照搬
+// 击杀成就：杀死敌人的是这座塔本身（GetKillingUnitBJ，召唤物不算）。原图还有天狂之神（天神塔 MAX 增加攻击上限 ≥ 30 级，技能只有 20 级），
+// 条件永远达不到，没有照搬
 const ACH_KILL = [
   ['魔幻之巅', t => t.fam === '魔幻塔' && isMax(t) && t.mg.lv.every(v => v === 10)],                  // 雷霆闪电 / 穿刺之镖 / 混乱流星都是 10 级
   ['至尊剑圣', t => t.fam === '剑圣塔' && isMax(t) && t.bm.lv.every(v => v >= 10)],                   // 剑刃 / 风暴之魂、致命一击 ≥ 10
   ['寒冰王者', t => t.fam === '寒冰塔' && isMax(t) && t.ice.lv.every(v => v >= 10)],                  // 冰雹 / 闪冰 / 爆冰术 ≥ 10
   ['神级弹跳', t => !!t.bmax],                                                                        // 弹跳塔 MAX
+  ['激情扫射', t => t.fam === '扫射塔' && isMax(t) && t.sw.bat >= 8 && t.sw.cannon >= 8],              // 巨魔蝙蝠 / 炮都到 MAX（8 级）
   ['功勋将军', t => t.fam === '将军塔' && isMax(t) && [2, 3, 4].every(i => t.gen.store[i] >= 5)],     // 马 / 車 / 象 MAX
   ['人马首领', t => t.fam === '人马塔' && t.rm.eat >= 11 && t.rm.rage >= 11 && t.rm.bomb >= 10],      // 雷嗜 / 雷怒 ≥ 11、爆雷 ≥ 10
   ['疯狂五行', t => t.fam === '五行塔' && isMax(t) && G.wx.fu - 1 >= 5],                              // 五行激活成功 ≥ 5 次（GZ）
@@ -5440,7 +5461,7 @@ function bossCount(n, name) {
 // 每波随机 10 种怪物之一（鬼、精灵、加理瑟斯、卡尔发丝、鹿神、幽灵、大法、风之希尔、阿尔萨斯、魔），每个出怪口每 0.6 秒 1 只、共 15 只；
 // 每波怪物科技 Rhla +1（生命 +25%）；无尽积分到 10000 后每波再 +1 级 R010（生命 +25%），到 15000 后再 +1 级 R010 和 R01M（移速 +5）。
 // 无尽积分 Ds：每杀一只怪 +(NM+4)，每波 +45（8 人在场）或 离开人数×45 + 空位×54（NM = 4 的 4 人局只有杀怪分，每只 +8）。
-// 第一波开始时守卫者失去随机建造、使用木材、死亡之指；塔类之球不能买。怪数超过上限时结束，按无尽积分结算（原图 RW / zr）
+// 第一波开始时守卫者失去随机建造、使用木材、死亡之指、守护神技；塔类之球不能买。怪数超过上限时结束，按无尽积分结算（原图 RW / zr）
 const ENDLESS_START = [[25000, 15], [24000, 14], [23000, 13], [22000, 12], [21000, 11], [20000, 10], [15000, 8], [10000, 6], [5000, 4], [1, 2]];
 // 开局按玩家档案里的无尽最高分加当局成就（原图 qi 按平台存的无尽分 Oz：≥1 +2 … ≥25000 +15）
 const endlessBonus = best => (ENDLESS_START.find(([s]) => best >= s) || [0, 0])[1];
@@ -5480,7 +5501,7 @@ function startEndless(thrill) {
   later(120, () => {
     G.c9 = G.c9.map(v => v > 0 ? RULE.endlessCap : 0);
     msg(`最大容怪数减少为【当前玩家数x${RULE.endlessCap}】`, 10);
-    msg('守护者去除随机建筑、使用木材、死亡之指；无尽怪物不会出现光环精英怪', 10);
+    msg('守护者去除随机建筑、使用木材、死亡之指、守护神技；无尽怪物不会出现光环精英怪', 10);
   });
   refreshHint(); uiDirty();
 }
@@ -6389,6 +6410,13 @@ function step(dt) {
     else if (G.finalCountdown) startFinal();
     else startWave();
   }
+  // 发金（原图 R6 / wX：开局就打开的 5 秒周期触发器）：每 5 秒给 排行榜名次 ×8 + 波数 ×2（LeaderboardGetPlayerIndexBJ，按杀敌数排，
+  // 名次越靠后拿得越多；只有你一人时是第 1 名）；新人随机模式 ×12 + ×4
+  if ((G.incomeT = (G.incomeT || 0) + dt) >= 5) {
+    G.incomeT -= 5;
+    const [gr, gw] = MODES[G.mode].waveGold || [8, 2];
+    for (const p of activePlayers()) addGold(p, rankOf(p.slot) * gr + G.wave * gw);
+  }
   // 延时事件
   const due = G.timeouts.filter(x => x.at <= G.t);
   G.timeouts = G.timeouts.filter(x => x.at > G.t);
@@ -7272,7 +7300,7 @@ function renderTop() {
   $('w-count').className = c > cp * 0.8 ? 'danger' : c > cp * 0.5 ? 'warn' : '';
   $('w-perfect').textContent = G.perfect;
   if ($('w-hint').dataset.v !== G.hint) { $('w-hint').innerHTML = G.hint; $('w-hint').dataset.v = G.hint; }
-  // 排行榜（原图 RF：按杀敌数排，每波发金按名次）
+  // 排行榜（原图 RF：按杀敌数排，每 5 秒发金按名次）
   const bd = board().map((p, i) => `<span class="${p.local ? 'me' : ''}">${i + 1}. ${escHtml(p.name)} <b>${p.kills}</b></span>`).join('　')
     + G.roster.filter(p => p.out).map(p => `　<span class="out">${escHtml(p.name)}</span>`).join('') + (G.wish ? `　许愿点 <b>${G.wish}</b>` : '');
   if ($('w-board').dataset.v !== bd) { $('w-board').innerHTML = '杀敌排行：' + bd; $('w-board').dataset.v = bd; }
@@ -7341,7 +7369,7 @@ function renderInfo() {
   } else if (e.isBuilder) {
     left = portrait(e, '守', '#a5521a') + bar('hp', 1, 1, '400000') + bar('mp', e.mana, FOD.maxMana, `${Math.floor(e.mana)} / ${FOD.maxMana}`);
     mid = `<div class="nm">循环圈守卫者</div><div class="sub">建造者 · 无敌的</div>
-      <div class="kv"><span>移动速度</span><b>500</b><span>技能</span><b>建造 · 随机建造 · 使用木材 · 全图闪烁 · 死亡之指</b>
+      <div class="kv"><span>移动速度</span><b>500</b><span>技能</span><b>建造 · 随机建造 · 使用木材 · 全图闪烁 · 死亡之指 · 守护神技</b>
       <span>状态</span><b>${builderState(e)}</b></div>`;
   } else if (e.isHero) {
     const st = heroStats(e), hd = D.heroes[e.heroName];
@@ -7581,6 +7609,9 @@ function buildCmds() {
     if (!endlessLock()) out.push(cmd('X', '指', '死亡之指', `<span class="atk atk-magic">主动</span> 射程 ${FOD.range} · 冷却 ${FOD.cd} 秒 · <span style="color:#7ab8ff">${FOD.mana} 魔法</span><br>选择一个敌人：直接杀死它。<br>BOSS 只损失一部分生命（大红牛 7000、大骷髅 2.5 万、直升机 / 游艇 / 魔王 10 万、龙 / 狗头人 BOSS 生命高于 15 万时 10 万，按模式缩放）${fw ? `<br><b style="color:#ff5a4f">${fw}</b>` : ''}`,
       () => { const why = fodBlock(); if (why) return msg(why); G.pending = 'fod'; G.placing = null; msg('死亡之指：选择一个敌人（Esc 取消）'); uiDirty(); },
       { ico: 'fod', active: G.pending === 'fod', cdOf: () => [fodLeft(), FOD.cd] }));
+    const sw = stompBlock();
+    if (!endlessLock()) out.push(cmd('D', '践', '守护神技', `<span class="atk atk-magic">主动</span> 冷却 ${STOMP.cd} 秒 · <span style="color:#7ab8ff">${STOMP.mana} 魔法</span><br>震击地面，让守卫者周围 ${STOMP.r} 范围的敌人晕眩 ${STOMP.stun} 秒（BOSS 不受影响）${sw ? `<br><b style="color:#ff5a4f">${sw}</b>` : ''}`,
+      castStomp, { ico: 'stomp', cdOf: () => [stompLeft(), STOMP.cd] }));
     return out;
   }
   if (e.isHero) {
@@ -7966,7 +7997,7 @@ function showStart() {
   })).concat([{ text: '返回', fn: pickMode }]), '只有你一个人操作，出怪口和上限按所选人数');
   // 其他位置：空着（实际只有你一人：排名、飞艇、投票都按 1 人算），或放模拟队友（不操作，用来试复制 / 收购卷轴、投票踢人、点赞、杀敌排行）
   const pickSeats = n => showDialog(`${n} 人：其他 ${n - 1} 个位置`, [
-    { text: '空着（只有你一个玩家）', hint: '只有你一个实际玩家：每波发金按第 1 名、飞艇奖励和投票都按 1 人算', fn: () => start('origin', n) },
+    { text: '空着（只有你一个玩家）', hint: '只有你一个实际玩家：每 5 秒发金按第 1 名、飞艇奖励和投票都按 1 人算', fn: () => start('origin', n) },
     { text: `放 ${n - 1} 个模拟队友`, hint: '模拟队友站在出生点不操作，各带一座允许收购的 1 级光环塔：可以对他们用复制卷轴、收购卷轴，发起投票、点赞，看杀敌排行', fn: () => start('origin', n, true) },
     { text: '返回', fn: pickPlayers },
   ], '联机以后这些位置由其他玩家占');
@@ -7994,10 +8025,10 @@ function showHelp() {
     <p><b>兔子</b>：每个 BOSS 波（10/20/30/40 波、最终波）开始 ${RULE.rabbitDelay} 秒后，地图随机位置出现一只兔子（小地图粉点），${RULE.rabbitLife} 秒后消失。守卫者走到它 ${RULE.rabbitReach} 范围内，选中兔子就能用<b>当局成就</b>买道具：4 种塔类之球（重新随机建造栏的某一类塔）、5 个木材、魔法药水（有魔法功勋的塔 +200，天神塔 +600）、知识药水、重修药水（属性选择那项 -6、技能点 +3，每局 1 支）。当局成就开局 ${RULE.startAch} 点（拒绝逃跑）再加账号成就档位 +0~10，每次 Perfect +${RULE.achPerPerfect}；守护宗师的<b>兔子卷轴</b>（${RULE.rabbitScrollAch} 成就）可以额外召唤一次兔子；兔子还卖天赋秘籍（5 成就 + 20 木，MAX 光环至尊天赋 / 唯一塔技能 +2 级，每局 4 个）。</p>
     <p><b>当局成就的其他来源</b>：购买人口 8 次（人口众多）、木材换金币 100 次（我是来换金币的）、死亡之指 20 次（电电更健康）各 +2；
       同时拥有指定组合的塔（升级完成时检查）+10：高速毒塔（加速光环 MAX + 萨满 + 火速 + 毒塔 MAX）、强力群攻（攻击光环 MAX + 兽人 + 3 座群攻塔 MAX）、原始战速团队（箭塔 / 闪电塔 / 通灵塔 MAX）、
-      无名（减速光环 MAX + 精灵塔 MAX + 缓速 + 重击塔 MAX）、单杀好像很不错（减防光环 MAX + 腐蚀 / 灵魂 / 混乱塔 MAX）；MAX 主塔技能练满后亲手杀敌 +10：魔幻之巅、至尊剑圣、寒冰王者、神级弹跳、功勋将军、人马首领、疯狂五行、天之风行。
+      无名（减速光环 MAX + 精灵塔 MAX + 缓速 + 重击塔 MAX）、单杀好像很不错（减防光环 MAX + 腐蚀 / 灵魂 / 混乱塔 MAX）；MAX 主塔技能练满后亲手杀敌 +10：魔幻之巅、至尊剑圣、寒冰王者、神级弹跳、激情扫射、功勋将军、人马首领、疯狂五行、天之风行。
       组合和击杀成就一局最多 2 个，已经拿了组合成就就拿不到击杀成就。最终 BOSS 倒计时时杀敌第一 +5（我是第一），开启无尽 +3（无尽我来了），最后 10 秒杀死龙和魔王并开启无尽 +2（刺激）。</p>
     <p><b>无尽关卡</b>：杀死龙和魔王时按出龙后的秒数加 Perfect 分（≤150 秒 +3、≤250 秒 +2、≤350 秒 +1），Perfect 分 ≥ ${RULE.endlessFp} 就开启无尽关卡，否则直接通关。
-      ${RULE.endlessOpen} 秒后第一波，之后每 ${RULE.endlessEvery} 秒一波，每波随机 10 种怪物之一，每个出怪口 ${RULE.endlessCount} 只，每波生命 +25%（积分 1 万、1.5 万后涨得更快）；怪物上限降到每人 ${RULE.endlessCap}，守卫者失去随机建造、使用木材和死亡之指，塔类之球不能买。
+      ${RULE.endlessOpen} 秒后第一波，之后每 ${RULE.endlessEvery} 秒一波，每波随机 10 种怪物之一，每个出怪口 ${RULE.endlessCount} 只，每波生命 +25%（积分 1 万、1.5 万后涨得更快）；怪物上限降到每人 ${RULE.endlessCap}，守卫者失去随机建造、使用木材、死亡之指和守护神技，塔类之球不能买。
       无尽不能通关，怪数超过上限时结束，按无尽积分（杀怪 +4、每波按空位加分）结算。玩家档案记下无尽最高分，下局开局多给当局成就（≥1 +2、≥5000 +4、≥1 万 +6、≥1.5 万 +8、≥2 万 +10 …… ≥2.5 万 +15）。</p>
     <p><b>英雄塔</b>：每次随机建造给出 1 个英雄塔（和原图随机模式一样），1500 金 + 5 木材 + 4 人口，还要 <b>${RULE.heroAch} 点当局成就</b>（建成扣掉），全场唯一，建造后不能回收。建成时随机给出力量 / 敏捷 / 智力的成长值（合计 10），每次升级按成长值加属性；属性选择决定杀精英怪 +1 的属性和满级后升级 +3 的属性。升级要 等级×100 金 + 200 魔法（英雄每击杀 +2 魔法）。学技能：第 1 个免费；第 2/3/4 个分别要 18/36/54 木材，且力量 ≥ 80/160/240，最多 4 个（第 5 个特殊技能有额外条件）。英雄有技能点：建成 3 点、每升一级 3~9 点，每点力量 / 敏捷 / 智力 +2 或随机。
       随机建造在原图随机模式的 17 个英雄里抽，原图的主动技能都是攻击时自动放。</p>
