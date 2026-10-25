@@ -1043,6 +1043,7 @@ window.ASSET_MANIFEST.sprites = Object.assign(window.ASSET_MANIFEST.sprites || {
  "ico:sell": "icons/war3/BTNChestOfGold.png",
  "ico:switchdmg": "icons/war3/BTNDivineIntervention.png",
  "ico:fod": "icons/war3/BTNManaFlare.png",
+ "ico:talent": "icons/war3/BTNLoadDwarf.png",
  "ico:str": "icons/war3/PASBTNDevotion.png",
  "ico:agi": "icons/war3/PASBTNEvasion.png",
  "ico:int": "icons/war3/PASBTNGenericSpellImmunity.png",

@@ -107,6 +107,9 @@ function segDist2(px, py, [ax, ay], [bx, by]) {
   return dist2(px, py, ax + t * dx, ay + t * dy);
 }
 const abil = (lv, code) => (lv.abils || []).find(a => a.code === code);
+// 天赋改了技能等级的（闪电塔闪杀、毒塔慢性毒药、混乱塔致命一击）：t.abOv 里的数值优先
+const CHAOS_CRIT = [null, { A: 20, B: 3 }, { A: 25, B: 4.5 }, { A: 10, B: 7 }, { A: 40, B: 5 }];   // 混乱塔致命一击 A00I 1~4 级
+const abilOf = (t, lv, code) => (t.abOv && t.abOv[code]) || (code === 'AOcr' && t.critLv ? CHAOS_CRIT[t.critLv] : null) || abil(lv, code);
 
 // ---------------------------------------------------------------- 玩家档案（代替原图的平台存档）
 // 开局先输入玩家名称，每个名称一份档案存在本机（localStorage），记账号成就点数、局数、通关数、最高波数。
@@ -489,6 +492,10 @@ function upgradeTower(t, branchKey) {
   if (branchKey) { t.levels = [t.levels[0]].concat(f.branches[branchKey]); t.branch = branchKey; }
   t.lv++;
   achCombo();                             // 原图 rG：升级完成时检查组合成就
+  if (t.fam === '暴击塔' && isMax(t)) for (let i = 0; i < 5; i++) {     // 原图 BCd：暴击塔升到 MAX 时，每个等级随机一座自己的混乱塔致命一击变成 2 级（25% 4.5 倍）
+    const c = G.towers.filter(o => o.fam === '混乱塔' && o.lv === i && mine(o));
+    if (c.length) pick(c).critLv = 2;
+  }
   if (G.hero && HERO_DEF[G.hero.heroName].towerUpgraded) HERO_DEF[G.hero.heroName].towerUpgraded(G.hero, t);   // 幻影：暴击 / 冰霜 / 重击塔升到 3 级
   SFX.ui('upgrade');
   uiDirty();
@@ -525,7 +532,7 @@ function builderUpdate(dt) {
   b.mana = Math.min(FOD.maxMana, b.mana + FOD.regen * dt);
   if (!o) return;
   if (o.target) {                                              // 对单位的命令（用物品、死亡之指）：跟着目标走，目标没了就作废
-    if (o.target.dead || (o.kind === 'use' && !itemTarget(o.target)) || (o.kind === 'pick' && !G.items.includes(o.target))) { b.order = (b.queue && b.queue.shift()) || null; uiDirty(); return; }
+    if (o.target.dead || (o.kind === 'use' && !itemTarget(o.target)) || (o.kind === 'pick' && !G.items.includes(o.target)) || (o.kind === 'talent' && !G.towers.includes(o.target))) { b.order = (b.queue && b.queue.shift()) || null; uiDirty(); return; }
     o.x = o.target.x; o.y = o.target.y;
   }
   const reach = o.reach || (o.kind === 'build' ? 220 : 8);
@@ -539,6 +546,7 @@ function builderUpdate(dt) {
     if (o.kind === 'use') useItem(o.item, o.target);
     if (o.kind === 'pick') pickUp(o.target);
     if (o.kind === 'fod') castFinger(o.target);
+    if (o.kind === 'talent') activateTalent(o.target);
     b.order = (b.queue && b.queue.shift()) || null; return;     // Shift 排队的下一个命令
   }
   const stepLen = Math.min(d - reach + 1, b.speed * dt);
@@ -650,8 +658,8 @@ function ownAS(t) {
   return t.stats ? 1 + (t.stats(t).as || 0) : 1;
 }
 function towerAS(t) {
-  const kit = KITS[t.fam], tech = (t.fam === '弹跳塔' ? BOUNCE.asStep * G.bounce.as : 0) + (kit && kit.asPlus ? kit.asPlus(t) : 0);   // 玩家科技的攻速（弹跳 R001、天将 R00K）
-  const own = ownAS(t), add = Math.max(t.buffAS, t.selfAS || 0) + Math.max(bv(t, 'bloodlust'), t.selfAS2 || 0) + bv(t, 'fire') + tech;
+  const kit = KITS[t.fam], tech = (t.fam === '弹跳塔' ? BOUNCE.asStep * G.bounce.as : 0) + (kit && kit.asPlus ? kit.asPlus(t) : 0) + (t.talentAS || 0);   // 玩家科技的攻速（弹跳 R001、天将 R00K）；天赋加的攻速物品（AIas）
+  const own = ownAS(t), add = Math.max(t.buffAS, t.selfAS || 0) + Math.max(bv(t, 'bloodlust'), t.selfAS2 || 0) + bv(t, 'fire') + tech - bv(t, 'strat');
   return Math.min(AS_CAP, own + add) / Math.min(AS_CAP, own) * (1 - t.eliteAS);
 }
 //   神牛的神盾光辉（战鼓）和攻击光环叠加；古树的心灵之火另算
@@ -697,7 +705,7 @@ function attack(t, target, st, pre = () => {}) {
   const lv = curLevel(t), kit = KITS[t.fam];
   let dmg = st.dmg * t.atkMul;
   // 致命一击（剑圣塔的致命一击由它的技能包按成长模式处理）
-  const crit = !(kit && kit.ownCrit) && abil(lv, 'AOcr');
+  const crit = !(kit && kit.ownCrit) && abilOf(t, lv, 'AOcr');
   if (crit && Math.random() * 100 < (crit.A || 25)) { dmg *= crit.B || 3; addFx({ kind: 'text', x: target.x, y: target.y, text: '暴击', life: 0.6, color: '#ffd257' }); }
   // 英雄的召唤物：马甲只跑触发器（silent）；致命一击；出手时的触发器
   if (t.silent) { shot(t, target); pre(); return t.onLaunch(t, target); }
@@ -735,7 +743,8 @@ function attack(t, target, st, pre = () => {}) {
   const area = (hit, x, y) => {
     const c = hit || { x, y };
     if (t.fam === '牛头塔') splash(t, c, (abil(lv, 'Aroc') || {}).area || 500, dmg, st.atk);     // 粉碎（分裂）A0A9：500 范围
-    if (t.fam === '群攻塔') { splash(t, c, 300, dmg, st.atk); stunArea(c, 300, 0.1); }
+    if (t.fam === '群攻塔') { splash(t, c, 300, dmg, st.atk); stunArea(c, 300, t.talent ? 0.15 : 0.1); }
+    primalMaxHit(t, c, st);
     const sp = st.splash ?? lv.splash;
     if (sp) splash(t, c, sp, dmg, st.atk);
     if (lv.splashH && st.splash == null) for (const m of inRange(c.x, c.y, lv.splashH)) if (m !== c && dist2(c.x, c.y, m.x, m.y) > lv.splash ** 2) hurt(m, dmg * lv.splashF, st.atk, t);   // 外圈按 Hfact 伤害
@@ -752,10 +761,20 @@ function attack(t, target, st, pre = () => {}) {
   }
   for (const m of targets) FXS.launch(style, from, m, land(m, m === target), w3opt(t));
 }
+// 原始塔 MAX 的附加伤害（原图 Baa / Bab，攻击力 = 塔的基础攻击）。条件是"(天赋 且 牛头塔 MAX) 或 群攻塔 MAX 或 闪电塔 MAX 或 箭塔 MAX"——
+// 优先级写错了，群攻 / 闪电 / 箭塔 MAX 不要天赋就有（说明里写成天赋效果），只有牛头塔要天赋（照搬）
+function primalMaxHit(t, c, st) {
+  if (t.cat !== 'raw' || !isMax(t)) return;
+  const d = st.dmg;
+  if (t.fam === '牛头塔' && t.talent) aoeAt(t, t.x, t.y, 500, d * 0.2, 'chaos', { ignoreArmor: true });
+  if (t.fam === '闪电塔') aoeAt(t, c.x, c.y, 100, d * 0.2, 'magic', { ignoreArmor: true });
+  if (t.fam === '群攻塔') aoeAt(t, c.x, c.y, 300, d / 5, 'normal', { ignoreArmor: true });
+  if (t.fam === '箭塔' && t.attacks % 4 === 0) aoeAt(t, t.x, t.y, 800, d * 0.4, 'pierce', { ignoreArmor: true });   // 箭射到 4 级的那一下
+}
 // 自带的重击由技能包处理的塔（群攻塔的范围重击、巨箭塔的双刃箭、巫师塔（暗黑）的范围晕眩、缓速塔天赋的魔法攻击）
 const OWN_BASH = new Set(['群攻塔', '巨箭塔', '巫师塔（暗黑）', '缓速塔']);
 function onHitEffects(t, lv, m, st) {
-  const bash = abil(lv, 'AHbh');
+  const bash = abilOf(t, lv, 'AHbh');
   if (bash && !OWN_BASH.has(t.fam) && Math.random() * 100 < (bash.A || 0)) {
     if (bash.C) hurt(m, bash.C, st.atk, t);
     stun(m, bash.dur || 1);
@@ -765,13 +784,13 @@ function onHitEffects(t, lv, m, st) {
   const sl = abil(lv, 'Aven');
   if (sl) slowM(m, sl.B || 0.2, sl.dur || 5);
   // 慢性毒药 Aspo：每秒 A 点伤害、移速降低 C，持续 Dur（20 秒）；同一种毒不叠加，新的覆盖旧的
-  const po = abil(lv, 'Aspo');
+  const po = abilOf(t, lv, 'Aspo');
   if (po) {
     m.dots = m.dots.filter(d => d.kind !== 'poison');
     m.dots.push({ kind: 'poison', dps: po.A || 10, until: G.t + (po.dur || 20), atk: st.atk, src: t });
     slowM(m, po.C ?? po.B ?? 0.2, po.dur || 20);
   }
-  if (t.fam === '闪电塔') { if (Math.random() < 0.04) hurt(m, 10000, 'magic', t); if (Math.random() < 0.05) stun(m, 2); }
+  if (t.fam === '闪电塔' && m.uid !== 'Udea' && rint(1, 100) === 4) hurt(m, [10000, 30000, 60000, 100000][t.lv], 'magic', t);   // 闪杀（原图 z2，魔王除外）；晕眩是技能本身（AHbh）
   if (t.fam === '混乱塔' && t.lv === t.levels.length - 1 && m.type === 'divine' && !m.boss && Math.random() < 0.02) hurt(m, m.hp * 10, 'hero', t, { ignoreArmor: true });
 }
 function chainTargets(first, n, jump) {
@@ -800,11 +819,16 @@ function aoeAt(src, x, y, r, dmg, atk, opt) { for (const m of inRange(x, y, r)) 
 
 // 扫射塔：360 度旋转射线（穿透之箭 AUcs，宽 100，CD 0.1/0.05 秒，无视护甲）。转速受攻速光环影响，伤害不受光环影响。
 // 强化 A07J（每级 200 魔法，共 7 级）：射线长 600/650/…/850/900，伤害 ×1/2/3/4/5/6/10
+// 射线之外，武器本身每次攻击（间隔 0.2 秒，吃攻速）走一次原图的攻击触发器（BBn 一带）：+0.06 魔法、放炮和巨魔蝙蝠、天赋的穿透火箭（扫射塔技能包的 attack）
 const SWEEP_MUL = [1, 2, 3, 4, 5, 6, 10];
 function sweepUpdate(t, dt, st) {
   const lv = curLevel(t), arrow = abil(lv, 'AUcs'), k = t.sw ? t.sw.k : 1;
   const asMul = towerAS(t);
   t.angle = (t.angle + dt * 2.2 * asMul) % (Math.PI * 2);
+  if ((t.swAtk = (t.swAtk || 0) - dt * asMul) <= 0) {
+    const target = lockTarget(t, st.range);
+    if (target) { t.swAtk += st.cd; t.attacks++; t.atkT = G.t; KITS.扫射塔.attack(t, target); } else t.swAtk = 0;
+  }
   t.cdLeft -= dt * asMul;
   if (t.cdLeft > 0) return;
   t.cdLeft += arrow ? arrow.cool || 0.1 : 0.1;
@@ -872,6 +896,10 @@ const primalPow = n => n < 2 ? 0 : Math.min(2, 0.2 + 0.2 * n);
 const hasAbil = (t, id) => (curLevel(t).abils || []).some(a => a.id === id);
 
 // ---------------------------------------------------------------- 主塔数值（技能说明 / 技能表）
+const SWEEP = {   // 扫射塔的炮 A08E / 巨魔蝙蝠 A07H（下标 = 技能等级 - 1，1 级是没学）
+  cannonCd: [2, 1.8, 1.6, 1.4, 1.2, 1, 0.8, 0.6, 0.4], cannonSlow: [0, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.4, 0.5],
+  bat: [[0, 1], [200, 0.5], [500, 0.4], [1000, 0.35], [2000, 0.3], [4500, 0.25], [13000, 0.2], [40000, 0.15], [40000, 0.15]],   // 树魔猎手 nftt / n018 / n012 / n013 / n02M / n02N / n017 的攻击、间隔
+};
 const MAGIC = {   // 魔幻塔
   bolt: [30, 90, 150, 250, 410, 1200, 2000, 4000, 8000, 20000],          // 雷霆闪电 A05F：每道闪电的魔法伤害（星落 A04Y，900 范围，3.1 秒）
   darts: [3, 4, 5, 6, 7, 9, 10, 11, 13, 15],                              // 穿刺之镖 A050：攻击目标数
@@ -902,6 +930,7 @@ const SWORD = {
   bladeArmor: [10, 20, 30, 40, 50, 60, 80, 110],                            // 剑刃风暴的专注光环 A01T：按剑圣塔等级减甲
   crit: [8, 9, 10, 11, 12, 14, 18, 20, 40, 60, 120],                        // 致命一击 A03O：15% 概率的倍数
   atk: [0, 0.2, 0.35, 0.5, 0.65, 0.8, 0.95, 1.1, 1.25, 1.4, 1.6],           // 强攻 A01V（等级 = 致命一击，不和攻击光环叠加）
+  cleave: { dmg: 2000, cd: 0.8, range: 700, atk: 'normal', splash: 150 },   // 天赋分裂：h02V 的武器 2（dmgplus2 1999 + 1d1）
   as: [0, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.2],                  // 致速 A03D（等级 = 风暴之魂，不和萨满嗜血叠加）
 };
 const WIND = {   // 风行塔（技能 1~10 级，各级数值取技能表；表里没有的取说明）
@@ -1030,12 +1059,16 @@ const KITS = {
   // ---------------------------------------------------------------- 主塔
   // 魔幻塔：三种成长（切换成长类型 A051）。当前成长的技能吃魔法自动升级：雷霆闪电 100+20×等级、穿刺之镖 150+10×等级、混乱流星 180；
   // 不是当前成长的技能不生效，到 5 级后一直生效。杀一个敌人得 1+0.2×功勋 点魔法（2功勋 A05G）
+  // 天赋（MAX，30 木材）：急速 10 级（混乱流星 10 级）→ 急速流星：攻速 +300%，流星每击 150000、晕 1.5 秒；否则强攻 10 级（穿刺之镖 10 级）→ 强攻 MAX：攻击 +800%；
+  // 都不是 → 雷电风暴：雷霆闪电每秒多充能 4 点（原图 Dx = 4），星落按 11 级（每道 40000）
   魔幻塔: {
+    talent: { wood: 30, name: '急速流星 / 强攻MAX / 雷电风暴', max: true, tip: '急速 10 级 → 急速流星（攻速 +300%，流星 150000）；否则强攻 10 级 → 强攻 MAX（攻击 +800%）；否则雷电风暴（雷霆闪电充能 +4/秒、每道 40000）',
+      use(t) { const l = t.mg.lv; if (l[2] === 10) { t.mg.up = 'haste'; return '急速流星'; } if (l[1] === 10) { t.mg.up = 'power'; return '强攻MAX'; } t.mg.up = 'storm'; return '雷电风暴'; } },
     init(t, mem) { t.maxMana = 500; t.mana = mem ? mem.mana : 0; t.mg = { mode: 1, lv: mem ? mem.lv.slice() : [1, 1, 1], dh: 0, meteors: [] }; t.merit = 1; },
     on: (t, i) => t.mg.mode === i + 1 || t.mg.lv[i] >= 5,
-    self(t) { const k = KITS.魔幻塔, l = t.mg.lv; return { atk: k.on(t, 1) ? MAGIC.power[l[1] - 1] : 0, as: k.on(t, 2) ? MAGIC.haste[l[2] - 1] : 0 }; },
+    self(t) { const k = KITS.魔幻塔, l = t.mg.lv, up = t.mg.up; return { atk: k.on(t, 1) ? (up === 'power' ? 8 : MAGIC.power[l[1] - 1]) : 0, as: k.on(t, 2) ? (up === 'haste' ? 3 : MAGIC.haste[l[2] - 1]) : 0 }; },
     tick(t, dt) {
-      t.mg.dh += MAGIC.charge[t.lv] * dt;
+      t.mg.dh += (MAGIC.charge[t.lv] + (t.mg.up === 'storm' ? 4 : 0)) * dt;
       // 流星陨落（nano）：活 4 秒，每 0.4 秒打一次 900 范围内的敌人；MAX 魔幻塔时每击再加 150 范围 1~等级×1000 混乱伤害
       const l = t.mg.lv[2];
       for (const s of t.mg.meteors) {
@@ -1045,7 +1078,7 @@ const KITS = {
         if (!m) continue;
         const mx = m.x, my = m.y;
         FXS.fall(mx, my, { z: 900, dx: -300, dy: 160, dur: 0.25, color: '#c48bff', core: '#ffe0ff', size: 18, rock: '#3a2050', onEnd: () => {
-          if (!m.dead) { hurt(m, MAGIC.meteor[l - 1], 'chaos', t); stun(m, 0.3); }
+          if (!m.dead) { const h = t.mg.up === 'haste'; hurt(m, h ? 150000 : MAGIC.meteor[l - 1], 'chaos', t); stun(m, h ? 1.5 : 0.3); }
           if (isMax(t)) aoeAt(t, mx, my, 150, rint(1, l * 1000), 'chaos');
           FXS.explosion(mx, my, 0.45, '#c48bff');
         } });
@@ -1065,7 +1098,7 @@ const KITS = {
         for (let s = 0; s < 3.1; s += every) later(s, () => {
           if (!G.towers.includes(t)) return;
           const ms = inRange(t.x, t.y, 900);
-          for (const m of ms) hurt(m, MAGIC.bolt[lv - 1], 'magic', t);
+          for (const m of ms) hurt(m, g.up === 'storm' ? 40000 : MAGIC.bolt[lv - 1], 'magic', t);
           for (const m of ms.slice(0, 5)) FXS.beam(m.x + rnd(-40, 40), m.y, 900, m.x, m.y, 30, '#9fd0ff', 1, 0.12);
         });
         FXS.nova(t.x, t.y, 900, '#9fd0ff', 0.5); SFX.spell('frostPulse', { x: t.x, y: t.y });
@@ -1094,7 +1127,9 @@ const KITS = {
     sell(t) { G.wood += meritSpent(t, m => m + 1); G.mem.魔幻塔 = { lv: t.mg.lv.slice(), mana: t.mana }; },
   },
   // 神圣塔：选一种伤害类型后，每次攻击对目标周围造成"神圣攻击"（基础值 + 当前魔法值）。杀敌得 1.5~2 魔法，但魔法超过容器（200×等级）就不再增加
+  // 天赋（MAX，30 木材）：四种切换技能升到 6 级（冷却 0 秒），攻速 +80%（A059）
   神圣塔: {
+    talent: { wood: 30, name: '切换技能CD0秒+攻速提升80%', max: true, use(t) { t.talentAS = 0.8; }, tip: '切换伤害类型没有冷却，攻击速度 +80%' },
     init(t, mem) { t.maxMana = 4000; t.mana = mem ? mem.mana : 0; t.holy = { type: 0, cont: 1 }; },
     attack(t, target) {
       const ty = HOLY.types[t.holy.type]; if (!ty) return;
@@ -1107,7 +1142,7 @@ const KITS = {
     dmg: t => HOLY.d[t.lv] + t.mana + techLv(t) * HOLY.d[t.lv] / 2,     // 科技塔每级 + 基础伤害的一半
     kill(t) { if (t.mana <= t.holy.cont * 200) addMana(t, HOLY.gain[t.lv]); },
     cmds(t) {
-      const h = t.holy, cd = 90 - 5 * techLv(t), out = ['普通', '穿刺', '魔法', '混乱'].map((nm, i) => costCmd(t, 'QWER'[i], '切换' + nm, `神圣攻击改成 <b>${nm}</b> 伤害（每种切换冷却 ${cd} 秒）`, {},
+      const h = t.holy, cd = t.talent ? 0 : 90 - 5 * techLv(t), out = ['普通', '穿刺', '魔法', '混乱'].map((nm, i) => costCmd(t, 'QWER'[i], '切换' + nm, `神圣攻击改成 <b>${nm}</b> 伤害（每种切换冷却 ${cd} 秒）`, {},
         () => { h.type = i + 1; setCd(t, 'type' + i, cd); msg(`神圣塔：神圣攻击切换为${nm}伤害`); },
         { why: h.type === i + 1 ? '当前就是这种伤害' : cdReady(t, 'type' + i) ? null : '冷却中', o: { active: h.type === i + 1, cdOf: () => [cdLeft(t, 'type' + i), cd], atk: HOLY.types[i + 1] } }));
       out.push(costCmd(t, 'A', '魔法容器', `容器 ${h.cont} 级：魔法值不超过 <b>${h.cont * 200}</b> 时杀敌才得魔法；每级 +200<br>回收时返还容器的金币`,
@@ -1120,7 +1155,15 @@ const KITS = {
   },
   // 寒冰塔：冰雹术 / 闪冰术 / 爆冰术。"选择升级技能"选中的那个每次攻击都放，魔法够了自动升级（160 / 7 级起 280 / 10→11 级 450 魔法 + 10000 金）；
   // 没选中的按 等级/7 的概率放。冰霜光环每次攻击升 1 级，升满 5 级放一次"关联技能"（冰封），然后回到关联等级（三个技能平均等级）
+  // 天赋（MAX，30 木材）：随机 1/4 攻速 +80%、+70%、+60%、+50%。场上有邪冰时提示"邪冰和寒冰同时获得 50% 攻速"（原图 Gm，一局一次），
+  // 但给的 A086 只是个没有数值的图标技能，实际没有加成（照搬）
   寒冰塔: {
+    talent: { wood: 30, name: '增加攻击速度', max: true, tip: '随机攻击速度 +80% / +70% / +60% / +50%',
+      use(t) {
+        if (G.hero && G.hero.heroName === '邪冰' && !G.iceDuo) { G.iceDuo = true; msg('【场上存在[邪冰和寒冰]同时获得50%攻击速度加成】'); }
+        t.talentAS = rint(1, 4) === 4 ? 0.8 : rint(1, 3) === 3 ? 0.7 : rint(1, 2) === 2 ? 0.6 : 0.5;
+        return `增加${t.talentAS * 100}%攻击速度`;
+      } },
     init(t, mem) { t.maxMana = 500; t.mana = mem ? mem.mana : 0; t.ice = { sel: 1, lv: mem ? mem.lv.slice() : [1, 1, 1], aura: 1 }; t.merit = 1; },
     link: t => Math.floor(t.ice.lv.reduce((s, v) => s + v, 0) / 3),
     attack(t, target) {
@@ -1175,7 +1218,9 @@ const KITS = {
   },
   // 天神塔：攻击下限 = 魔法值，上限 = 攻击上限技能（每级 400）+ 塔的攻击力；每次攻击对目标 300 范围造成下限~上限之间的随机伤害（两种伤害类型随机一种），
   // 并获得 1~4 点魔法。开启最高伤害：每次攻击造成上限伤害、消耗 2 魔法。雷霆一击（每 10 秒）：900 范围 魔法值×(8/10/12/14) 随机类型伤害 + 减速 80%
+  // 天赋（MAX，30 木材）：Dy = 3~6（按玩家记，回收再建的天神塔也有），每级攻击上限 40×(10+Dy+…)，即上限 +30%~60%
   天神塔: {
+    talent: { wood: 30, name: '攻击上限增加', max: true, use() { G.godDy = rint(3, 6); return `攻击上限增加${G.godDy}0%`; }, tip: '每级攻击上限随机 +30% ~ +60%' },
     init(t, mem) { t.maxMana = 30000; t.mana = mem ? mem.mana : 0; t.god = { pair: 1, cap: 1, power: 1, max: false }; },
     hi: t => Math.max(Math.floor(t.mana), godStep(t) * t.god.cap + curLevel(t).dmg),
     attack(t, target) {
@@ -1202,7 +1247,7 @@ const KITS = {
       return [
         costCmd(t, 'Q', '切换伤害类型', `当前：<b>${cn(g.pair)}</b> → ${cn(g.pair % 6 + 1)}（冷却 5 秒）`, { mana: 1 },
           () => { g.pair = g.pair % 6 + 1; setCd(t, 'pair', 5); }, { why: cdReady(t, 'pair') ? null : '冷却中', o: { cdOf: () => [cdLeft(t, 'pair'), 5], ico: 'switchdmg' } }),
-        costCmd(t, 'W', '增加攻击上限', `等级 ${g.cap}/20：每级攻击上限 +${godStep(t)}${G.petFx.gq || stoneLv(t, 2) ? '（含宠物 / 魔石塔加成）' : ''}<br>10 级起每次还要 1000 魔法；回收返还每级 800 金`,
+        costCmd(t, 'W', '增加攻击上限', `等级 ${g.cap}/20：每级攻击上限 +${godStep(t)}${G.godDy || G.petFx.gq || stoneLv(t, 2) ? '（含天赋 / 宠物 / 魔石塔加成）' : ''}<br>10 级起每次还要 1000 魔法；回收返还每级 800 金`,
           { gold: g.cap < 20 ? 1500 : 0, mana: g.cap >= 10 && g.cap < 20 ? 1000 : 0 }, () => { g.cap++; }, { why: g.cap >= 20 ? '已经是最高等级' : null }),
         costCmd(t, 'E', g.max ? '关闭最高伤害' : '开启最高伤害', g.max ? '恢复成两种伤害随机，可以获得魔法' : `每次攻击造成上限伤害（${fmt(hi)}），每次消耗 2 魔法，不再获得魔法<br>魔法值要不少于上限的一半（${fmt(hi / 2)}）`,
           {}, () => { g.max = !g.max; }, { why: !g.max && t.mana < hi / 2 ? '魔法值不足最高伤害的一半' : null, o: { active: g.max } }),
@@ -1215,8 +1260,11 @@ const KITS = {
     sell(t) { G.gold += (t.god.cap - 1) * 800; G.wood += (t.god.power - 1) * 5; G.mem.天神塔 = { mana: t.mana }; },
   },
   // 剑圣塔：模式切换选成长技能，杀敌得 0.7+0.3×功勋 魔法，200 魔法自动升级（10→11 级要 500 魔法 + 20 木材）；不是当前模式的技能 5 级起才生效
+  // 天赋（MAX，30 木材，原图 Em 按玩家记、一局一次）分裂：科技 R01C 打开第二武器——攻击 2000、间隔 0.8 秒、150 范围溅射（剑圣塔 MAX 单位表的武器 2）
   剑圣塔: {
     ownCrit: true,
+    weapon: t => G.swordCleave && isMax(t) ? SWORD.cleave : null,
+    talent: { wood: 30, name: '分裂天赋', max: true, why: () => G.swordCleave, use() { G.swordCleave = true; }, tip: '牺牲攻击速度（间隔 0.3 → 0.8 秒），普通攻击对 150 范围敌人造成伤害（攻击 3000 → 2000）' },
     init(t, mem) { t.maxMana = 1000; t.mana = mem ? mem.mana : 0; t.bm = { mode: 1, lv: mem ? mem.lv.slice() : [1, 1, 1], hits: 0 }; t.merit = 1; },
     on: (t, i) => t.bm.mode === i + 1 || t.bm.lv[i] >= 5,
     self(t) { const l = t.bm.lv; return { atk2: SWORD.atk[l[2] - 1], as2: SWORD.as[l[1] - 1] }; },
@@ -1260,17 +1308,58 @@ const KITS = {
     },
     sell(t) { G.wood += meritSpent(t, () => 8); G.mem.剑圣塔 = { lv: t.bm.lv.slice(), mana: t.mana }; },
   },
-  // 扫射塔：杀敌 +1 魔法，强化（200 魔法）提升射线长度和伤害倍数，共 7 级
+  // 扫射塔：杀敌 +1 魔法，每次攻击 +0.06 魔法；强化（200 魔法）提升射线长度和伤害倍数，共 7 级。
+  // 炮 A08E / 巨魔蝙蝠 A07H：1 级是没学（技能表 1 级的射程、召唤都是空的），用"升级炮击"A08F / "升级巨魔等级"A07D 升到 8 级（MAX），天赋到 9 级。
+  // 炮：每次攻击冷却好了就对目标放：200 范围 100×塔等级×炮等级² 普通伤害，减速 8 秒（有地精塔 MAX 再加 100×炮等级² 英雄伤害），中了的敌人被巨魔蝙蝠打时多受一份混乱伤害（buff B00R）；
+  // 巨魔蝙蝠：冷却 6 秒，在塔旁召唤一只树魔猎手 4 秒（9 级 7 秒）。炮 / 巨魔等级回收后再建会恢复（原图 D5 / D6）；改变技能旋转方向 A00K 没做，射线一直按顺时针转
   扫射塔: {
-    init(t, mem) { t.maxMana = 1000; t.mana = mem ? mem.mana : 0; t.sw = { k: mem ? mem.k : 1 }; },
+    init(t, mem) { t.maxMana = 1000; t.mana = mem ? mem.mana : 0; t.sw = { k: mem ? mem.k : 1, cannon: mem ? mem.cannon : 1, bat: mem ? mem.bat : 1, rocket: false }; },
     kill(t) { addMana(t, 1 + 0.2 * techLv(t)); },     // 科技塔每级 +0.2（原图 C1）
-    cmds(t) {
-      const k = t.sw.k;
-      return [costCmd(t, 'Q', '强化', `强化 ${k}/7：射线长 ${k === 7 ? 900 : 550 + k * 50}，伤害 ×${SWEEP_MUL[k - 1]}${k < 7 ? `<br>下一级：长 ${k + 1 === 7 ? 900 : 600 + k * 50}，伤害 ×${SWEEP_MUL[k]}` : ''}`,
-        { mana: k < 7 ? 200 : 0 }, () => { t.sw.k++; msg(`扫射塔强化到 ${t.sw.k} 级`); }, { why: k >= 7 ? '已经是最高等级' : null })];
+    attack(t, target) {
+      const w = t.sw, L = w.cannon, B = w.bat;
+      addMana(t, 0.06);
+      if (L >= 2 && cdReady(t, 'cannon') && dist2(t.x, t.y, target.x, target.y) <= 900 ** 2) {
+        setCd(t, 'cannon', SWEEP.cannonCd[L - 1]);
+        const x = target.x, y = target.y;
+        FXS.launch('cannon', { x: t.x, y: t.y, z: 120 }, { x, y }, () => {
+          for (const m of inRange(x, y, 200)) { hurt(m, 100 * (t.lv + 1) * L * L, 'normal', t); slowM(m, SWEEP.cannonSlow[L - 1], 8); m.cannonUntil = G.t + 8; }
+          if (G.towers.some(o => o.fam === '地精塔' && isMax(o) && pidOf(o) === pidOf(t))) aoeAt(t, x, y, 200, 100 * L * L, 'hero', { ignoreArmor: true });
+        });
+      }
+      if (B >= 2 && cdReady(t, 'bat')) {
+        setCd(t, 'bat', 6);
+        const [dmg, cd] = SWEEP.bat[B - 1];
+        summon(t, { fam: '树魔猎手', title: `树魔猎手${B >= 8 ? 'MAX' : B - 1}`, label: '镖', x: t.x + rnd(-60, 60), y: t.y + rnd(-60, 60), until: G.t + (B === 9 ? 7 : 4),
+          levels: [{ name: '树魔猎手', dmg, cd, range: 700, atk: 'pierce', targets: 1, abils: [] }],
+          onHit: (s, m) => { if (m.cannonUntil > G.t) hurt(m, dmg, 'chaos', s); } });     // 打中炮晕的敌人：额外 100% 混乱伤害（原图 z5）
+      }
+      if (w.rocket) {   // 穿透火箭 A04F（火焰呼吸）：朝射线方向一条线 6000 伤害
+        const ex = t.x + Math.cos(t.angle) * 400, ey = t.y + Math.sin(t.angle) * 400;
+        for (const m of G.monsters) if (!m.dead && segDist2(m.x, m.y, [t.x, t.y], [ex, ey]) < (125 + m.r) ** 2) hurt(m, 6000, 'magic', t);
+        FXS.beam(t.x, t.y, 120, ex, ey, 40, '#ff8a3c', 2, 0.12);
+      }
     },
-    info(t) { const k = t.sw.k, a = abil(curLevel(t), 'AUcs'); return [`强化 ${k}/7：射线长 ${k === 7 ? 900 : 550 + k * 50}，每次 ${(a ? a.A : 6) * SWEEP_MUL[k - 1]} 伤害`]; },
-    sell(t) { G.mem.扫射塔 = { k: t.sw.k, mana: t.mana }; },
+    talent: { wood: 30, name: '穿透火箭', max: true, why: t => t.sw.rocket || t.sw.cannon === 9 || t.sw.bat === 9,
+      use(t) { const w = t.sw; if (w.bat === 8) { w.bat = 9; return '神镖技能'; } if (w.cannon === 8) { w.cannon = 9; return '炮轰'; } w.rocket = true; return '穿透火箭'; },
+      tip: '巨魔蝙蝠 MAX 时升到镖神（树魔猎手活 7 秒）；否则炮 MAX 时升到炮轰（冷却 0.4 秒、减速 50%）；都不是就获得穿透火箭（每次攻击朝射线方向 6000 伤害）' },
+    cmds(t) {
+      const w = t.sw, k = w.k, L = w.cannon, B = w.bat, lvTxt = n => n <= 1 ? '未学' : n === 8 ? 'MAX' : n === 9 ? '天赋' : `${n - 1} 级`;
+      const cGold = L === 1 ? 1000 : L <= 6 ? 1000 + 1000 * L : 0, cMana = L >= 2 && L <= 6 ? 150 : L === 7 ? 800 : 0;
+      const bGold = B <= 7 && B % 2 === 0 ? B * 1500 : 0, bMana = B <= 7 && B % 2 === 1 ? B * 100 : 0;
+      const cNext = L < 8 ? `<br>下一级：200 范围 ${fmt(100 * (t.lv + 1) * (L + 1) ** 2)}，冷却 ${SWEEP.cannonCd[L]} 秒` : '';
+      return [costCmd(t, 'Q', '强化', `强化 ${k}/7：射线长 ${k === 7 ? 900 : 550 + k * 50}，伤害 ×${SWEEP_MUL[k - 1]}${k < 7 ? `<br>下一级：长 ${k + 1 === 7 ? 900 : 600 + k * 50}，伤害 ×${SWEEP_MUL[k]}` : ''}`,
+        { mana: k < 7 ? 200 : 0 }, () => { t.sw.k++; msg(`扫射塔强化到 ${t.sw.k} 级`); }, { why: k >= 7 ? '已经是最高等级' : null }),
+        costCmd(t, 'W', '升级炮击', `炮：${lvTxt(L)}。每次攻击对目标放炮击（冷却好了就放）：200 范围 100×塔等级×炮等级² 普通伤害，减速 8 秒；被炮中的敌人挨树魔猎手打时多受一份混乱伤害${cNext}`,
+          { gold: cGold, mana: cMana }, () => { w.cannon++; msg(`扫射塔：炮升到${lvTxt(w.cannon)}`); }, { why: L >= 8 ? '已经是最高等级' : null, o: { ico: 'abil-A08F' } }),
+        costCmd(t, 'E', '升级巨魔等级', `巨魔蝙蝠：${lvTxt(B)}。冷却 6 秒，召唤一只树魔猎手 4 秒（射程 700）${B < 8 ? `<br>下一级：攻击 ${fmt(SWEEP.bat[B][0])}，间隔 ${SWEEP.bat[B][1]} 秒` : ''}`,
+          { gold: bGold, mana: bMana }, () => { w.bat++; msg(`扫射塔：巨魔蝙蝠升到${lvTxt(w.bat)}`); }, { why: B >= 8 ? '已经是最高等级' : null, o: { ico: 'abil-A07D' } })];
+    },
+    info(t) {
+      const w = t.sw, k = w.k, a = abil(curLevel(t), 'AUcs'), L = w.cannon, B = w.bat;
+      return [`强化 ${k}/7：射线长 ${k === 7 ? 900 : 550 + k * 50}，每次 ${(a ? a.A : 6) * SWEEP_MUL[k - 1]} 伤害`,
+        `炮：${L < 2 ? '未学' : `200 范围 ${fmt(100 * (t.lv + 1) * L * L)}，冷却 ${SWEEP.cannonCd[L - 1]} 秒，减速 ${pctTxt(SWEEP.cannonSlow[L - 1])}`} · 巨魔蝙蝠：${B < 2 ? '未学' : `树魔猎手攻击 ${fmt(SWEEP.bat[B - 1][0])}，${B === 9 ? 7 : 4} 秒`}${w.rocket ? ' · 穿透火箭' : ''}`];
+    },
+    sell(t) { G.mem.扫射塔 = { k: t.sw.k, mana: t.mana, cannon: t.sw.cannon, bat: t.sw.bat }; },
   },
   // 风行塔（原图 BBX / BBa 攻击、BGI / BGL 放技能、BGO 切换技能、BGR 抉择、BGZ 杀敌，周期触发器每秒让它放削甲箭和暴力箭）：
   // 三个技能一直都能用，"切换技能"选的那个每次攻击时魔法 ≥ 200 就升 1 级（最高 10 级）。杀敌得 1 + 0.2×功勋 魔法。
@@ -2047,7 +2136,7 @@ const KITS = {
   // 弹跳塔（原图触发器 BE5 提升 / BE8 杀敌得魔法 / BFc 转移魔法 / BFS 合成 / BFW 天赋快建 / BBr 灵魂重击）：
   // 杀敌 +1 魔法（上限 300）。提升基础攻击 / 攻速是玩家科技，对所有弹跳塔（含 MAX）生效，回收不返还。
   // 3 座 4 级弹跳塔 + 10000 金合成弹跳塔 MAX（全场 1 个，保留施法那座的魔法）；MAX 每次攻击对目标放灵魂重击，杀精英 20% 升级。
-  // 天赋卷轴激活 MAX 的弹跳天赋后，MAX 回收了再建弹跳塔：金币 ≥ 58000 且空余人口 ≥ 2 时扣 58000，所有 1 级弹跳塔回收，直接变成 MAX
+  // 激活 MAX 的弹跳天赋（守卫者激活天赋，30 木材）后，MAX 回收了再建弹跳塔：金币 ≥ 58000 且空余人口 ≥ 2 时扣 58000，所有 1 级弹跳塔回收，直接变成 MAX
   弹跳塔: {
     init(t) { t.maxMana = BOUNCE.mana; },
     kill(t) { addMana(t, 1); },
@@ -2133,6 +2222,15 @@ const KITS = {
     kill(t) { addMana(t, 1); },
     info(t) { return [`火箭群：${t.rk.on ? '<b>激活中</b>' : '魔法 10 点时激活'}，每秒回魔 ${t.manaRegen || 0}`]; },
   },
+  // 毒塔天赋抽到战略（A00X）：冷却 20 秒，攻击时自动放：10 秒攻击 +600%（咆哮），再让一只龙鹰骑士给它放嗜血术 A00Y（攻速 -15%）
+  毒塔: {
+    attack(t) {
+      if (!t.strat || !cdReady(t, 'strat')) return;
+      setCd(t, 'strat', 20); giveBuff(t, 'roar', 6, 10); giveBuff(t, 'strat', 0.15, 10);
+      FXS.nova(t.x, t.y, 200, '#ffb347', 0.4);
+    },
+    info: t => t.strat ? [`战略：${cdReady(t, 'strat') ? '就绪' : Math.ceil(cdLeft(t, 'strat')) + ' 秒'}（10 秒攻击 +600%、攻速 -15%）`] : [],
+  },
   // 巨箭塔：双刃箭。伤害等级（每级 2 木材）×1500 单体无视护甲伤害 + 晕 0.8 秒；转换后 200 范围 ×250；每次消耗 2 魔法
   巨箭塔: {
     init(t) { t.maxMana = 6; t.ba = { lv: 1, mode: 1 }; },
@@ -2142,8 +2240,9 @@ const KITS = {
       if (b.mode === 1) stun(target, 0.8);                      // 双刃箭本身是 100% 的重击
       if (n < 1 || t.mana < 2) return;
       t.mana -= 2;
-      if (b.mode === 1) hurt(target, 1500 * n, 'hero', t, { ignoreArmor: true });
-      else { aoeAt(t, target.x, target.y, 200, 250 * n, 'hero', { ignoreArmor: true }); FXS.ring(target.x, target.y, 200, '#ffd257', 0.25, 3); }
+      const [one, r, area] = t.talent ? [3000, 250, 400] : [1500, 200, 250];     // 天赋伤害加深（原图 BBm 的 UserData = 1）
+      if (b.mode === 1) hurt(target, one * n, 'hero', t, { ignoreArmor: true });
+      else { aoeAt(t, target.x, target.y, r, area * n, 'hero', { ignoreArmor: true }); FXS.ring(target.x, target.y, r, '#ffd257', 0.25, 3); }
     },
     cmds(t) {
       const b = t.ba;
@@ -2153,7 +2252,7 @@ const KITS = {
         costCmd(t, 'W', '升级伤害', `伤害等级 ${b.lv - 1}/10`, { wood: b.lv < 11 ? 2 : 0 }, () => { b.lv++; }, { why: b.lv >= 11 ? '已经是最高等级' : null }),
       ];
     },
-    info(t) { const n = t.ba.lv - 1; return [`双刃箭（${t.ba.mode === 1 ? '单体' : '范围'}）：伤害等级 ${n}，${t.ba.mode === 1 ? 1500 * n : 250 * n} 伤害，每次 2 魔法`]; },
+    info(t) { const n = t.ba.lv - 1, k = t.talent ? [3000, 400] : [1500, 250]; return [`双刃箭（${t.ba.mode === 1 ? '单体' : '范围'}）：伤害等级 ${n}，${t.ba.mode === 1 ? k[0] * n : k[1] * n} 伤害，每次 2 魔法`]; },
   },
   // 死亡塔（原图 BBp：每次攻击放雷霆一击"死亡呐喊"和恐怖嚎叫"死亡"，冷却好了才放出来）：650 范围敌人护甲 -10~-50（4 秒，冷却 2 秒），
   // 攻速 / 移速 -18%~-50%（3~4 秒，冷却 3 秒，MAX 2 秒）。MAX 杀敌 +1 魔法（最多 400，升级时保留）。天赋（25 木材）：减甲 70、减速 70%
@@ -2357,7 +2456,7 @@ const KITS = {
     },
   },
 
-  // ---------------------------------------------------------------- 大辅助（MAX 效果要用天赋卷轴激活）
+  // ---------------------------------------------------------------- 大辅助（MAX 效果要用守卫者的激活天赋，25 木材）
   萨满塔: { tick(t) { lust(t, t.talent ? 0.6 : 0.4, t.talent ? 13 : 10, t.talent ? 3 : 4, t.talent ? 600 : 400); },
     info(t) { return [`嗜血术：给附近一座塔 +${t.talent ? 60 : 40}% 攻速 ${t.talent ? 13 : 10} 秒，冷却 ${t.talent ? 3 : 4} 秒`]; }, cmds: t => [evoCmd(t, '冰霜塔', '小熊猫塔（风）')] },
   兽人塔: { attack(t) { roar(t, t.talent ? 0.85 : 0.55, t.talent ? 12 : 10, 12, t.talent ? 150 : 100); },
@@ -2407,7 +2506,7 @@ const KITS = {
     info: () => ['缓速：每次攻击（1 魔法）220 范围晕眩 0.5 秒、5000 魔法伤害，并留下减速 40% 的漩涡'],
   },
 
-  // ---------------------------------------------------------------- 巫系（MAX 效果要用天赋卷轴激活）
+  // ---------------------------------------------------------------- 巫系（MAX 效果要用守卫者的激活天赋，25 木材）
   巫术塔: {
     attack(t, target) {
       const [r, d, pct, cd] = t.talent ? [300, 10000, 0.07, 10] : [250, 800, 0.05, 12];
@@ -5387,7 +5486,7 @@ function startEndless(thrill) {
 }
 function endlessWave() {
   const E = G.endless;
-  if (!E.locked) { E.locked = true; if (G.menu === 'wood') G.menu = 'main'; if (G.pending === 'fod') G.pending = null; uiDirty(); }
+  if (!E.locked) { E.locked = true; if (G.menu === 'wood') G.menu = 'main'; if (G.pending === 'fod' || G.pending === 'talent') G.pending = null; uiDirty(); }
   E.wave++; G.timer = RULE.endlessEvery;
   E.rhla++;
   if (!E.nm) E.score += G.players === 8 ? 45 : G.roster.filter(p => p && p.out).length * 45 + (MAX_PLAYERS - G.players) * 54;
@@ -5541,10 +5640,79 @@ function rerollSlot(cat) {
 const TALENT_A = { 加速光环: 0.8, 攻击光环: 1.42, 减防光环: -100, 减速光环: -0.7 };   // 基础天赋 = MAX 光环技能升到 2 级（A01F / A007 / A00W / A00V 的 2 级数值）
 const TALENT_A3 = { 加速光环: 0.9, 攻击光环: 1.54, 减防光环: -115, 减速光环: -0.8 };  // 至尊天赋（天赋秘籍）= 升到 3 级
 const UNIQ_TALENT = new Set(['恐惧塔', '火速塔', '神力塔', '冰封塔', '银行塔']);       // 天赋卷轴 / 秘籍 / 宠物至尊天赋能加技能等级的全场唯一塔（魔法塔没有）
-const talentName = t => t.talent === 2 ? '至尊天赋' : kitTalent(t) ? kitTalent(t).name : t.talent ? (t.cat === 'aura' ? '基础天赋' : '天赋') : '';
-// 主塔等的天赋写在技能包里（KITS[fam].talent = { wood, name, max, tip, use }）：原图激活时另扣木材（A053 的触发器 Bag）
-const kitTalent = t => t && !t.isHero && KITS[t.fam] && KITS[t.fam].talent;
-const kitTalentWhy = t => { const kt = kitTalent(t); return kt.only && kt.only(t) ? kt.only(t) : kt.max && !isMax(t) ? '要升到 MAX 才能激活天赋' : t.talent || (kt.why && kt.why(t)) ? '该单位已经激活' : G.wood < (kt.wood || 0) ? `激活要 ${kt.wood} 木材，木材不足` : null; };
+const talentName = t => t.talent === 2 ? '至尊天赋' : t.cat === 'aura' ? (t.talent ? '基础天赋' : '') : t.talentGot || (talentOf(t) ? talentOf(t).name : t.talent ? '天赋' : '');
+
+// ---------------------------------------------------------------- 激活天赋（原图 A053：守卫者"使用木材"里的技能，施法距离 750，触发器 Bag）
+// 直接扣木材激活一座塔的天赋（每座塔一次）：MAX 主塔 / 弹跳塔 MAX / 火速 · 恐惧 · 神力 · 冰封塔 30，MAX 另类塔 / 大辅助 / 巫系 / 地精塔 MAX 25，
+// MAX 原始塔 20，MAX 辅助塔 10，超级深渊塔 50。天赋卷轴（A01P）只管 MAX 光环塔的基础天赋和全场唯一塔技能 +1 级。
+// 技能包里写了 talent 的（主塔、另类塔）用技能包的，其余的在 TALENTS 里。字段：wood 木材、name 名字、max 要 MAX、only(t) 不能激活的原因、
+// why(t) 已经激活（原图按玩家记的变量）、use(t) 激活时的效果（返回实际得到的天赋名，随机的那几种）
+const TALENT_RAW = (name, tip, use) => ({ wood: 20, name, max: true, tip, use });
+const TALENT_SUP = as => ({ wood: 10, name: `增加${as * 100}%攻击速度`, max: true, tip: `攻击速度 +${as * 100}%`, use(t) { t.talentAS = as; } });
+const TALENT_BIG = (name, tip) => ({ wood: 25, name, tip });
+const TALENT_UNIQ = (base, top) => ({ wood: 30, name: '技能等级 +3', tip: `技能 +3 级（${top - 3} 级以上直接到 ${top} 级）`,
+  use(t) { const L = base + (t.ulv || 0); t.ulv = (L <= top - 3 ? L + 3 : top) - base; FXS.ring(t.x, t.y, 220, '#9fffb0', 0.6, 4); return `${curLevel(t).name.replace(/塔$/, '')}（等级+3）`; } });
+const TALENTS = {
+  弹跳塔: { wood: 30, name: '弹跳天赋', only: t => t.bmax ? null : '要升到 MAX 才能激活天赋', use() { G.bounce.talent = true; }, tip: 'MAX 回收后再建弹跳塔，金币 ≥ 58000 且空余人口 ≥ 2 时直接变成 MAX' },
+  恐惧塔: TALENT_UNIQ(2, 10), 火速塔: TALENT_UNIQ(2, 10), 神力塔: TALENT_UNIQ(1, 10), 冰封塔: TALENT_UNIQ(1, 13),   // 恐惧 / 火速塔建成时技能是 2 级
+  闪电塔: TALENT_RAW('超级闪杀', '闪杀升到 2 级：8% 概率晕眩 5 秒', t => { t.abOv = { AHbh: { A: 8, dur: 5 } }; }),   // A0BD 2 级（2 级持续时间表里是空的，按说明 5 秒）
+  箭塔: TALENT_RAW('无视箭射', '获得箭射加强（A081）', null),             // A081 是个空的致命一击，原图激活后没有实际效果（MAX 箭射的 40% 附加伤害不要天赋就有，见 primalMaxHit）
+  群攻塔: TALENT_RAW('无视重击', '范围重击升到 2 级：晕眩 0.1 → 0.15 秒', null),   // A0A8 2 级（持续时间表里是空的，按说明 0.15 秒）
+  牛头塔: TALENT_RAW('无视粉碎', '每次攻击塔周围 500 范围 攻击力×20% 混乱无视护甲伤害', null),
+  破坏塔: TALENT_RAW('分裂破坏（分伤）', '同时攻击 9 个单位', null),
+  通灵塔: TALENT_RAW('高级通灵', '8 个灵魂进入通灵状态，10 倍攻击 2 秒', null),
+  毒塔: TALENT_RAW('慢性毒药 / 战略', '随机一种：1/3 巨毒（每秒 2000、减速 100%）、1/3 耐毒（每秒 1000、减速 80%）、1/3 战略（每 20 秒攻击 +600% 10 秒）', t => {
+    if (rint(1, 3) === 2) { t.abOv = { Aspo: { A: 2000, C: 1, dur: 5 } }; return '慢性毒药(巨毒)'; }     // A03Q 2 级：说明写每秒 20000、5 秒，技能表是 2000
+    if (rint(1, 2) === 2) { t.abOv = { Aspo: { A: 1000, C: 0.8, dur: 300 } }; return '慢性毒药(耐毒)'; }   // A03Q 3 级：说明写每秒 5000、300 秒，技能表是 1000
+    t.strat = true; return '战略';
+  }),
+  混乱塔: TALENT_RAW('致命一击', '致命一击升级：已经是 2 级的变成强化（不变），否则一半会心（10% 7 倍）、一半致命（40% 5 倍）', t => {
+    if (t.critLv === 2) return '致命一击(强化)';
+    t.critLv = rint(1, 2) === 1 ? 3 : 4; return t.critLv === 3 ? '致命一击(会心)' : '致命一击(致命)';
+  }),
+  重击塔: TALENT_SUP(0.5), 冰霜塔: TALENT_SUP(0.5), 腐蚀塔: TALENT_SUP(0.5), 暴击塔: TALENT_SUP(0.15),
+  萨满塔: TALENT_BIG('嗜血术MAX', '嗜血术 +60% 攻速 13 秒，冷却 3 秒，范围 600'), 兽人塔: TALENT_BIG('咆哮MAX', '咆哮 150 范围攻击 +85% 12 秒'),
+  驱逐塔: TALENT_BIG('驱逐MAX', '驱逐移速 +200% 10 秒，附带 200 范围 300 混乱伤害'), 缓速塔: TALENT_BIG('缓速MAX', '漩涡减速 48% 3.8 秒，攻击附带 2000 魔法伤害'),
+  巫医塔: TALENT_BIG('守卫MAX', '守卫 300 范围每秒 3000，冷却 9 秒'), 巫术塔: TALENT_BIG('毁灭凋零MAX', '死亡凋零 300 范围 10000，每秒消耗 7% 生命，冷却 10 秒'),
+  巫法塔: TALENT_BIG('陷阱MAX', '静止陷阱 300 范围晕眩 3 秒，冷却 3.5 秒'), 巫魔塔: TALENT_BIG('恐惧之眼MAX', '恐惧之眼护甲 -100，冷却 3 秒'),
+  地精塔: { wood: 25, name: '每秒回复2.5魔法', max: true, tip: '每秒多回 2.5 魔法' },
+  巨箭塔: { wood: 25, name: '伤害加深', max: true, tip: '双刃箭单体 伤害等级×3000、范围 250 伤害等级×400' },
+  图腾塔: { wood: 25, name: '魔法值增加', max: true, tip: '魔法上限 +400（A0HA）', use(t) { t.maxMana += 400; } },
+};
+const talentOf = t => t && t.fam && !t.isHero && t.cat !== 'summon' && ((KITS[t.fam] && KITS[t.fam].talent) || TALENTS[t.fam]);
+const talentDone = t => { const kt = talentOf(t); return !!(t.talent || (kt && kt.why && kt.why(t))); };
+function talentWhy(t) {
+  if (!t || !t.fam || t.cat === 'summon') return '只能对塔使用';
+  if (!mine(t)) return '只能激活自己的塔';
+  const kt = talentOf(t);
+  if (!kt) return t.cat === 'aura' ? '光环塔的天赋用天赋卷轴激活' : '这座塔没有天赋';
+  if (kt.only && kt.only(t)) return kt.only(t);
+  if (kt.max && !isMax(t)) return '非MAX塔没有天赋';
+  if (talentDone(t)) return '该单位已经激活';
+  if (G.wood < kt.wood) return `木材不足（激活要 ${kt.wood} 木材）`;
+  return null;
+}
+function activateTalent(t) {
+  const why = talentWhy(t); if (why) return msg(why);
+  const kt = talentOf(t);
+  G.wood -= kt.wood;
+  const got = kt.use && kt.use(t);
+  t.talent = true; t.talentGot = got || kt.name;
+  FXS.ring(t.x, t.y, 220, '#9fffb0', 0.6, 4); SFX.ui('upgrade');
+  msg(`【${myName()}】的${curLevel(t).name}获得了${t.talentGot}（-${kt.wood} 木材）`);
+  uiDirty();
+}
+function orderTalent(t, queue) {
+  const why = talentWhy(t); if (why) return msg(why);
+  giveOrder({ kind: 'talent', target: t, x: t.x, y: t.y, reach: 750 }, queue);
+}
+// 信息面板：还没激活的天赋
+function talentHint(t) {
+  const kt = talentOf(t); if (!kt || !mine(t)) return '';
+  if (talentDone(t)) return `<b style="color:#9fffb0">已激活天赋：${talentName(t)}</b>`;
+  if ((kt.max && !isMax(t)) || (kt.only && kt.only(t))) return '';
+  return `<span style="color:#9fffb0">天赋（${kt.wood} 木材，守卫者「使用木材 → 激活天赋」）：${kt.name}——${kt.tip}</span>`;
+}
 const SHOP_ITEMS = [
   { id: 'I001', key: 'Q', name: '1个小材', gold: 500, cd: 30, tip: '使用 500 金币购买 1 个木材', use: () => { G.wood += 1; } },
   { id: 'I002', key: 'W', name: '10个木材', gold: 5000, cd: 300, tip: '使用 5000 金币购买 10 个木材', use: () => { G.wood += 10; msg('木材 +10'); } },
@@ -5555,13 +5723,12 @@ const SHOP_ITEMS = [
     pick: '知识之书：选择英雄塔（Esc 取消）', ok: t => t && t.isHero ? null : '只能对英雄塔使用',
     use: h => { const st = pick(['str', 'agi', 'int']); h.stat[st] += 10; msg(`英雄增加${statCN(st)} 10`); } },
   { id: 'I01Y', key: 'A', name: '天赋卷轴', wood: 15, firstAt: 1200, cd: 300, inv: true, range: 750,
-    tip: `激活天赋（原图 A053）：<br>MAX 光环塔：光环升到 2 级（加速 +80% / 攻击 +142% / 减防 -100 / 减速 -70%）<br>大辅助、巫系：技能升到 MAX<br>弹跳塔 MAX：弹跳天赋（MAX 回收后再建弹跳塔，金币 ≥ 58000 时直接变成 MAX）<br>破坏塔 MAX：同时攻击 9 个；通灵塔 MAX：高级通灵；地精塔 MAX：每秒多回 2.5 魔法<br>主塔（激活时另扣 30 木材）：风行塔 MAX 通用伤害、将军塔 MAX 军令状、狂狼塔 MAX 疯狂之狼、五行塔 MAX 额外伤害、巫妖塔提升会心一击、人马塔雷霆（狂暴）、原始指挥官宁静+<br>另类塔 MAX（另扣 25 木材）：死亡塔呐喊尖啸、燃烧塔魔法 +200、炎魔塔攻速 +80%、魔石塔神石气息群伤、灵魂塔锁链冷却 1 秒、精灵塔召唤冷却 2.5 秒；超级深渊塔（另扣 50 木材）Bingo#<br>开局 1200 秒后开放，购买间隔 300 秒`,
-    pick: '天赋卷轴：选择一座可以激活天赋的塔（Esc 取消）',
-    ok: t => !t || !t.fam ? '只能对塔使用' : UNIQ_TALENT.has(t.fam) ? null : kitTalent(t) ? kitTalentWhy(t) : !(t.cat === 'aura' || TALENT_FAMS.has(t.fam)) ? '只能对光环塔、大辅助、巫系、弹跳塔 MAX、破坏塔 / 通灵塔 / 地精塔、全场唯一塔和有天赋的主塔使用' : !isMax(t) || (t.fam === '弹跳塔' && !t.bmax) ? '要升到 MAX 才能激活天赋' : t.talent ? '该单位已经激活' : null,
+    tip: `对 MAX 光环塔使用，激活<b>基础天赋</b>：光环升到 2 级（加速 +80% / 攻击 +142% / 减防 -100 / 减速 -70%），不能再激活至尊天赋<br>对全场唯一塔（恐惧 / 火速 / 神力 / 冰封 / 银行）使用：技能 +1 级<br>主塔、原始塔、辅助塔、另类塔等的天赋不用卷轴：守卫者「使用木材 → 激活天赋」直接扣木材激活<br>开局 1200 秒后开放，购买间隔 300 秒`,
+    pick: '天赋卷轴：选择一座 MAX 光环塔或全场唯一塔（Esc 取消）',
+    ok: t => !t || !t.fam ? '只能对塔使用' : UNIQ_TALENT.has(t.fam) ? null : t.cat !== 'aura' || !isMax(t) ? '只能对MAX光环使用（其他塔的天赋用守卫者的"激活天赋"）' : t.talent ? '该单位已经激活' : null,
     use: t => {
       if (UNIQ_TALENT.has(t.fam)) return ulUp(t, 1, '天赋卷轴');
-      const kt = kitTalent(t); if (kt) { G.wood -= kt.wood || 0; if (kt.use) kt.use(t); }
-      t.talent = true; if (t.bmax) G.bounce.talent = true; FXS.ring(t.x, t.y, 220, '#9fffb0', 0.6, 4); msg(`${curLevel(t).name}获得了${talentName(t)}`);
+      t.talent = true; FXS.ring(t.x, t.y, 220, '#9fffb0', 0.6, 4); msg(`${curLevel(t).name}获得了基础天赋`);
     } },
   { id: 'I009', key: 'S', name: '复制卷轴', gold: 3000, inv: true, range: 600,
     tip: '对一位友军的守卫者使用，获得与其一模一样的建造能力（建造栏和英雄塔都换成他的；以后随机建筑需 6 木材），对方获得 5 木材',
@@ -5631,7 +5798,6 @@ function sellItem(i) {
   invRemove(it); SFX.ui('sell');
   msg(`出售${it.name}：` + [p.gold && `${p.gold * k} 金`, p.wood && `${p.wood * k} 木材`, p.wish && `${p.wish * k} 许愿点（目前 ${G.wish}）`].filter(Boolean).join('，'));
 }
-const TALENT_FAMS = new Set(['弹跳塔', '萨满塔', '兽人塔', '驱逐塔', '缓速塔', '巫医塔', '巫术塔', '巫法塔', '巫魔塔', '破坏塔', '通灵塔', '地精塔']);
 const auraAb = t => { const ab = curLevel(t).abils[0]; return ab && t.talent ? { ...ab, A: (t.talent === 2 ? TALENT_A3 : TALENT_A)[t.fam] } : ab; };
 
 
@@ -5788,7 +5954,7 @@ function ulUp(t, n, why) {
   msg(`${why}：${curLevel(t).name}技能 +${n} 级`);
 }
 // 天神塔每级攻击上限：40 ×（10 + 宠物浣熊的 Gq）（原图 zt）
-const godStep = t => 40 * (10 + G.petFx.gq + stoneLv(t, 2));     // 原图 A06X 等级 × 40 × (10 + Dy + DY 魔石塔 + Gq 宠物)
+const godStep = t => 40 * (10 + (G.godDy || 0) + G.petFx.gq + stoneLv(t, 2));     // 原图 A06X 等级 × 40 × (10 + Dy + DY 魔石塔 + Gq 宠物)
 
 // ================================================================ 守护宗师（地图中央商店右边，原图 u01A）
 // 卖的东西：兔子卷轴、重置卷轴、宠物卷轴、糖果、赞、投票卷轴、绑定卷轴、号令卷轴。英雄卷轴、轮回卷轴只能用平台成就币，没有做
@@ -7130,7 +7296,7 @@ function portrait(e, name, color) {
 }
 function bar(cls, v, max, text) { return `<div class="bar ${cls}"><i style="width:${clamp(v / max, 0, 1) * 100}%"></i><span>${text}</span></div>`; }
 const builderState = b => { const o = b.order; return !o ? '待命' : o.kind === 'build' ? '前往建造 ' + (o.fam === 'hero' ? G.heroChoice : o.fam === 'ancient' ? '古树' : o.fam)
-  : o.kind === 'use' ? `前去使用${o.item.name}` : o.kind === 'fod' ? '前去施放死亡之指' : o.kind === 'pick' ? `去捡${o.target.def.name}` : '移动中'; };
+  : o.kind === 'use' ? `前去使用${o.item.name}` : o.kind === 'fod' ? '前去施放死亡之指' : o.kind === 'talent' ? '前去激活天赋' : o.kind === 'pick' ? `去捡${o.target.def.name}` : '移动中'; };
 // 新加的几类单位（三个商人、队友的守卫者、地上的物品、野生宠物、宠物）的信息卡内容：{ name, sub, lines }
 const known = e => e === G.builder || e === G.rabbit || SHOPS.includes(e) || G.towers.includes(e) || G.monsters.includes(e) || G.items.includes(e) || G.wild.includes(e) || activePlayers().some(p => p.builder === e);
 function extraCard(e) {
@@ -7320,7 +7486,8 @@ function towerInfo(t) {
   }
   const bufs = [['bloodlust', '嗜血术 攻速'], ['fire', '火速 攻速'], ['roar', '咆哮 攻击'], ['divine', '神力 攻击']].filter(([k]) => bv(t, k)).map(([k, n]) => `${n} +${pctTxt(bv(t, k))}`);
   if (bufs.length) lines.push('状态：' + bufs.join('，'));
-  if (t.talent && t.cat !== 'aura') lines.push('<b style="color:#9fffb0">已激活天赋</b>');
+  if (t.critLv) { const c = CHAOS_CRIT[t.critLv]; lines.push(`致命一击 ${t.critLv} 级：${c.A}% 概率 ${c.B} 倍`); }
+  const th = talentHint(t); if (th) lines.push(th);
   if (t.cat === 'aura' && t.lv === 0 && !mine(t) && t.forSale) lines.push('<b style="color:#9fd8ff">允许收购：可以用收购卷轴买下</b>');
   return lines.length ? `<div class="tip">${lines.join('<br>')}</div>` : '';
 }
@@ -7400,6 +7567,8 @@ function buildCmds() {
     if (G.menu === 'wood') {
       out.push(cmd('Q', '人', '购买人口', '用 <b>12 木材</b>购买 1 个人口', () => { if (G.wood < RULE.foodPrice) return msg('木材不足'); G.wood -= RULE.foodPrice; G.foodCap++; msg('用 12 木材兑换了 1 个人口'); achCount('food'); uiDirty(); }, { disabled: G.wood < 12, ico: 'buyfood' }));
       out.push(cmd('W', '金', '兑换金币', '<b>1 木材</b>兑换 300 金币', () => { if (G.wood < 1) return msg('木材不足'); G.wood--; G.gold += RULE.woodToGold; achCount('gold'); uiDirty(); }, { disabled: G.wood < 1, ico: 'wood2gold' }));
+      out.push(cmd('E', '天', '激活天赋', '<b>激活天赋</b>（施法距离 750）<br>选一座自己的塔，扣木材激活它的天赋（每座塔一次）：<br>MAX 主塔、弹跳塔 MAX、火速 / 恐惧 / 神力 / 冰封塔 <b>30 木材</b><br>MAX 另类塔、大辅助、巫系、地精塔 MAX <b>25 木材</b><br>MAX 原始塔 <b>20 木材</b>，MAX 辅助塔（重击 / 冰霜 / 腐蚀 / 暴击）<b>10 木材</b>，超级深渊塔 <b>50 木材</b><br>选中塔时信息面板会写它的天赋；MAX 光环塔用天赋卷轴',
+        () => { G.pending = 'talent'; G.placing = null; msg('激活天赋：选择一座塔（Esc 取消）'); uiDirty(); }, { active: G.pending === 'talent', ico: 'talent' }));
       while (out.length < 11) out.push(null); out.push(back); return out;
     }
     out.push(cmd('M', '➜', '移动', '移动守卫者。也可以选中守卫者后直接右键 / 点击地面', () => { G.pending = 'move'; G.placing = null; uiDirty(); }, { active: G.pending === 'move', ico: 'move' }));
@@ -7407,7 +7576,7 @@ function buildCmds() {
     out.push(cmd('F', '✦', '闪烁', '全图闪烁：瞬间移动到目标点，冷却 1 秒', () => { G.pending = 'blink'; G.placing = null; uiDirty(); }, { active: G.pending === 'blink', ico: 'blink' }));
     out.push(cmd('B', '建', '建造', '打开建造栏（当前随机给出的 7 个塔 + 1 个英雄塔）', () => { G.menu = 'build'; uiDirty(); }, { ico: 'build' }));
     if (!endlessLock()) out.push(cmd('R', '🎲', '随机建造', `重新随机建造栏：1 主塔、1 原始塔、1 光环塔、1 新辅助（大辅助 / 巫系）、1 小辅助、1 另类塔、1 全场唯一、1 英雄塔<br>${G.rerolls === 0 ? '首次免费' : `需要 ${RULE.rerollWood} 木材`}`, () => rerollBuild(false), { disabled: G.rerolls > 0 && G.wood < RULE.rerollWood, ico: 'reroll' }));
-    if (!endlessLock()) out.push(cmd('U', '木', '使用木材', '购买人口（12 木）、兑换金币（1 木 → 300 金）。买木材去地图中央的商店', () => { G.menu = 'wood'; uiDirty(); }, { ico: 'woodmenu' }));
+    if (!endlessLock()) out.push(cmd('U', '木', '使用木材', '购买人口（12 木）、兑换金币（1 木 → 300 金）、激活天赋（10~50 木）。买木材去地图中央的商店', () => { G.menu = 'wood'; uiDirty(); }, { ico: 'woodmenu' }));
     const fw = fodBlock();
     if (!endlessLock()) out.push(cmd('X', '指', '死亡之指', `<span class="atk atk-magic">主动</span> 射程 ${FOD.range} · 冷却 ${FOD.cd} 秒 · <span style="color:#7ab8ff">${FOD.mana} 魔法</span><br>选择一个敌人：直接杀死它。<br>BOSS 只损失一部分生命（大红牛 7000、大骷髅 2.5 万、直升机 / 游艇 / 魔王 10 万、龙 / 狗头人 BOSS 生命高于 15 万时 10 万，按模式缩放）${fw ? `<br><b style="color:#ff5a4f">${fw}</b>` : ''}`,
       () => { const why = fodBlock(); if (why) return msg(why); G.pending = 'fod'; G.placing = null; msg('死亡之指：选择一个敌人（Esc 取消）'); uiDirty(); },
@@ -7613,6 +7782,10 @@ function groundClick(x, y, shift) {
     if (src) bounceXfer(src, t);
     uiDirty(); return;
   }
+  if (G.pending === 'talent') {                               // 激活天赋：对自己的塔
+    const t = mouse && hitTest(mouse.x, mouse.y);
+    G.pending = null; orderTalent(t, shift); uiDirty(); return;
+  }
   if (G.pending === 'fod') {                                  // 死亡之指：对敌人
     const t = mouse && hitTest(mouse.x, mouse.y);
     G.pending = null; orderFinger(t, shift); uiDirty(); return;
@@ -7814,7 +7987,7 @@ function showHelp() {
     <p><b>精英怪</b>：每只怪 1/55 概率成为精英（粉色外圈），带一种 900 范围的光环。击杀得 1~3 木材；由英雄塔击杀时，英雄所选属性 +1。</p>
     <p><b>资源</b>：起手 2000 金、5 木；12 木 = 1 人口；1 木 = 300 金。回收塔返还 100% 金币。</p>
     <p><b>死亡之指</b>：守卫者的技能（热键 X），对 800 范围内的一个敌人使用，直接杀死它；BOSS 只扣一部分生命。冷却 90 秒，耗 5 点魔法（守卫者魔法上限 10）。</p>
-    <p><b>商店</b>：地图中央，守卫者走到 ${RULE.shopReach} 范围内选中商店购买：1 个木材（500 金，冷却 30 秒）、10 个木材（5000 金，冷却 300 秒）、魔力卷轴（英雄塔 +120 魔法）、知识之书（英雄塔随机属性 +10）、天赋卷轴（15 木，MAX 光环塔激活基础天赋，开局 1200 秒后开放）。三种卷轴买下后放进守卫者的<b>物品栏</b>（6 格），选中守卫者点物品（或小键盘 7 8 4 5 1 2），再点目标塔，守卫者走到施法距离内使用。复制 / 收购卷轴要对队友使用（守卫者 / 允许收购的 1 级光环塔）。商店两边还有<b>宠物商人</b>（左）、<b>守护宗师</b>和<b>许愿商人</b>（右）。物品栏的物品在商店旁边右键可以出售。</p>
+    <p><b>商店</b>：地图中央，守卫者走到 ${RULE.shopReach} 范围内选中商店购买：1 个木材（500 金，冷却 30 秒）、10 个木材（5000 金，冷却 300 秒）、魔力卷轴（英雄塔 +120 魔法）、知识之书（英雄塔随机属性 +10）、天赋卷轴（15 木，MAX 光环塔激活基础天赋、全场唯一塔技能 +1 级，开局 1200 秒后开放）。其他 MAX 塔的天赋不用卷轴：守卫者「使用木材 → 激活天赋」直接扣木材（主塔 / 弹跳 / 火速恐惧神力冰封 30、另类塔 / 大辅助 / 巫系 25、原始塔 20、辅助塔 10、超级深渊 50）。三种卷轴买下后放进守卫者的<b>物品栏</b>（6 格），选中守卫者点物品（或小键盘 7 8 4 5 1 2），再点目标塔，守卫者走到施法距离内使用。复制 / 收购卷轴要对队友使用（守卫者 / 允许收购的 1 级光环塔）。商店两边还有<b>宠物商人</b>（左）、<b>守护宗师</b>和<b>许愿商人</b>（右）。物品栏的物品在商店旁边右键可以出售。</p>
     <p><b>宠物</b>：宠物商人卖 11 种宠物（8 当局成就，每人一只），跟着守卫者走、自动攻击，攻击每波提升；选中宠物激活普通天赋（10 木）后，对<b>小精灵</b>（外环外每 100 秒刷一只）用<b>糖果</b>（守护宗师 5 成就 5 个，地上也会掉）可以升级宠物技能。10 波 BOSS 后外环外出现野生宠物，用糖果抓（抓到的记进玩家档案，下局用宠物卷轴召唤）。</p>
     <p><b>许愿</b>：兔子的塔类之球每个 +1 许愿点，出售许愿石（BOSS 掉落）/ 梦 +5，凑齐"马上有梦" +20；在许愿商人那里花 20 许愿点把建造栏的一格换成想要的塔。</p>
     <p><b>守护宗师</b>：兔子卷轴、重置卷轴（重新随机英雄成长值）、宠物卷轴、糖果、赞（48 波后给队友点赞）、投票卷轴（投票踢人：每票 +2，超过在场人数踢出）、绑定卷轴（到达无尽关卡后把这局的主塔绑定到玩家档案）、号令卷轴（20 成就，把建造栏的主塔换成绑定的那种）。每波发金 = 杀敌排行名次 ×8 + 波数 ×2。</p>
@@ -7868,5 +8041,5 @@ newGame('rookie');
 showStart();
 requestAnimationFrame(frame);
 window.__G = () => G;   // 调试用
-window.__dbg = { get G() { return G; }, NODES, EDGES, kill, hurt, spawnMonster, FXS, buildTower, upgradeTower, learnSkill, heroLevelUp, step, canPlace, newGame, monstersAlive, towerStats, rerollBuild, orderBuild, orderMove, castSkill, spawnRabbit, buyRabbit, RABBIT_SHOP, makePet, spawnWisp, spawnWildPet, dropItem, invAdd, ITEMS, startVote, kickPlayer, giveLike, netReceive, MASTER_ITEMS, PET_ITEMS, wishBuy, petTalent, MASTER, WISHER, PETSHOP, buyItem, critterTick, sellItem, pickUp, candyWild, renderCmds, SHOP, SHOP_ITEMS, buyShop, orderFinger, KITS, towerAS, towerAtk, effArmor, applyAuras, sellTower, select, hurt, buildCmds, newTower, attack, bounceXfer, spendPoint, upSkill, wujiSacrifice, plantAncient, knWard, heroStats, HERO_KITS, HERO_DEF, heroAuraList, gateSpots, spawnAt, cap, playerLeft, startFinal, GATES };
+window.__dbg = { get G() { return G; }, NODES, EDGES, kill, hurt, spawnMonster, FXS, buildTower, upgradeTower, learnSkill, heroLevelUp, step, canPlace, newGame, monstersAlive, towerStats, rerollBuild, orderBuild, orderMove, castSkill, spawnRabbit, buyRabbit, RABBIT_SHOP, makePet, spawnWisp, spawnWildPet, dropItem, invAdd, ITEMS, startVote, kickPlayer, giveLike, netReceive, MASTER_ITEMS, PET_ITEMS, wishBuy, petTalent, MASTER, WISHER, PETSHOP, buyItem, critterTick, sellItem, pickUp, candyWild, renderCmds, SHOP, SHOP_ITEMS, buyShop, orderFinger, KITS, towerAS, towerAtk, effArmor, applyAuras, sellTower, select, hurt, buildCmds, newTower, attack, bounceXfer, spendPoint, upSkill, wujiSacrifice, plantAncient, knWard, heroStats, HERO_KITS, HERO_DEF, heroAuraList, gateSpots, spawnAt, cap, playerLeft, startFinal, GATES, activateTalent, talentWhy, talentOf, orderTalent, TALENTS, primalMaxHit };
 })();
