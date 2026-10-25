@@ -225,3 +225,9 @@ model:tower:Abilities/Spells/Human/DivineShield/DivineShieldTarget	ok	高 2.00 m
 model:tower:Buildings/Undead/SacrificialPit/SacrificialPit	ok	高 1.35 m | ppm 40 | 缺贴图 0 | 动作 idle,death | 光效 无
 model:tower:Units/Orc/Catapult/Catapult	ok	高 0.97 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death | 光效 无
 model:tower:Doodads/Cinematic/EyeOfSargeras/EyeOfSargeras	ok	高 0.60 m | ppm 40 | 缺贴图 0 | 动作 idle,death | 光效 有
+model:monster:Objects/InventoryItems/tomeBlue/tomeBlue	ok	高 0.25 m | ppm 40 | 缺贴图 0 | 动作 idle,death | 光效 有
+model:monster:Abilities/Weapons/Catapult/CatapultMissile	ok	高 0.43 m | ppm 40 | 缺贴图 0 | 动作 idle,death | 光效 无
+model:monster:Units/Critters/DuneWorm/DuneWorm	ok	高 0.35 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,death | 光效 无
+model:monster:Abilities/Spells/Other/StrongDrink/BrewmasterMissile	ok	高 0.88 m | ppm 40 | 缺贴图 0 | 动作 idle,death | 光效 无
+model:monster:Units/Creeps/BlackDragon/BlackDragon	ok	高 1.28 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death | 光效 无
+model:monster:Units/Undead/Gargoyle/Gargoyle	ok	高 0.91 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death | 光效 无

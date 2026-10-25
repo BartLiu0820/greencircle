@@ -1,0 +1,33 @@
+{
+ "key": "unit:ninc",
+ "src": "sprites/w3_monster_Units_Creeps_InfernalCannonCannon_InfernalCannonCannon.png",
+ "frameW": 160,
+ "frameH": 160,
+ "cols": 8,
+ "rows": 16,
+ "anchor": [
+  0.5,
+  0.62
+ ],
+ "unitsPerPixel": 0.8,
+ "pitch": 50,
+ "actions": {
+  "walk": {
+   "row": 0,
+   "dirs": 8,
+   "frames": 8,
+   "fps": 12,
+   "loop": true
+  },
+  "death": {
+   "row": 8,
+   "dirs": 8,
+   "frames": 6,
+   "fps": 12,
+   "loop": false
+  }
+ },
+ "modelScale": 1.0,
+ "aliasOf": "model:monster:Units/Creeps/InfernalCannonCannon/InfernalCannonCannon",
+ "war3": true
+}

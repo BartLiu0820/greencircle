@@ -142,6 +142,7 @@ function newGame(mode, players = 1, player = null, bots = false) {     // player
   const np = clamp(Math.round(players), 1, MAX_PLAYERS), [sx0, sy0, sx1, sy1] = W3MAP.rects.s, bx = rnd(sx0, sx1), by = rnd(sy0, sy1);
   G = {
     mode, players: np, gates: GATES.slice(0, np).map((g, k) => k),
+    hl: rint(1, 5), dp: Array(MAX_PLAYERS).fill(0), je: Array(MAX_PLAYERS).fill(0),     // 原图 HL（熊猫 BOSS 的光环）、Dp / JE（BOSS 被攻击触发器按玩家的冷却，每秒 +1）
     c9: Array.from({ length: MAX_PLAYERS }, (_, k) => k < np ? RULE.capPerPlayer : 0),    // 原图 C9[1..8]：在场玩家 40，空位 0；上限 M3 = 它们的和
     interval: MODES[mode].interval, hpScale: MODES[mode].hp, t: 0, phase: 'prep', timer: MODES[mode].prep || RULE.prepTime, wave: 0,
     gold: MODES[mode].gold || RULE.startGold, wood: MODES[mode].wood || RULE.startWood, foodCap: MODES[mode].food,
@@ -228,7 +229,7 @@ function armorMult(armor) {
 // 护甲：减防光环和剑刃之魂的减甲是同一种光环（AHad），只取大的；恐惧塔 / 恐惧之眼也不叠加，只取大的
 const debuff = (m, k) => m.deb[k] && m.deb[k].until > G.t ? m.deb[k].v : 0;
 function effArmor(m) {
-  return m.armor + m.auraFocus - Math.max(m.auraArmorDown, debuff(m, 'blade')) - m.armorDown - m.shred - debuff(m, 'fear') - debuff(m, 'corrode');
+  return m.armor + m.auraFocus + (m.frostArmor > G.t ? 120 : 0) + (m.innerFire > G.t ? 200 : 0) - Math.max(m.auraArmorDown, debuff(m, 'blade')) - m.armorDown - m.shred - debuff(m, 'fear') - debuff(m, 'corrode');
 }
 function typeMult(atk, m) {
   const row = D.damage[atk] || D.damage.normal;
@@ -239,6 +240,9 @@ function hurt(m, amount, atk, src, opt = {}) {
   if (m.dead || !(amount > 0) || m.hitOnly) return 0;   // 同时挡掉 NaN；小偷的生命只按挨打次数算
   if (HELD) { HELD.push(() => hurt(m, amount, atk, src, opt)); return 0; }   // 出手时的技能伤害：等弹道命中再算（holdHits）
   if (m.magicImmune && atk === 'magic') return 0;          // 魔法免疫（ACm3）：魔法攻击打不动
+  if (m.invulUntil > G.t) return 0;                         // 龙的神圣护甲
+  if (atk === 'magic' && m.ams > 0 && m.amsUntil > G.t) { const a = Math.min(m.ams, amount); m.ams -= a; amount -= a; if (!(amount > 0)) return 0; }   // 反魔法外壳
+  if (atk === 'magic' && m.etherealUntil > G.t) amount *= 1.66;   // 放逐（虚无）：魔法伤害 +66%
   let dmg = amount * typeMult(atk, m);
   if (!opt.ignoreArmor && !(m.ignoreArmorUntil > G.t)) dmg *= armorMult(effArmor(m));   // 灵魂锁链：目标护甲被无视
   if (opt.noKill) dmg = Math.min(dmg, Math.max(0, m.hp - 1));   // 烧不死的（炎魔塔的烈焰燃烧）
@@ -277,6 +281,7 @@ function kill(m, src) {
     if (bm && bm.bolt < BOUNCE.bolt.length && Math.random() < 0.2) { bm.bolt++; msg(`弹跳塔 MAX 灵魂重击升到 ${bm.bolt} 级`); }
   }
   if (m.onDeath) m.onDeath(src);
+  monsterDied(m, src);
   if (!m.neutral) monsterDrop(m);
   bossStone(m);
   SFX.ent('unit:' + m.uid, 'death', { x: m.x, y: m.y });
@@ -301,7 +306,9 @@ function spawnMonster(id, opt = {}) {
     deb: {}, ignoreArmorUntil: 0, frozenUntil: 0, expel: null,       // deb：限时减甲 / 加速（{ v, until }）；expel：被驱逐（遣返用）
     boss: !!opt.boss, r: opt.boss ? 90 : 55, elite: null, gate: opt.gate || 0, at: opt.at || 0,
   };
-  if (opt.mdx) Object.assign(m, { mdx: opt.mdx, scale: opt.scale });   // 原版包里没有模型的怪物，借用相近的模型（无尽的精灵用小精灵）
+  if (opt.mdx) Object.assign(m, { mdx: opt.mdx, scale: opt.scale });
+  if (u.pas) { m.pas = u.pas; if (u.pas.mi) m.magicImmune = true; }   // 被动：闪避 / 魔法免疫 / 硬化皮肤（tools/add_monster_extra.py）
+  m.auras = monsterAuras(m);   // 原版包里没有模型的怪物，借用相近的模型（无尽的精灵用小精灵）
   if (!opt.noElite && !NO_ELITE.has(id) && Math.random() < RULE.eliteChance) makeElite(m);
   m.cr = colRadius(m);
   G.monsters.push(m);
@@ -361,8 +368,8 @@ const toSeg = (f, x, y) => [(x - f.A[0]) * f.ux + (y - f.A[1]) * f.uy, (x - f.A[
 function moveMonster(m, dt) {
   if (m.neutral) return wander(m, dt);
   if (!m.target) m.target = nextNode(m);
-  if (G.t < m.stunUntil) return;
-  let spd = m.speed * (1 + m.auraSpeed + debuff(m, 'expelSpeed')) * (1 - Math.max(m.slow * (G.t < m.slowUntil ? 1 : 0), m.auraSlow)) * (1 - Math.min(0.95, m.heroSlow || 0));
+  if (G.t < m.stunUntil || !m.speed) return;                         // 速度 0 的（等死的骷髅、魔法书、酒瓶……）站着不动
+  let spd = m.speed * (1 + m.auraSpeed + debuff(m, 'expelSpeed') + debuff(m, 'lustSpeed')) * (1 - Math.max(m.slow * (G.t < m.slowUntil ? 1 : 0), m.auraSlow)) * (1 - Math.min(0.95, m.heroSlow || 0));
   spd = clamp(spd, 30, 522);
   let f = segFrame(m), [sAlong, lat] = toSeg(f, m.x, m.y);
   sAlong += spd * dt;
@@ -374,7 +381,7 @@ function moveMonster(m, dt) {
   while (sAlong >= f.len && guard++ < 3) {
     const px = f.A[0] + f.ux * sAlong + f.nx * lat, py = f.A[1] + f.uy * sAlong + f.ny * lat;
     m.prev = m.cur; m.cur = m.target;
-    if (repatriate(m) || heroNode(m)) return;
+    if (repatriate(m) || heroNode(m) || demonNode(m)) return;
     m.target = nextNode(m);
     m.lane = clamp(m.lane * 0.6 + rnd(-0.4, 0.4), -0.85, 0.85);
     f = segFrame(m); [sAlong, lat] = toSeg(f, px, py);
@@ -673,7 +680,7 @@ function ownAS(t) {
 function towerAS(t) {
   const kit = KITS[t.fam], tech = (t.fam === '弹跳塔' ? BOUNCE.asStep * G.bounce.as : 0) + (kit && kit.asPlus ? kit.asPlus(t) : 0) + (t.talentAS || 0);   // 玩家科技的攻速（弹跳 R001、天将 R00K）；天赋加的攻速物品（AIas）
   const own = ownAS(t), add = Math.max(t.buffAS, t.selfAS || 0) + Math.max(bv(t, 'bloodlust'), t.selfAS2 || 0) + bv(t, 'fire') + tech - bv(t, 'strat');
-  return Math.min(AS_CAP, own + add) / Math.min(AS_CAP, own) * (1 - t.eliteAS);
+  return Math.min(AS_CAP, own + add) / Math.min(AS_CAP, own) * (1 - Math.min(0.8, Math.max(t.eliteAS, bv(t, 'slowAS'))));   // 减攻速光环、狗头巫师的减速、沉默魔法 4 级（WC3 攻速最多减 80%）
 }
 //   神牛的神盾光辉（战鼓）和攻击光环叠加；古树的心灵之火另算
 const towerAtk = t => (1 + Math.max(t.buffDmg, t.selfAtk2 || 0) + (t.selfAtk || 0) + bv(t, 'roar') + bv(t, 'divine') + (t.drums || 0) + bv(t, 'innerfire')) * (1 - t.eliteWeak);
@@ -691,10 +698,11 @@ function towerUpdate(t, dt) {
   if (t.fam === '扫射塔') return sweepUpdate(t, dt, st);
   t.cdLeft -= dt * towerAS(t);
   if (t.cdLeft > 0) return;
-  if (t.noAttack) { t.cdLeft = 0; return; }
+  if (t.noAttack || bv(t, 'silence')) { t.cdLeft = 0; return; }     // 沉默魔法：不能攻击
   const target = lockTarget(t, st.range);
   if (!target) { t.cdLeft = 0; return; }
   if (target.onAttacked) target.onAttacked(t);            // 原图"单位被攻击"事件：小精灵疾风步、小偷掉东西
+  monsterAttacked(target, t);                             // BOSS 被攻击时的触发器
   t.cdLeft += st.cd;
   t.attacks++; t.atkT = G.t;
   const pre = holdHits(() => {     // 别的塔攻击时触发的伤害，也等这次攻击的弹道命中再结算
@@ -763,7 +771,7 @@ function attack(t, target, st, pre = () => {}) {
     if (lv.splashH && st.splash == null) for (const m of inRange(c.x, c.y, lv.splashH)) if (m !== c && dist2(c.x, c.y, m.x, m.y) > lv.splash ** 2) hurt(m, dmg * lv.splashF, st.atk, t);   // 外圈按 Hfact 伤害
   };
   const land = (m, primary) => (hit, x, y) => {
-    if (hit) { hurt(hit, dmg, st.atk, t); onHitEffects(t, lv, hit, st); frozenBurst(hit); if (t.onHit) t.onHit(t, hit); }
+    if (hit) { const d = attackDmg(t, hit, dmg); if (d > 0) { hurt(hit, d, st.atk, t); onHitEffects(t, lv, hit, st); frozenBurst(hit); if (t.onHit) t.onHit(t, hit); } }
     if (primary) { area(hit, x, y); flush(); SFX.ent(sndKey(t), 'hit', { x, y }); }
   };
   SFX.ent(sndKey(t), 'launch', { x: t.x, y: t.y });
@@ -840,7 +848,7 @@ function sweepUpdate(t, dt, st) {
   t.angle = (t.angle + dt * 2.2 * asMul) % (Math.PI * 2);
   if ((t.swAtk = (t.swAtk || 0) - dt * asMul) <= 0) {
     const target = lockTarget(t, st.range);
-    if (target) { t.swAtk += st.cd; t.attacks++; t.atkT = G.t; KITS.扫射塔.attack(t, target); } else t.swAtk = 0;
+    if (target && !bv(t, 'silence')) { t.swAtk += st.cd; t.attacks++; t.atkT = G.t; monsterAttacked(target, t); KITS.扫射塔.attack(t, target); } else t.swAtk = 0;
   }
   t.cdLeft -= dt * asMul;
   if (t.cdLeft > 0) return;
@@ -4952,8 +4960,8 @@ function heroAttack(h, tg, st, pre = () => {}) {
   const land = primary => (hit, x, y) => {
     if (primary) { flush(); SFX.ent(sndKey(h), 'hit', { x, y }); }
     // msplash：落点 Farea1 范围内全额伤害；其他是单体
-    if (splash) for (const m of inRange(x, y, splash)) hurt(m, dmg, st.atk, h);
-    else if (hit) hurt(hit, dmg, st.atk, h);
+    if (splash) for (const m of inRange(x, y, splash)) hurt(m, m === hit ? attackDmg(h, m, dmg) : dmg, st.atk, h);
+    else if (hit) hurt(hit, attackDmg(h, hit, dmg), st.atk, h);
     if (hit && primary) for (const i of h.learned) { const s = kit[i]; if (s.onAttack) s.onAttack(h, hit); }
   };
   if (hd.instant) {                                 // 瞬间命中（电法）
@@ -5132,24 +5140,220 @@ function applyAuras() {
     for (const [a, r, v] of slowAuras) if (dist2(a.x, a.y, m.x, m.y) <= r * r) m.auraSlow = Math.max(m.auraSlow, v);
     for (const [a, r, v] of heroSlows) if (dist2(a.x, a.y, m.x, m.y) <= r * r) m.heroSlow = Math.max(m.heroSlow, v);
   }
-  // 精英怪光环 (900 范围)
+  // 精英怪光环 (900 范围)、怪物自带的光环（魔王、熊猫 BOSS 等，monsterAuras）
+  const srcs = [];
   for (const e of G.monsters) {
-    if (e.dead || !e.elite) continue;
-    const { aura, lvl } = e.elite, v = aura.v[lvl - 1];
+    if (e.dead) continue;
+    if (e.elite) srcs.push([e, e.elite.aura, e.elite.aura.v[e.elite.lvl - 1], 900]);
+    if (e.auras) for (const a of e.auras) srcs.push([e, a, a.v, a.r]);
+  }
+  for (const [e, aura, v, R] of srcs) {
     if (aura.key === 'focus' || aura.key === 'endur' || aura.key === 'unholy') {
       for (const m of G.monsters) {
-        if (m.dead || dist2(e.x, e.y, m.x, m.y) > 900 * 900) continue;
+        if (m.dead || dist2(e.x, e.y, m.x, m.y) > R * R) continue;
         if (aura.key === 'focus') m.auraFocus = Math.max(m.auraFocus, v);
         if (aura.key === 'endur') m.auraSpeed = Math.max(m.auraSpeed, v);
         if (aura.key === 'unholy') m.auraRegen = Math.max(m.auraRegen, v);
       }
     } else {
       for (const t of G.towers) {
-        if (dist2(e.x, e.y, t.x, t.y) > 900 * 900) continue;
+        if (dist2(e.x, e.y, t.x, t.y) > R * R) continue;
         if (aura.key === 'slowas') t.eliteAS = Math.max(t.eliteAS, v);
         if (aura.key === 'weak') t.eliteWeak = Math.max(t.eliteWeak, v);
       }
     }
+  }
+}
+
+// ---------------------------------------------------------------- 怪物的技能、BOSS 被攻击 / 死亡时的触发器
+// 被动（tools/add_monster_extra.py 按单位表写进 data.js 的 pas）：闪避（AEev，只躲塔的普通攻击）、魔法免疫（Amim，魔法伤害打不动）、
+// 硬化皮肤（Assk：一定概率把这次攻击的伤害减掉一个数，最少剩几点）。塔的攻击还会被诅咒 / 沉默魔法弄得打不中（curse / miss）。
+// 原图怪物都是电脑玩家 Player(11) 的单位，带自动施放的技能（狗头人的治疗 / 嗜血 / 心灵之火 / 诅咒 / 减速）冷却好了就放；
+// 其余的靠触发器：BOSS 被攻击（EVENT_PLAYER_UNIT_ATTACKED）时召唤东西或放技能，死亡时复活 / 分裂。
+// 大多数被攻击触发器有按玩家的冷却：Dp[玩家] 每秒 +1（原图 BbM），够了才触发并清零；巨型 BOSS 的沉默魔法用 JE[玩家]（Bay）
+// 信息面板：怪物的被动和状态
+const AURA_CN = { focus: v => `周围怪护甲 +${v}`, endur: v => `周围怪移速 +${pctTxt(v)}`, unholy: v => `周围怪每秒回血 ${pctTxt(v)}`, slowas: v => `周围塔攻速 -${pctTxt(v)}`, weak: v => `周围塔伤害 -${pctTxt(v)}` };
+function monsterTraits(e) { const out = monsterTraitList(e); return out.length ? `<span>特性</span><b>${out.join('；')}</b>` : ''; }
+function monsterTraitList(e) {
+  const out = [], p = e.pas || {}, sk = e.skin2 || p.skin, ev = Math.max(p.evade || 0, e.evade2 || 0);
+  if (ev) out.push(`闪避 ${pctTxt(ev)}（躲塔的普通攻击）`);
+  if (e.magicImmune && e.uid !== 'Udea') out.push('魔法免疫（魔法伤害无效）');
+  if (sk) out.push(`硬化皮肤：${pctTxt(sk[0])} 概率攻击伤害 -${fmt(sk[1])}（最少 ${sk[2]}）`);
+  if (e.auras) out.push('光环：' + e.auras.map(a => AURA_CN[a.key](a.v)).join('，') + (e.auras[0].r !== 900 ? `（${e.auras[0].r} 范围）` : ''));
+  if (e.invulUntil > G.t) out.push('神圣护甲：无敌');
+  if (e.enraged) out.push('狂暴');
+  if (e.frostArmor > G.t) out.push('霜冻护甲 +120');
+  if (e.innerFire > G.t) out.push('心灵之火 +200 护甲');
+  if (e.ams > 0 && e.amsUntil > G.t) out.push(`反魔法外壳（还能吸收 ${fmt(e.ams)}）`);
+  if (e.uid === 'Udea') out.push(`魔法免疫：${e.magicImmune ? '有' : '无'}（每 5 秒切换）`);
+  return out;
+}
+function attackDmg(t, m, dmg) {
+  const miss = Math.max(bv(t, 'curse'), bv(t, 'miss'));
+  if (miss && Math.random() < miss) { popText(m.x, m.y + 60, '未命中', '#cccccc'); return 0; }
+  const ev = Math.max(m.pas && m.pas.evade || 0, m.evade2 || 0);
+  if (ev && Math.random() < ev) { popText(m.x, m.y + 60, '闪避', '#cccccc'); return 0; }
+  if (m.etherealUntil > G.t) return 0;                                   // 放逐（虚无）：物理攻击打不到
+  for (const sk of [m.pas && m.pas.skin, m.skin2]) if (sk && Math.random() < sk[0]) dmg = Math.max(sk[2], dmg - sk[1]);   // 硬化皮肤
+  return dmg;
+}
+// 怪物身上的光环（和精英怪光环同一套：focus 护甲、endur 移速、unholy 回血；slowas / weak 作用于周围的塔）
+const PANDA_AURA = [null, { key: 'focus', v: 40 }, { key: 'slowas', v: 0.8 }, null, { key: 'endur', v: 0.3 }, { key: 'unholy', v: 0.03 }];   // HL 1~5：boss 专注 / 减攻速（原图 -100%，攻速最多减 80%）/ 弱击（熊猫身上没有这个技能）/ 耐久 / 邪恶
+const DEMON_AURA = lv => [{ key: 'focus', v: [10, 30, 60][lv - 1] }, { key: 'slowas', v: [0.1, 0.25, 0.5][lv - 1] }, { key: 'weak', v: [0.1, 0.3, 0.5][lv - 1] }, { key: 'endur', v: [0.05, 0.15, 0.3][lv - 1] }];   // 魔王的 jy 光环 A041 / A040 / A042 / A044
+function monsterAuras(m) {
+  if (m.uid === 'Udea') return DEMON_AURA(1).map(a => ({ ...a, r: 900 }));
+  if (['Nalc', 'Nfir', 'Npbm', 'Ntin'].includes(m.uid) && PANDA_AURA[G.hl]) return [{ ...PANDA_AURA[G.hl], r: 900 }];
+  if (m.uid === 'nanm') return [{ key: 'endur', v: 0.1, r: 200 }];      // 山岭大巨人 A0PV
+  if (m.uid === 'nanw' || m.uid === 'nenp') return [{ key: 'endur', v: 0.1, r: 100 }];   // 暗黑使者 A0P2、毒性树人 A0OW
+  return null;
+}
+// 在怪物身边刷一只（接着它的路走）；opt.life 限时，opt.boss 计进 20 波的 BOSS
+function spawnBeside(id, at, opt = {}) {
+  const m = spawnMonster(id, { noElite: true, gate: at.gate || 0, boss: opt.boss });
+  if (!m) return null;
+  Object.assign(m, { x: at.x + rnd(-40, 40), y: at.y + rnd(-40, 40), cur: at.cur, prev: at.prev, target: at.target, path: (at.path || []).slice(), lane: at.lane ?? m.lane });
+  if (opt.life) m.until = G.t + opt.life;
+  if (opt.boss && G.bossRule) G.bossRule.ids.push(m);
+  return m;
+}
+function spawnAtGate(id, slot, opt = {}) {
+  const g = G.gates.includes(slot) ? slot : pick(G.gates), m = spawnMonster(id, { noElite: true, gate: g, boss: opt.boss });
+  if (m && opt.life) m.until = G.t + opt.life;
+  if (m && opt.boss && G.bossRule) G.bossRule.ids.push(m);
+  return m;
+}
+// 医疗波：从目标开始在 range 范围内弹 n 个友军（怪物），每弹衰减 decay
+function healWave(first, amount, n, range, decay = 0) {
+  let cur = first, k = amount; const done = [];
+  while (cur && done.length < n) {
+    done.push(cur); cur.hp = Math.min(cur.maxHp, cur.hp + k); k *= 1 - decay;
+    FXS.ring(cur.x, cur.y, 80, '#9fffb0', 0.3, 3);
+    cur = G.monsters.filter(o => !o.dead && !done.includes(o) && dist2(o.x, o.y, cur.x, cur.y) <= range * range).sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
+  }
+}
+// 原图里的随机传送：按玩家顺序依次 1/8、1/7、…、1/2 的概率选这个玩家的出怪口（他要在场），都没选中就是最后一个在场玩家的口
+function demonGate() {
+  for (let i = 0; i < 8; i++) if (rint(1, 8 - i) === 8 - i && G.gates.includes(i)) return i;
+  return G.gates.includes(7) ? 7 : null;
+}
+function teleportTo(m, g) {
+  if (g == null) return;
+  FXS.nova(m.x, m.y, 200, '#9fd8ff', 0.4);
+  const path = GATES[g], [x, y] = NODES[path[0]];
+  Object.assign(m, { x, y, cur: path[0], prev: null, target: null, path: path.slice(1), gate: g });
+  FXS.nova(x, y, 200, '#9fd8ff', 0.4);
+}
+// 塔的减益：诅咒（打不中）、沉默（不能攻击）、减攻速；giveBuff 取最大值、刷新时间
+function towerDebuff(cx, cy, r, k, v, dur) { for (const t of G.towers) if (t.cat !== 'aura' && dist2(cx, cy, t.x, t.y) <= r * r) giveBuff(t, k, v, dur); }
+// 巨型 BOSS 被攻击（原图 Baw）：魔兵在攻击者的位置放沉默魔法 A0OL，等级随机 1~4——1 级只沉默法术（对塔没用）、
+// 2 级 300 范围的塔 2.5 秒不能攻击、3 级 600 范围攻击 50% 落空 4 秒、4 级 500 范围攻速 -150%（最多 -80%）3 秒。
+// 条件是"BOSS1 or … or 魔法书 and JE ≥ 12"：JASS 的 and / or 同级、从左往右算，所以 JE ≥ 12 管住所有这些 BOSS——每个玩家 12 秒最多一次
+// （之前几处"X and Y or Z"两种算法结果一样，这里不一样；按从左往右，也和 JE 这个计数器的用处对得上）
+const SILENCE_BOSS = new Set(['njga', 'nskg', 'nvdg', 'nelb', 'nchw', 'nanm', 'nbal', 'nlkl', 'njgb', 'njg1', 'nsoc', 'nsko', 'nslm', 'n070', 'n071', 'n074', 'n073', 'n072', 'n075', 'ndrd', 'ndmu', 'ndrh', 'nsgt', 'nchg']);
+const DRAGONS = new Set(['nrdk', 'nrdr', 'nbzd', 'ngrd']);
+const TANKS = new Set(['nerw', 'nfor', 'nfot', 'nfod', 'ndrj', 'n06Y']);
+const SKELETON_BOSS = new Set(['nsko', 'nsoc', 'nslm']);
+function monsterAttacked(m, t) {
+  if (m.dead || m.neutral) return;
+  const p = pidOf(t), dp = G.dp, u = m.uid;
+  // 巨型 BOSS 的沉默魔法
+  if ((SILENCE_BOSS.has(u) || u === 'nscb') && G.je[p] >= 12) {
+    G.je[p] = 0;
+    const lv = rint(1, 4), [r, dur] = [[450, 3.5], [300, 2.5], [600, 4], [500, 3]][lv - 1];
+    if (lv === 2) towerDebuff(t.x, t.y, r, 'silence', 1, dur);
+    if (lv === 3) towerDebuff(t.x, t.y, r, 'miss', 0.5, dur);
+    if (lv === 4) towerDebuff(t.x, t.y, r, 'slowAS', 0.8, dur);
+    if (lv > 1) FXS.ring(t.x, t.y, r, ['', '', '#c48bff', '#888', '#9fd8ff'][lv], 0.35, 3);
+  }
+  // 大红牛（BbH，1/4）：Dp ≥ 1 时 6/7 在攻击者的出怪口放一只小红牛（60 秒），否则召唤 8 只虱虫（10 秒）
+  if (u === 'nsqt' && rint(1, 4) === 1 && dp[p] >= 1) {
+    dp[p] = 0;
+    if (rint(1, 7) <= 6) spawnAtGate('nsqo', p, { life: 60 });
+    else for (let i = 0; i < 8; i++) spawnBeside('nsqe', m, { life: 10 });
+  }
+  if (u === 'n09B' && rint(1, 100) === 88) { dp[p] = 0; for (let i = 0; i < 8; i++) spawnBeside('nsqe', m, { life: 10 }); }   // 大豪猪（BbK）
+  // 大骷髅（BbT）：条件是"1/10 且大骷髅"或复活的两种骷髅（优先级，照搬）；Dp ≥ 1 时召唤一只骷髅（60 秒）
+  if (((u === 'nsko' && rint(1, 10) === 8) || u === 'nsoc' || u === 'nslm') && dp[p] >= 1) { dp[p] = 0; spawnBeside('nslf', m, { life: 60 }); }
+  // 坦克 / 直升机 / 游艇（BbY）：Dp ≥ 2 时维修工给它放医疗波（10000，弹 16 个）或者嗜血术（加移速）
+  if (TANKS.has(u) && dp[p] >= 2) {
+    dp[p] = 0;
+    if (rint(1, 2) === 1) healWave(m, 10000, 16, 500);
+    else { const [b, d] = [[10, 3], [10, 6], [1.5, 9], [0.5, 15]][rint(1, 4) - 1]; m.deb.lustSpeed = { v: b, until: G.t + d }; }   // A07Q：1 级 1000 倍按上限算
+  }
+  // 龙：生命 ≤ 10 万时放神圣护甲（无敌 5 秒，冷却 3600 秒，等于一次）
+  if (DRAGONS.has(u) && m.hp <= 100000 * G.hpScale && !m.shieldUsed) { m.shieldUsed = true; m.invulUntil = G.t + 5; FXS.nova(m.x, m.y, 160, '#ffe9a0', 0.5); msg(`${m.name}放出了神圣护甲（无敌 5 秒）`); }
+  if (u === 'ndtw' && rint(1, 30) === 3) { m.ams = 300000; m.amsUntil = G.t + 90; }                       // 巨魔：反魔法外壳（吸收 30 万魔法伤害）
+  if (u === 'ninm' && rint(1, 30) === 3) spawnBeside('ninc', m, { life: 8 });                               // 地狱火机械人：地狱火机关人 8 秒
+  if (u === 'ncg3' && rint(1, 30) === 5) spawnBeside('ncg3', m, { life: 8 });                               // 人工地精：复制一个 8 秒
+  // 熊猫（zz）
+  if (u === 'Npbm' && rint(1, 35) === 1) { const b = spawnBeside('nten', m, { life: 15 }); if (b) b.speed = 0; }   // 酒仙：扔下一个酒瓶（魔法免疫，15 秒）
+  if (u === 'Nalc' && rint(1, 10) === 1) t.cdLeft = Math.max(t.cdLeft, towerStats(t).cd);                // 大地：让攻击它的塔停一下
+  if (u === 'Nfir' && rint(1, 55) === 4) { m.etherealUntil = G.t + 1.3; slowM(m, 0.8, 1.3); }             // 火焰：放逐自己（1.3 秒虚无，物理攻击打不到，魔法伤害 +66%）
+  // 熊猫越打越硬：条件是"(生命 ≤ 1 万 且火焰熊猫) 或酒仙 或大地 或风之熊猫"（优先级，照搬），每次被打 1/3 加魔法免疫、1/3 闪避 50%、1/3 硬化皮肤（80% 减 4 万）
+  if ((u === 'Nfir' && m.hp <= 10000 * G.hpScale) || u === 'Npbm' || u === 'Nalc' || u === 'Ntin') {
+    if (rint(1, 3) === 2) m.magicImmune = true;
+    else if (rint(1, 2) === 2) m.evade2 = 0.5;
+    else m.skin2 = [0.8, 40000, 3];
+  }
+  if (u === 'Udea') demonAttacked(m, t);
+}
+// 魔王被攻击（zl / Bbb）：Dp ≥ 2 时召唤魔兵——1/25 给自己霜冻护甲（+120 护甲 30 秒），否则 1/6 诅咒攻击它的塔（80% 落空 20 秒），
+// 否则 1/4 沉默魔法（1 级，对塔没用），否则医疗波（10000 弹 16 个）；生命第一次 ≤ 25 万时狂暴：移速 522、光环升到 3 级、医疗波一次。
+// 另外每次被攻击 1/1600 传送到一个出怪口、1/180 在攻击者的出怪口召唤黑龙（60 秒）、1/10 在身边召唤石像鬼（10 秒）。
+// 原图的怪数是 Player(11) 所有活着的单位，这些召唤物都算（魔兵、维修工这些施法的马甲这里不算）
+function demonAttacked(m, t) {
+  const p = pidOf(t);
+  if (G.dp[p] >= 2) {
+    G.dp[p] = 0;
+    if (rint(1, 25) === 4) { m.frostArmor = G.t + 30; FXS.ring(m.x, m.y, 120, '#bff4ff', 0.5, 3); }
+    else if (rint(1, 6) === 3) { giveBuff(t, 'curse', 0.8, 20); FXS.ring(t.x, t.y, 90, '#7a4a9a', 0.5, 3); }
+    else if (rint(1, 4) !== 2) healWave(m, 10000, 16, 500);
+  }
+  if (!m.enraged && m.hp <= 250000 * G.hpScale) {
+    m.enraged = true; m.speed = 522; m.auras = DEMON_AURA(3).map(a => ({ ...a, r: 900 })); healWave(m, 10000, 16, 500);
+    msg('魔王：邪恶！赐我力量吧！', 6);
+  }
+  if (rint(1, 1600) === 90) { teleportTo(m, demonGate()); msg('魔王：吵死了！都给我消停点！'); }
+  if (rint(1, 180) === 178) spawnAtGate('nbwm', p, { life: 60 });
+  if (rint(1, 10) === 9) spawnBeside('n06W', m, { life: 10 });
+}
+// 魔王走到 P / M / T 三个路口（Bbj）：1/8 传送到一个出怪口
+function demonNode(m) {
+  if (m.uid !== 'Udea' || !['P', 'M', 'T'].includes(m.cur) || rint(1, 8) !== 6) return false;
+  teleportTo(m, demonGate()); return true;
+}
+// 死亡触发器（BbE / BbO / BbQ）
+const SKELETON_MAGE = ['n071', 'n070', 'n074', 'n073', 'n072', 'n075', 'n076'];
+function monsterDied(m, src) {
+  const u = m.uid;
+  if (u === 'nsko') { const s = spawnBeside('nsoc', m, { boss: true }); if (s) s.speed = 0; }   // 大骷髅 → 复活了并等死的骷髅（不动）
+  if (u === 'nsoc') spawnBeside('nslm', m, { boss: true });                                      // → 再次复活后疯狂的骷髅（原图让它走到凶手那个口的第一个外环路口，这里接着走环）
+  const k = SKELETON_MAGE.indexOf(u);                                                            // 骷髅法师在自己的出怪口一次次复活，后面三次各 1/2
+  if (k >= 0 && k < SKELETON_MAGE.length - 1 && (k < 3 || rint(1, 2) === 1)) spawnAtGate(SKELETON_MAGE[k + 1], m.gate || 0, { boss: true });
+  if (u === 'ushd') { const s = spawnBeside('u000', m); if (s) s.speed = 0; }                     // 阴影 → 阴影（不动）
+  if (u === 'hsor') { const s = spawnBeside('nscb', m, { life: 60 }); if (s) s.speed = 0; }       // 女巫 → 女巫的魔法书（60 秒）
+  if (u === 'n08L') spawnBeside('n08M', m, { life: 15 });                                        // 坚硬的森林蜘蛛 → 小蜘蛛
+  if (u === 'o009') spawnBeside('o00A', m, { life: 15 });                                        // 邪恶的狼骑士 → 小恶狼
+  if (u === 'hmtt' || u === 'h07B') for (let i = rint(1, 5); i > 0; i--) { const s = spawnBeside('nsc2', m); if (s) s.speed = 0; }   // 蒸汽机车 → 1~5 个坦克子弹
+}
+// 狗头人的自动施放技能（最终 BOSS 波跟着龙）：医师 治疗 15000（2.5 秒）；牧师 嗜血术（移速 +200% 1 秒，6 秒）/ 心灵之火（护甲 +200 6 秒，8 秒）；
+// 巫师 诅咒塔（50% 落空 5 秒，3 秒）/ 减速塔（攻速 -60% 4 秒，5 秒）。怪物是电脑玩家的单位，没有 AI 脚本，只会放能自动施放的技能——
+// 医师的医疗波（AOhw）、护卫的嘲讽不能自动施放，不放；龙的神圣护甲由触发器下令（monsterAttacked）
+function monsterSkills(m) {
+  const u = m.uid, cd = m.cds || (m.cds = {}), ready = k => !(cd[k] > G.t), allies = r => G.monsters.filter(o => !o.dead && !o.neutral && dist2(o.x, o.y, m.x, m.y) <= r * r);
+  const worst = r => allies(r).filter(o => o.hp < o.maxHp).sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
+  const tower = r => G.towers.filter(t => t.cat !== 'aura' && t.cat !== 'summon' && dist2(t.x, t.y, m.x, m.y) <= r * r).sort((a, b) => (b.dealt || 0) - (a.dealt || 0))[0];
+  if (u === 'nkot') {
+    const w = worst(1000); if (w && ready('heal')) { cd.heal = G.t + 2.5; w.hp = Math.min(w.maxHp, w.hp + 15000); FXS.ring(w.x, w.y, 80, '#9fffb0', 0.3, 3); }
+  }
+  if (u === 'nkob') {
+    const pick1 = r => allies(r).sort((a, b) => (DRAGONS.has(b.uid) ? 1 : 0) - (DRAGONS.has(a.uid) ? 1 : 0))[0];
+    let a = pick1(900); if (a && ready('lust')) { cd.lust = G.t + 6; a.deb.lustSpeed = { v: 2, until: G.t + 1 }; }
+    a = pick1(500); if (a && ready('fire')) { cd.fire = G.t + 8; a.innerFire = G.t + 6; }
+  }
+  if (u === 'nkog') {
+    let t = tower(1200); if (t && ready('curse')) { cd.curse = G.t + 3; giveBuff(t, 'curse', 0.5, 5); FXS.ring(t.x, t.y, 90, '#7a4a9a', 0.4, 3); }
+    t = tower(700); if (t && ready('slow')) { cd.slow = G.t + 5; giveBuff(t, 'slowAS', 0.6, 4); FXS.ring(t.x, t.y, 90, '#9fd8ff', 0.4, 3); }
   }
 }
 
@@ -6417,6 +6621,7 @@ function step(dt) {
     const [gr, gw] = MODES[G.mode].waveGold || [8, 2];
     for (const p of activePlayers()) addGold(p, rankOf(p.slot) * gr + G.wave * gw);
   }
+  if ((G.dpT = (G.dpT || 0) + dt) >= 1) { G.dpT -= 1; for (let i = 0; i < MAX_PLAYERS; i++) { G.dp[i]++; G.je[i]++; } }   // 原图 BbM / Bay
   // 延时事件
   const due = G.timeouts.filter(x => x.at <= G.t);
   G.timeouts = G.timeouts.filter(x => x.at > G.t);
@@ -6450,6 +6655,7 @@ function step(dt) {
     if (m.dead) continue;
     if (m.until && G.t >= m.until) { m.dead = true; continue; }     // 限时单位到时间消失（不给赏金）
     moveMonster(m, dt);
+    monsterSkills(m);
     if (m.burn) hurt(m, m.burn.dps * dt, 'magic', m.burn.src, { ignoreArmor: true });
     for (const d of m.dots) if (d.until > G.t) hurt(m, d.dps * dt, d.atk, d.src, { noKill: d.noKill });
     m.dots = m.dots.filter(d => d.until > G.t);
@@ -7396,7 +7602,7 @@ function renderInfo() {
     mid = `<div class="nm">${e.name}${e.boss ? ' <em>BOSS</em>' : ''}${e.elite ? ' <em style="color:#ff4fd8">精英</em>' : ''}</div><div class="sub">怪物 · <span style="color:${ARMOR_COLOR[e.type]}">${ARMOR_CN[e.type]}护甲</span> → 克制：${ATK_CN[COUNTER[ARMOR_CN[e.type]]] || '—'}</div>
       <div class="kv"><span>护甲</span><b>${Math.round(ar)}（减伤 ${Math.round((1 - armorMult(ar)) * 100)}%）</b><span>移动速度</span><b>${e.speed}</b><span>赏金</span><b class="gold">${Math.round(e.bounty)}</b>
       ${e.elite ? `<span>光环</span><b>${e.elite.aura.name} ${e.elite.lvl} 级：${e.elite.aura.desc[e.elite.lvl - 1]}</b>` : ''}
-      ${e.uid === 'Udea' ? `<span>魔法免疫</span><b style="color:${e.magicImmune ? '#7ab8ff' : '#999'}">${e.magicImmune ? '有（魔法攻击无效，每 5 秒切换）' : '无（每 5 秒切换）'}</b>` : ''}</div>`;
+      ${e.uid === 'Udea' ? `<span>魔法免疫</span><b style="color:${e.magicImmune ? '#7ab8ff' : '#999'}">${e.magicImmune ? '有（魔法攻击无效，每 5 秒切换）' : '无（每 5 秒切换）'}</b>` : ''}${monsterTraits(e)}</div>`;
   }
   if (innerWidth <= 820) { box.innerHTML = `<div class="col-l">${left}</div><div class="col-m">${mid}</div>`; return; }
   renderCard(e);
@@ -7466,6 +7672,7 @@ function renderCard(e) {
     c1 = stat(ARMOR_ICON[e.type] || 'armor-unarmored', '护甲', `${Math.round(ar)}（减伤 ${Math.round((1 - armorMult(ar)) * 100)}%）`);
     c2 = `<div class="st"><div><span>移动速度：</span><b>${e.speed}</b><br><span>赏金：</span><b class="gold">${Math.round(e.bounty)}</b></div></div>`;
     if (e.elite) extra = `<div class="tip">光环：${e.elite.aura.name} ${e.elite.lvl} 级：${e.elite.aura.desc[e.elite.lvl - 1]}</div>`;
+    const tr = monsterTraitList(e); if (tr.length) extra += `<div class="tip">${tr.join('<br>')}</div>`;
     hp = `${fmt(e.hp)} / ${fmt(e.maxHp)}`;
   }
   $('info').innerHTML = `<div class="nm">${name}</div><div class="sub">${sub}</div><div class="card"><div class="c">${c1}</div><div class="c">${c2}</div></div>${extra}`;
@@ -7514,6 +7721,8 @@ function towerInfo(t) {
   }
   const bufs = [['bloodlust', '嗜血术 攻速'], ['fire', '火速 攻速'], ['roar', '咆哮 攻击'], ['divine', '神力 攻击']].filter(([k]) => bv(t, k)).map(([k, n]) => `${n} +${pctTxt(bv(t, k))}`);
   if (bufs.length) lines.push('状态：' + bufs.join('，'));
+  const debs = [bv(t, 'silence') && '被沉默（不能攻击）', bv(t, 'curse') && `被诅咒（${pctTxt(bv(t, 'curse'))} 打不中）`, bv(t, 'miss') && `攻击 ${pctTxt(bv(t, 'miss'))} 落空`, bv(t, 'slowAS') && `攻速 -${pctTxt(Math.min(0.8, bv(t, 'slowAS')))}`].filter(Boolean);
+  if (debs.length) lines.push(`<b style="color:#ff8f86">${debs.join('，')}</b>`);
   if (t.critLv) { const c = CHAOS_CRIT[t.critLv]; lines.push(`致命一击 ${t.critLv} 级：${c.A}% 概率 ${c.B} 倍`); }
   const th = talentHint(t); if (th) lines.push(th);
   if (t.cat === 'aura' && t.lv === 0 && !mine(t) && t.forSale) lines.push('<b style="color:#9fd8ff">允许收购：可以用收购卷轴买下</b>');
@@ -8072,5 +8281,5 @@ newGame('rookie');
 showStart();
 requestAnimationFrame(frame);
 window.__G = () => G;   // 调试用
-window.__dbg = { get G() { return G; }, NODES, EDGES, kill, hurt, spawnMonster, FXS, buildTower, upgradeTower, learnSkill, heroLevelUp, step, canPlace, newGame, monstersAlive, towerStats, rerollBuild, orderBuild, orderMove, castSkill, spawnRabbit, buyRabbit, RABBIT_SHOP, makePet, spawnWisp, spawnWildPet, dropItem, invAdd, ITEMS, startVote, kickPlayer, giveLike, netReceive, MASTER_ITEMS, PET_ITEMS, wishBuy, petTalent, MASTER, WISHER, PETSHOP, buyItem, critterTick, sellItem, pickUp, candyWild, renderCmds, SHOP, SHOP_ITEMS, buyShop, orderFinger, KITS, towerAS, towerAtk, effArmor, applyAuras, sellTower, select, hurt, buildCmds, newTower, attack, bounceXfer, spendPoint, upSkill, wujiSacrifice, plantAncient, knWard, heroStats, HERO_KITS, HERO_DEF, heroAuraList, gateSpots, spawnAt, cap, playerLeft, startFinal, GATES, activateTalent, talentWhy, talentOf, orderTalent, TALENTS, primalMaxHit };
+window.__dbg = { get G() { return G; }, NODES, EDGES, kill, hurt, spawnMonster, FXS, buildTower, upgradeTower, learnSkill, heroLevelUp, step, canPlace, newGame, monstersAlive, towerStats, rerollBuild, orderBuild, orderMove, castSkill, spawnRabbit, buyRabbit, RABBIT_SHOP, makePet, spawnWisp, spawnWildPet, dropItem, invAdd, ITEMS, startVote, kickPlayer, giveLike, netReceive, MASTER_ITEMS, PET_ITEMS, wishBuy, petTalent, MASTER, WISHER, PETSHOP, buyItem, critterTick, sellItem, pickUp, candyWild, renderCmds, SHOP, SHOP_ITEMS, buyShop, orderFinger, KITS, towerAS, towerAtk, effArmor, applyAuras, sellTower, select, hurt, buildCmds, newTower, attack, bounceXfer, spendPoint, upSkill, wujiSacrifice, plantAncient, knWard, heroStats, HERO_KITS, HERO_DEF, heroAuraList, gateSpots, spawnAt, cap, playerLeft, startFinal, GATES, monsterAttacked, monsterDied, attackDmg, activateTalent, talentWhy, talentOf, orderTalent, TALENTS, primalMaxHit };
 })();
