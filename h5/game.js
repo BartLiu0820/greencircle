@@ -165,7 +165,8 @@ function newGame(mode, players = 1, player = null, bots = false) {     // player
     rm: { fg: 1, fi: 1, fh: 1, kz: 0, fj: 0, k0: 1, hg: 0, hh: false, breakAt: -Infinity },
     beast: { tech: 1, tamed: false, elite: [false, false, false], wpn: null },
     abyss: { de: Array(MAX_PLAYERS).fill(0), ho: Array(MAX_PLAYERS).fill(1) },
-    fi: rint(1, 12), bannerSlot: false, ov: 0,                // 英雄旗帜：开局随机的旗帜种类 Fi、旗帜占了主塔名额（ovln 被删）、全场召唤过的固定英雄数 Ov   // 深渊塔的玩家变量 DE（辅助塔附加伤害倍数）/ HO（暴击塔 Bingo 倍数），见深渊塔技能包   // wpn：训兽 a1~a5 / b1~b5 每组打开的是攻击 1（'a'）还是攻击 2（'b'），见 beastUnlock
+    fi: rint(1, 12), ov: 0,                // 英雄旗帜：开局随机的旗帜种类 Fi、全场召唤过的固定英雄数 Ov
+    ovln: 1,                               // 主塔名额（原图"只能建造一个主塔" ovln 的个数），见 SLOT_FREE   // 深渊塔的玩家变量 DE（辅助塔附加伤害倍数）/ HO（暴击塔 Bingo 倍数），见深渊塔技能包   // wpn：训兽 a1~a5 / b1~b5 每组打开的是攻击 1（'a'）还是攻击 2（'b'），见 beastUnlock
     godLock: new Set(),      // 神塔：本机建造栏里被关掉的（见 godRefresh）
     honorLv: null,           // 荣誉光环 4 个光环的等级（这次随机建造里第一次建时定下）
     god: { hq: 0, lq: 0, my: 0, lv: 0, r01l: Array(MAX_PLAYERS).fill(0) },   // 神塔的全局变量：暗牧 Hq、海妖 LQ、圣灵 My（记的是上次触发的时间）、猎人 Lv（到这个时间才能捕猎）、精准攻击 R01L 按玩家
@@ -466,13 +467,22 @@ const footCells = (x, y) => { const r = []; for (let i = -1; i <= 1; i++) for (l
 function canPlace(x, y, withOrders = false) {
   return footCells(x, y).every(([cx, cy]) => cellBuildable(cx, cy) && !cellTaken(cx, cy, withOrders));
 }
+// 主塔名额（原图 ovln）：开局 1 个；主塔（除了弹跳塔、神圣塔）和所有英雄建筑都要求有它，开工时删掉 2 个（BB1 / BB7，实际只有 1 个），
+// 插英雄旗帜删 1 个（BMI）、升超级深渊删 1 个（BFZ）；回收原始指挥官 / 风行 / 将军 / 天将 / 五行 / 狂狼 / 兽王塔、英雄旗帜、
+// 超级深渊和用轮回卷轴回收英雄时还 1 个（qG / BKh），其余的靠 BcC：每 5 秒，玩家没有名额、也没有任何生命 80000 的单位（主塔、英雄、旗帜、超级深渊）时补 1 个。
+// 所以英雄和主塔共用一个名额：建了英雄就不能建主塔，反过来也一样。神圣塔原图不要求也不占名额（生命 1400），可以和主塔、英雄同时有
+const SLOT_FREE = new Set(['弹跳塔', '神圣塔']);
+const usesSlot = fam => D.towers[fam] && D.towers[fam].cat === 'main' && !SLOT_FREE.has(fam);
+const SLOT_BACK = new Set(['原始指挥官', '风行塔', '将军塔', '天将塔', '五行塔', '狂狼塔', '兽王塔']);
+const holdsSlot = pid => G.towers.some(t => pidOf(t) === pid && (t.isHero || t.banner || (t.cat === 'main' && !SLOT_FREE.has(t.fam))));
+const takeSlot = n => { G.ovln = Math.max(0, G.ovln - n); };
 // 数量限制（原图用"只能建造一个主塔 / 只能建造2个新辅助 / 只能建造1个巫系辅助 / 全场只能建造一个"这些占位单位实现）
 const ONLY_ONE = new Set(['科技塔', '灵魂塔', '精灵塔']);
 function buildBlock(fam) {
   const f = D.towers[fam], n = fn => G.towers.filter(t => mine(t) && fn(t)).length;
   // 弹跳塔不占主塔名额（原图要求的是 n01U，不是 ovln）：随机模式最多 3 座（Bbt），有弹跳塔 MAX 后不能再建（n01U 被删掉）
   if (fam === '弹跳塔') return G.towers.some(t => mine(t) && t.bmax) ? '拥有弹跳塔 MAX 后不能建造弹跳塔' : n(t => t.fam === fam) >= 3 ? '只允许建造 3 个弹跳塔' : null;
-  if (f.cat === 'main' && (G.bannerSlot || G.towers.some(t => mine(t) && t.cat === 'main' && t.fam !== '弹跳塔'))) return G.bannerSlot ? '英雄旗帜用掉了主塔名额' : '只能建造一个主塔';
+  if (usesSlot(fam) && G.ovln < 1) return '只能建造一个主塔（主塔名额已被主塔、英雄或英雄旗帜占用）';
   if (f.cat === 'aura' && n(t => t.fam === fam) >= RULE.maxAuraPerKind) return '随机模式每种光环限制 2 个';
   if (f.cat === 'big' && n(t => t.cat === 'big' || t.cat === 'evo') >= 2) return '只能建造 2 个新辅助（大辅助）';
   if (f.cat === 'witch' && n(t => t.cat === 'witch') >= 1) return '只能建造 1 个巫系辅助';
@@ -500,6 +510,7 @@ function buildTower(fam, x, y) {
   G.gold -= lv0.gold;
   const t = newTower(fam, x, y);
   G.towers.push(t);
+  if (usesSlot(fam)) takeSlot(2);                // BB1：开工时删 2 个主塔名额
   if (t.cat === 'god') G.godLock.add(fam);
   const kit = KITS[fam];
   return kit && kit.built ? kit.built(t) : t;     // 建成时的触发器（弹跳天赋快建会把它换成 MAX）
@@ -525,8 +536,9 @@ function upgradeTower(t, branchKey) {
   uiDirty();
 }
 function sellTower(t) {
-  if (t.banner) { G.towers = G.towers.filter(x => x !== t); G.bannerSlot = false; if (G.selected === t) G.selected = G.builder; msg('回收了英雄旗帜，主塔名额还回来了'); uiDirty(); return; }
+  if (t.banner) { G.towers = G.towers.filter(x => x !== t); G.ovln++; if (G.selected === t) G.selected = G.builder; msg('回收了英雄旗帜，主塔名额还回来了'); uiDirty(); return; }
   abyssSellHO(t);                         // 原图 BC9（回收时被回收的塔还在）
+  if (SLOT_BACK.has(t.fam) || (t.fam === '深渊塔' && t.super)) G.ovln++;   // qG：这几种回收时马上还主塔名额（还有人马塔的疯狂骑士，这里没有），其余等 BcC
   if (t.fam === '深渊塔') G.abyss.de[pidOf(t)] = 0;
   G.gold += t.spent;                      // ConstructionRefundRate = UpgradeRefundRate = 1.0
   const kit = KITS[t.fam];
@@ -2433,7 +2445,7 @@ const KITS = {
     },
     kill(t, m, src) { if (t.super && src && src.owner === t) addMana(t, 1); },
     upgrade(t) {
-      G.abyss.de[pidOf(t)] = 10;
+      G.abyss.de[pidOf(t)] = 10; takeSlot(1);
       t.super = true; t.cat = 'main'; t.levels = t.levels.concat([D.towers.深渊塔.super]); t.lv = t.levels.length - 1;
       t.spent += 11400; t.maxMana = 2000; t.mana = 0; t.ik = 0; delete t.cds.lord;
       t.lord = techLv(t) >= 4 ? 2 : stoneLv(t, 3) >= 1 ? 3 : 1;
@@ -2443,11 +2455,11 @@ const KITS = {
     cmds(t) {
       if (t.super || !isMax(t)) return [];
       const pid = pidOf(t), miss = Object.keys(ABYSS_SUP).filter(f => !G.towers.some(o => o.fam === f && isMax(o) && pidOf(o) === pid));
-      const main = G.bannerSlot || G.towers.some(o => mine(o) && o.cat === 'main' && o.fam !== '弹跳塔');
+      const main = G.ovln < 1;                      // A0EQ 要求有主塔名额（ovln），升级时删 1 个
       return [costCmd(t, 'Q', '升级超级深渊', `变成 <b>超级深渊塔</b>（辅助塔附加伤害 DE 8 → 10），占用主塔名额<br>每 15 秒召唤一个深渊领主（19999 英雄伤害、190 溅射，活 15 秒），
         领主每次攻击再加 超级深渊魔法×(10+Da) 英雄伤害，每 5 次攻击放死亡新星；领主杀敌超级深渊 +1 魔法<br>升级时有科技塔 MAX：召唤深渊霸主；魔石塔选了炎魔：召唤深渊魔主`,
         { gold: 11400 }, () => KITS.深渊塔.upgrade(t),
-        { why: miss.length ? `需要${miss.join('、')} MAX` : main ? '已经建造了主塔，不能升级超级深渊' : null })];
+        { why: miss.length ? `需要${miss.join('、')} MAX` : main ? '没有主塔名额（已经建了主塔、英雄或英雄旗帜），不能升级超级深渊' : null })];
     },
     talent: { wood: 50, name: 'Bingo# 伤害翻倍', only: t => t.super ? null : '只能对超级深渊塔激活', tip: '暴击塔 Bingo 变成 Bingo#：80000×3 英雄伤害' },
     info(t) {
@@ -5222,6 +5234,7 @@ const statCN = s => ({ str: '力量', agi: '敏捷', int: '智力' })[s];
 // 赞助英雄（18~34）只有赞助玩家能抽到，原图建成时先给赞助玩家 +10 当局成就再扣 10，等于不要成就
 const heroAchCost = () => G.heroChoice && D.heroes[G.heroChoice].sponsor ? 0 : RULE.heroAch;
 const heroBlock = () => G.hero ? '英雄塔全场只能建造一个' : !G.heroChoice ? '建造栏里没有英雄塔' : G.jv && JV_HEROES.has(G.heroChoice) ? '用过轮回卷轴后不能再建这个英雄'
+  : G.ovln < 1 ? '没有主塔名额（英雄建筑和主塔共用一个名额）'
   : G.ach < heroAchCost() ? `需要 ${RULE.heroAch} 点当局成就（当前 ${G.ach}）` : null;
 function buildHero(x, y) {
   const hd = D.heroes[G.heroChoice], why = heroBlock();
@@ -5230,6 +5243,7 @@ function buildHero(x, y) {
   if (G.wood < hd.wood) return msg('木材不足');
   if (foodUsed() + hd.food > G.foodCap) return msg('人口不足');
   G.gold -= hd.gold; G.wood -= hd.wood; G.ach -= heroAchCost();
+  takeSlot(2);                                    // BB0 / BB7：英雄建筑开工时删 2 个主塔名额（旗帜里的英雄是直接创建的，不触发）
   return makeHero(hd.name, x, y, false);
 }
 // 造英雄（随机建造栏 buildHero / 英雄旗帜 bannerHero）：banner 决定皮肤条件用哪种写法
@@ -5264,10 +5278,10 @@ const BANNERS = [['巨魔召唤师', '火魂', '炼金', '枪神'], ['邪冰', '
   ['邪冰', '狂牛', '神牛', '电法'], ['狂牛', '伏魔', '炼金', '大法师'], ['炼金', '箭灵', '战神', '妖灵'], ['战神', '大巫师', '电法', '狗头人觉醒者'],
   ['狗头人觉醒者', '大法师', '风神', '箭灵'], ['图腾', '邪冰', '猛犸', '巨魔召唤师'], ['图腾', '坦克', '猛犸', '古树'], ['坦克', '幻影', '剑神', '大巫师']];
 const bannerOf = () => G.towers.find(t => t.banner && mine(t));
-const bannerBlock = () => endlessLock() ? '无尽关卡里不能插英雄旗帜' : bannerOf() ? '已经插了英雄旗帜' : G.bannerSlot || G.towers.some(t => mine(t) && t.cat === 'main' && t.fam !== '弹跳塔') ? '没有主塔名额（已经建了主塔或用过英雄旗帜）' : null;
+const bannerBlock = () => endlessLock() ? '无尽关卡里不能插英雄旗帜' : bannerOf() ? '已经插了英雄旗帜' : G.ovln < 1 ? '没有主塔名额（已经建了主塔或英雄）' : null;
 function placeBanner(x, y) {
   const why = bannerBlock(); if (why) return msg(why);
-  G.bannerSlot = true;
+  takeSlot(1);                                   // BMI
   const t = summon(G.builder, { fam: '英雄旗帜', title: `英雄旗帜（${G.fi} 号）`, label: '旗', x, y, banner: true, solid: true, unarmed: true, spent: 0,
     levels: [{ name: '英雄旗帜', dmg: 0, cd: 1, range: 0, atk: 'normal', targets: 1, abils: [] }], fixed: false });
   msg(`插下英雄旗帜：${BANNERS[G.fi - 1].join('、')}`);
@@ -6695,7 +6709,7 @@ function heroRecycle(h) {   // BKh
   G.gold += 1500 + L * (L - 1) * 50; G.wood += 5 + wood;
   G.towers = G.towers.filter(t => t !== h && t.owner !== h && !(t.owner && t.owner.owner === h));
   if (G.selected === h) G.selected = G.builder;
-  G.hero = null; G.bannerSlot = false; G.jv = true;
+  G.hero = null; G.ovln++; G.jv = true;
   FXS.nova(h.x, h.y, 160, '#d8b070', 0.5);
   msg(`轮回卷轴：回收了${h.heroName}，返还 ${1500 + L * (L - 1) * 50} 金、${5 + wood} 木材，还回主塔名额`);
 }
@@ -7137,6 +7151,7 @@ function step(dt) {
     const [gr, gw] = MODES[G.mode].waveGold || [8, 2];
     for (const p of activePlayers()) addGold(p, rankOf(p.slot) * gr + G.wave * gw);
   }
+  if ((G.slotT = (G.slotT || 0) + dt) >= 5) { G.slotT -= 5; if (G.ovln < 1 && !holdsSlot(G.me)) G.ovln = 1; }   // BcC：每 5 秒补主塔名额
   if ((G.dpT = (G.dpT || 0) + dt) >= 1) { G.dpT -= 1; for (let i = 0; i < MAX_PLAYERS; i++) { G.dp[i]++; G.je[i]++; } }   // 原图 BbM / Bay
   // 延时事件
   const due = G.timeouts.filter(x => x.at <= G.t);
