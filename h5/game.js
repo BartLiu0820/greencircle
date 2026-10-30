@@ -377,7 +377,8 @@ function segFrame(m) {                                             // 当前路�
 }
 const toSeg = (f, x, y) => [(x - f.A[0]) * f.ux + (y - f.A[1]) * f.uy, (x - f.A[0]) * f.nx + (y - f.A[1]) * f.ny];
 function moveMonster(m, dt) {
-  if (m.neutral) return wander(m, dt);
+  if (m.neutral || m.wanders) return wander(m, dt);
+  if (m.escort) return wander(m, dt, true);                          // 最终波的狗头人：围着龙走（kobLoop 每 2 秒给目标点）
   if (!m.target) m.target = nextNode(m);
   if (G.t < m.stunUntil || !m.speed) return;                         // 速度 0 的（等死的骷髅、魔法书、酒瓶……）站着不动
   let spd = m.speed * (1 + m.auraSpeed + debuff(m, 'expelSpeed') + debuff(m, 'lustSpeed')) * (1 - Math.max(m.slow * (G.t < m.slowUntil ? 1 : 0), m.auraSlow)) * (1 - Math.min(0.95, m.heroSlow || 0));
@@ -5487,6 +5488,10 @@ function spawnAtGate(id, slot, opt = {}) {
   if (m && opt.boss && G.bossRule) G.bossRule.ids.push(m);
   return m;
 }
+// 虱虫：马甲放召唤水元素 A07N（8 只、10 秒），召唤物没有命令，带原地游荡 Awan，在召唤处附近游荡
+function lice(at) {
+  for (let i = 0; i < 8; i++) { const s = spawnBeside('nsqe', at, { life: 10 }); if (s) Object.assign(s, { wanders: true, hx: s.x, hy: s.y, next: G.t }); }
+}
 // 医疗波：从目标开始在 range 范围内弹 n 个友军（怪物），每弹衰减 decay
 function healWave(first, amount, n, range, decay = 0) {
   let cur = first, k = amount; const done = [];
@@ -5534,9 +5539,9 @@ function monsterAttacked(m, t) {
   if (u === 'nsqt' && rint(1, 4) === 1 && dp[p] >= 1) {
     dp[p] = 0;
     if (rint(1, 7) <= 6) spawnAtGate('nsqo', p, { life: 60 });
-    else for (let i = 0; i < 8; i++) spawnBeside('nsqe', m, { life: 10 });
+    else lice(m);
   }
-  if (u === 'n09B' && rint(1, 100) === 88) { dp[p] = 0; for (let i = 0; i < 8; i++) spawnBeside('nsqe', m, { life: 10 }); }   // 大豪猪（BbK）
+  if (u === 'n09B' && rint(1, 100) === 88) { dp[p] = 0; lice(m); }   // 大豪猪（BbK）
   // 大骷髅（BbT）：条件是"1/10 且大骷髅"或复活的两种骷髅（优先级，照搬）；Dp ≥ 1 时召唤一只骷髅（60 秒）
   if (((u === 'nsko' && rint(1, 10) === 8) || u === 'nsoc' || u === 'nslm') && dp[p] >= 1) { dp[p] = 0; spawnBeside('nslf', m, { life: 60 }); }
   // 坦克 / 直升机 / 游艇（BbY）：Dp ≥ 2 时维修工给它放医疗波（10000，弹 16 个）或者嗜血术（加移速）
@@ -5554,6 +5559,8 @@ function monsterAttacked(m, t) {
   if (u === 'Npbm' && rint(1, 35) === 1) { const b = spawnBeside('nten', m, { life: 15 }); if (b) b.speed = 0; }   // 酒仙：扔下一个酒瓶（魔法免疫，15 秒）
   if (u === 'Nalc' && rint(1, 10) === 1) t.cdLeft = Math.max(t.cdLeft, towerStats(t).cd);                // 大地：让攻击它的塔停一下
   if (u === 'Nfir' && rint(1, 55) === 4) { m.etherealUntil = G.t + 1.3; slowM(m, 0.8, 1.3); }             // 火焰：放逐自己（1.3 秒虚无，物理攻击打不到，魔法伤害 +66%）
+  // 风之熊猫（原图 1/25）：马甲 hdhw 对它放"嗜血术"A00Y——这个是战略辅助版，攻速 / 移速都是 -15%（10 秒），等于给熊猫减速，照搬
+  if (u === 'Ntin' && rint(1, 50) <= 2) m.deb.lustSpeed = { v: -0.15, until: G.t + 10 };
   // 熊猫越打越硬：条件是"(生命 ≤ 1 万 且火焰熊猫) 或酒仙 或大地 或风之熊猫"（优先级，照搬），每次被打 1/3 加魔法免疫、1/3 闪避 50%、1/3 硬化皮肤（80% 减 4 万）
   if ((u === 'Nfir' && m.hp <= 10000 * G.hpScale) || u === 'Npbm' || u === 'Nalc' || u === 'Ntin') {
     if (rint(1, 3) === 2) m.magicImmune = true;
@@ -5561,6 +5568,7 @@ function monsterAttacked(m, t) {
     else m.skin2 = [0.8, 40000, 3];
   }
   if (u === 'Udea') demonAttacked(m, t);
+  if (m.kob) kobAttacked(m, t);
 }
 // 魔王被攻击（zl / Bbb）：Dp ≥ 2 时召唤魔兵——1/25 给自己霜冻护甲（+120 护甲 30 秒），否则 1/6 诅咒攻击它的塔（80% 落空 20 秒），
 // 否则 1/4 沉默魔法（1 级，对塔没用），否则医疗波（10000 弹 16 个）；生命第一次 ≤ 25 万时狂暴：移速 522、光环升到 3 级、医疗波一次。
@@ -5578,21 +5586,44 @@ function demonAttacked(m, t) {
     m.enraged = true; m.speed = 522; m.auras = DEMON_AURA(3).map(a => ({ ...a, r: 900 })); healWave(m, 10000, 16, 500);
     msg('魔王：邪恶！赐我力量吧！', 6);
   }
-  if (rint(1, 1600) === 90) { teleportTo(m, demonGate()); msg('魔王：吵死了！都给我消停点！'); }
+  if (rint(1, 1600) === 90) teleportTo(m, demonGate());           // 这里一个口都没抽中时什么都不做（不说话、不沉默）
   if (rint(1, 180) === 178) spawnAtGate('nbwm', p, { life: 60 });
   if (rint(1, 10) === 9) spawnBeside('n06W', m, { life: 10 });
 }
-// 魔王走到 P / M / T 三个路口（Bbj）：1/8 传送到一个出怪口
+// 魔王走到 P / M / T 三个路口（Bbj）：1/8 先说一句台词（前面十几句的条件是 GetRandomInt(1,6)==13 这种永远不成立的，只会说最后两句之一），
+// 再传送到一个出怪口；一个口都没抽中时另说一句，并在原地放马甲 h07K 的沉默魔法 A0R1（全图、10 秒、不能攻击，目标不含建筑，所以只沉默英雄）
 function demonNode(m) {
   if (m.uid !== 'Udea' || !['P', 'M', 'T'].includes(m.cur) || rint(1, 8) !== 6) return false;
-  teleportTo(m, demonGate()); return true;
+  msg(rint(1, 2) === 2 ? '魔王：欣赏下黑暗的滋味吧！上吧！孩子们！！' : '魔王：我来了！渣渣！战斗力负5的渣渣！', 8);
+  const g = demonGate();
+  if (g != null) { teleportTo(m, g); return true; }
+  msg(rint(1, 3) === 3 ? '吵死了！都给我消停点！' : rint(1, 3) === 3 ? '都给我冲！！！哈！哈！哈！' : rint(1, 2) === 2 ? '你们这帮渣渣！给我罚站！' : '吵死了！都给我消停点！', 8);
+  for (const h of G.towers) if (h.isHero) giveBuff(h, 'silence', 1, 10);
+  FXS.nova(m.x, m.y, 600, '#c48bff', 0.5);
+  return false;
+}
+// 路网上的最短路（节点名，不含起点）
+function routeTo(from, to) {
+  const q = [[from]], seen = new Set([from]);
+  while (q.length) { const r = q.shift(), n = r[r.length - 1]; if (n === to) return r.slice(1); for (const x of ADJ[n] || []) if (!seen.has(x)) { seen.add(x); q.push(r.concat(x)); } }
+  return [];
 }
 // 死亡触发器（BbE / BbO / BbQ）
 const SKELETON_MAGE = ['n071', 'n070', 'n074', 'n073', 'n072', 'n075', 'n076'];
 function monsterDied(m, src) {
   const u = m.uid;
   if (u === 'nsko') { const s = spawnBeside('nsoc', m, { boss: true }); if (s) s.speed = 0; }   // 大骷髅 → 复活了并等死的骷髅（不动）
-  if (u === 'nsoc') spawnBeside('nslm', m, { boss: true });                                      // → 再次复活后疯狂的骷髅（原图让它走到凶手那个口的第一个外环路口，这里接着走环）
+  if (u === 'nsoc') {                                                                            // → 再次复活后疯狂的骷髅：走到凶手那个口的外环路口（L / Y / j / O / R / V / f / b），再接着走环
+    const s = spawnBeside('nslm', m, { boss: true }), j = src ? GATES[pidOf(src)][2] : null;
+    if (s && j) {
+      const base = s.path.length ? s.path[s.path.length - 1] : s.target;
+      if (ADJ[base] && base !== j) {
+        const r = routeTo(base, j);
+        if (!s.path.length && r[0] === s.cur) { [s.cur, s.target] = [s.target, s.cur]; s.prev = null; r.shift(); }   // 要往回走：在这段路上直接掉头
+        s.path = s.path.concat(r);
+      }
+    }
+  }
   const k = SKELETON_MAGE.indexOf(u);                                                            // 骷髅法师在自己的出怪口一次次复活，后面三次各 1/2
   if (k >= 0 && k < SKELETON_MAGE.length - 1 && (k < 3 || rint(1, 2) === 1)) spawnAtGate(SKELETON_MAGE[k + 1], m.gate || 0, { boss: true });
   if (u === 'ushd') { const s = spawnBeside('u000', m); if (s) s.speed = 0; }                     // 阴影 → 阴影（不动）
@@ -5601,25 +5632,44 @@ function monsterDied(m, src) {
   if (u === 'o009') spawnBeside('o00A', m, { life: 15 });                                        // 邪恶的狼骑士 → 小恶狼
   if (u === 'hmtt' || u === 'h07B') for (let i = rint(1, 5); i > 0; i--) { const s = spawnBeside('nsc2', m); if (s) s.speed = 0; }   // 蒸汽机车 → 1~5 个坦克子弹
 }
-// 狗头人的自动施放技能（最终 BOSS 波跟着龙）：医师 治疗 15000（2.5 秒）；牧师 嗜血术（移速 +200% 1 秒，6 秒）/ 心灵之火（护甲 +200 6 秒，8 秒）；
-// 巫师 诅咒塔（50% 落空 5 秒，3 秒）/ 减速塔（攻速 -60% 4 秒，5 秒）。怪物是电脑玩家的单位，没有 AI 脚本，只会放能自动施放的技能——
-// 医师的医疗波（AOhw）、护卫的嘲讽不能自动施放，不放；龙的神圣护甲由触发器下令（monsterAttacked）
-function monsterSkills(m) {
-  const u = m.uid, cd = m.cds || (m.cds = {}), ready = k => !(cd[k] > G.t), allies = r => G.monsters.filter(o => !o.dead && !o.neutral && dist2(o.x, o.y, m.x, m.y) <= r * r);
-  const worst = r => allies(r).filter(o => o.hp < o.maxHp).sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
-  const tower = r => G.towers.filter(t => t.cat !== 'aura' && t.cat !== 'summon' && dist2(t.x, t.y, m.x, m.y) <= r * r).sort((a, b) => (b.dealt || 0) - (a.dealt || 0))[0];
-  if (u === 'nkot') {
-    const w = worst(1000); if (w && ready('heal')) { cd.heal = G.t + 2.5; w.hp = Math.min(w.maxHp, w.hp + 15000); FXS.ring(w.x, w.y, 80, '#9fffb0', 0.3, 3); }
+// 最终 BOSS 波的狗头人（原图 yw 等：每条龙进场时带牧师 / 医师 / 巫师 / 护卫各一只，记在 V0~V4）。怪物是电脑玩家的单位，没有 AI，技能都靠触发器下令：
+//   y7（每 2 秒）：四只各走到龙身边 400 的随机点（围着龙转），1/15 一起瞬移到龙身边；龙死了以后还往尸体那里走
+//   y9（每 3 秒）：牧师先下心灵之火、再下嗜血术，医师先下医疗波、再下治疗，护卫嘲讽。同一个单位后一道命令会顶掉前一道，
+//     只有后一道下不了（冷却中 / 龙满血不能治疗）时前一道才生效，所以牧师嗜血（移速 +200% 1 秒，冷却 6 秒）冷却时才放心灵之火（护甲 +200 6 秒，冷却 8 秒），
+//     医师龙掉血就治疗（15000，冷却 2.5 秒），龙满血时才放医疗波（90000 弹 8 个、每弹 -25%，冷却 4 秒）；护卫嘲讽（冷却 7 秒）让 900 内的塔改打它
+//   zC（龙被攻击时）：巫师先下诅咒（50% 落空 5 秒，冷却 3 秒）、再下减速（攻速 -60% 4 秒，冷却 5 秒），同理减速冷却时才诅咒
+const kobCd = (k, key, s) => { if (!k || k.dead) return false; const c = k.cds || (k.cds = {}); if (c[key] > G.t) return false; c[key] = G.t + s; return true; };
+function kobLoop() {
+  if (!G.final) return;
+  for (const d of G.final.dragons) {
+    const ks = d.kob.filter(k => !k.dead); if (!ks.length) continue;
+    let pt; const goal = () => { const a = rnd(0, TAU); return (pt = [d.x + Math.cos(a) * 400, d.y + Math.sin(a) * 400]); };
+    for (const k of ks) [k.tx, k.ty] = goal();
+    if (rint(1, 15) === 7) for (const k of ks) { k.x = pt[0]; k.y = pt[1]; }
   }
-  if (u === 'nkob') {
-    const pick1 = r => allies(r).sort((a, b) => (DRAGONS.has(b.uid) ? 1 : 0) - (DRAGONS.has(a.uid) ? 1 : 0))[0];
-    let a = pick1(900); if (a && ready('lust')) { cd.lust = G.t + 6; a.deb.lustSpeed = { v: 2, until: G.t + 1 }; }
-    a = pick1(500); if (a && ready('fire')) { cd.fire = G.t + 8; a.innerFire = G.t + 6; }
+  later(2, kobLoop);
+}
+function kobOrders() {
+  if (!G.final) return;
+  for (const d of G.final.dragons) {
+    const [kob, kot, , gst] = d.kob;
+    if (!d.dead) {
+      if (kobCd(kob, 'lust', 6)) d.deb.lustSpeed = { v: 2, until: G.t + 1 };
+      else if (kobCd(kob, 'fire', 8)) d.innerFire = G.t + 6;
+      if (d.hp < d.maxHp && kobCd(kot, 'heal', 2.5)) { d.hp = Math.min(d.maxHp, d.hp + 15000); FXS.ring(d.x, d.y, 80, '#9fffb0', 0.3, 3); }
+      else if (d.hp >= d.maxHp && kobCd(kot, 'wave', 4)) healWave(d, 90000, 8, 900, 0.25);
+    }
+    if (kobCd(gst, 'taunt', 7)) {
+      for (const t of G.towers) if (t.cat !== 'aura' && dist2(t.x, t.y, gst.x, gst.y) <= 900 * 900) t.target = gst;   // 射程够不着的塔下一次找目标时会换掉
+      FXS.ring(gst.x, gst.y, 900, '#ffb347', 0.4, 3);
+    }
   }
-  if (u === 'nkog') {
-    let t = tower(1200); if (t && ready('curse')) { cd.curse = G.t + 3; giveBuff(t, 'curse', 0.5, 5); FXS.ring(t.x, t.y, 90, '#7a4a9a', 0.4, 3); }
-    t = tower(700); if (t && ready('slow')) { cd.slow = G.t + 5; giveBuff(t, 'slowAS', 0.6, 4); FXS.ring(t.x, t.y, 90, '#9fd8ff', 0.4, 3); }
-  }
+  later(3, kobOrders);
+}
+function kobAttacked(d, t) {
+  const kog = d.kob[2];
+  if (kobCd(kog, 'slow', 5)) { giveBuff(t, 'slowAS', 0.6, 4); FXS.ring(t.x, t.y, 90, '#9fd8ff', 0.4, 3); }
+  else if (kobCd(kog, 'curse', 3)) { giveBuff(t, 'curse', 0.5, 5); FXS.ring(t.x, t.y, 90, '#7a4a9a', 0.4, 3); }
 }
 
 // ---------------------------------------------------------------- 波次（waves.js：tools/wave_rolls.py 从原图脚本枚举出的每一波所有随机分支和概率）
@@ -5809,7 +5859,7 @@ const PANDA = { 1: 'Ntin', 2: 'Npbm', 3: 'Nalc', 4: 'Nfir' };
 const KOBOLDS = ['nkob', 'nkot', 'nkog', 'ngst'];
 function startFinal() {
   G.finalCountdown = false;
-  G.final = { need: [], check: false };
+  G.final = { need: [], check: false, dragons: [] };
   G.timer = 300;
   G.waveNote = '　<b>最终 BOSS 波</b>：300 秒内杀死所有龙和魔王即可通关！';
   msg('杀死所有龙 BOSS 和魔王后会通关');
@@ -5821,7 +5871,9 @@ function startFinal() {
       need(d);
       if (Math.random() < 0.5) d.armor = 200;
       d.onDeath = () => { G.wood += 20; msg('你杀死了一条龙，获得 20 点木材'); };
-      for (const k of KOBOLDS) { const g = spawnMonster(k, { boss: true, gate: d.gate, at: d.at }); if (g) { Object.assign(g, { x: d.x, y: d.y }); g.onDeath = () => { G.wood += 5; msg('你杀死了一只狗，获得 5 点木材'); }; } }
+      d.kob = KOBOLDS.map(k => { const g = spawnMonster(k, { boss: true, gate: d.gate, at: d.at }); if (g) { Object.assign(g, { x: d.x, y: d.y, escort: d }); g.onDeath = () => { G.wood += 5; msg('你杀死了一只狗，获得 5 点木材'); }; } return g; });
+      if (!G.final.dragons.length) { later(2, kobLoop); later(3, kobOrders); }
+      G.final.dragons.push(d);
       msg(`${d.name}出现了，带着 4 只狗头人`);
     }
   };
@@ -6666,9 +6718,9 @@ function critterTick() {
   }
 }
 // 中立单位游荡（原图 Awan）：在出生点附近随机走
-function wander(m, dt) {
+function wander(m, dt, ordered) {
   if (G.t < m.stunUntil) return;
-  if (G.t >= m.next) { const a = rnd(0, TAU), d = rnd(0, 400); m.tx = m.hx + Math.cos(a) * d; m.ty = m.hy + Math.sin(a) * d; m.next = G.t + rnd(2, 5); }
+  if (!ordered && G.t >= m.next) { const a = rnd(0, TAU), d = rnd(0, 400); m.tx = m.hx + Math.cos(a) * d; m.ty = m.hy + Math.sin(a) * d; m.next = G.t + rnd(2, 5); }
   if (m.tx == null) return;
   const dx = m.tx - m.x, dy = m.ty - m.y, d = Math.hypot(dx, dy);
   const spd = m.speed * (m.invisUntil > G.t ? 1.3 : 1) * (1 - Math.max(G.t < m.slowUntil ? m.slow : 0, m.auraSlow || 0));
@@ -6929,7 +6981,6 @@ function step(dt) {
     if (m.dead) continue;
     if (m.until && G.t >= m.until) { m.dead = true; continue; }     // 限时单位到时间消失（不给赏金）
     moveMonster(m, dt);
-    monsterSkills(m);
     if (m.burn) hurt(m, m.burn.dps * dt, 'magic', m.burn.src, { ignoreArmor: true });
     for (const d of m.dots) if (d.until > G.t) hurt(m, d.dps * dt, d.atk, d.src, { noKill: d.noKill });
     m.dots = m.dots.filter(d => d.until > G.t);
