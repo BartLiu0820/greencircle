@@ -306,7 +306,7 @@ function spawnMonster(id, opt = {}) {
   const u = D.units[id];
   if (!u) return null;
   const path = GATES[opt.gate || 0].slice(opt.at || 0), [x, y] = NODES[path[0]];
-  const hpMul = (opt.noWaveHp ? 1 : 1 + RULE.hpPerWave * G.wave) * G.hpScale * (opt.hpMul || 1);   // 无尽怪物不吃 Rhar，生命按无尽科技（hpMul）
+  const hpMul = (opt.noWaveHp ? 1 : 1 + RULE.hpPerWave * (G.knWave ?? G.wave)) * G.hpScale * (opt.hpMul || 1);   // 无尽怪物不吃 Rhar，生命按无尽科技（hpMul）；Rhar 也是 R6 设的，-KN 后停在当时的波数
   const m = {
     id: G.nextId++, uid: id, name: u.name, x: x + rnd(-150, 150), y: y + rnd(-150, 150),
     maxHp: u.hp * hpMul, hp: u.hp * hpMul, armor: u.armor, type: u.armorType, speed: (u.speed || 250) + (opt.speedPlus || 0),
@@ -6822,7 +6822,7 @@ function step(dt) {
   }
   // 发金（原图 R6 / wX：开局就打开的 5 秒周期触发器）：每 5 秒给 排行榜名次 ×8 + 波数 ×2（LeaderboardGetPlayerIndexBJ，按杀敌数排，
   // 名次越靠后拿得越多；只有你一人时是第 1 名）；新人随机模式 ×12 + ×4
-  if ((G.incomeT = (G.incomeT || 0) + dt) >= 5) {
+  if (G.knWave == null && (G.incomeT = (G.incomeT || 0) + dt) >= 5) {     // -KN 之后 R6 关掉了
     G.incomeT -= 5;
     const [gr, gw] = MODES[G.mode].waveGold || [8, 2];
     for (const p of activePlayers()) addGold(p, rankOf(p.slot) * gr + G.wave * gw);
@@ -8311,10 +8311,46 @@ const mmMove = e => {
 mm.addEventListener('pointerdown', e => { mmDown = true; mm.setPointerCapture(e.pointerId); mmMove(e); });
 mm.addEventListener('pointermove', e => { if (mmDown) mmMove(e); });
 mm.addEventListener('pointerup', () => { mmDown = false; });
+// ---------------------------------------------------------------- 聊天命令（原图 tK ~ wV 一带的 TriggerRegisterPlayerChatEvent）
+// 回车打开聊天框，回车发送，Esc 取消；照原图按"包含"匹配（-CZ 是整句匹配），不分大小写。
+// 做了：-KN（只有 1 号玩家能用：关掉每 5 秒发金的 R6，原图怪物生命科技 Rhar 也是 R6 每 5 秒设成当前波数的，所以一起停在当时的波数）、
+// -PF（Perfect 数）、-CJ（当局成就；原图后半是平台成就币，这里换成账号成就）、-CZ（英雄成长值，妖灵再加飞鸟的 X / Y / Z）、-SC（全场玩家单位总数 De）。
+// 没做：-MS（调试用的一串数字）、-YX（平台英雄点）、-CZCZ / -ZHTZ（平台赞助：重置成长值 / 召唤兔子，重置成长值见守护宗师的重置卷轴）、
+// -QXPF（取消自动用英雄皮肤，皮肤没做）、-fuck02~08 / -gb00（房主踢人 / 房主掉线后接管，等联机）；地图里另外被塞进了"魔解网"的作弊脚本（cx / sc / -wp 等），不做
+const CHAT_CMDS = [
+  { s: '-KN', fn() { if (G.me !== 0) return; msg('难度系数增加为困难', 10); if (G.knWave == null) G.knWave = G.wave; } },
+  { s: '-PF', fn() { msg(`Perfect数:${G.perfect}`, 10); } },
+  { s: '-CJ', fn() { msg(`当局成就：${G.ach}   账号成就：${G.player ? profileOf(G.player).pts : 0}`, 5); } },
+  { s: '-CZ', exact: true, fn() {
+    const h = G.hero;
+    if (!h) return msg('还没有英雄（成长值在建英雄塔时随机）', 5);
+    msg(`力量:     ${h.grow.str}`); msg(`敏捷:     ${h.grow.agi}`); msg(`智力:     ${h.grow.int}`);
+    if (h.heroName === '妖灵') { const x = h.sk.hx; msg(`普通X=${18 - x}`); msg(`魔法Y=${14 - x}`); msg(`混乱Z=${x + 11}`); }   // 原图这里显示 14-Hx，飞鸟科技实际按 13-Hx 算，照搬
+  } },
+  { s: '-SC', fn() { msg(`辅助单位总量:${G.towers.length + G.roster.filter(p => p && !p.out).length}`, 10); } },
+];
+function chatSend(text) {
+  text = text.trim(); if (!text) return;
+  msg(`[${G.player || '玩家'}]：${text}`, 8);
+  const up = text.toUpperCase();
+  for (const c of CHAT_CMDS) if (c.exact ? up === c.s : up.includes(c.s)) c.fn();
+  uiDirty();
+}
+const chatBox = $('chat');
+function openChat() { chatBox.value = ''; chatBox.classList.remove('hidden'); chatBox.focus(); }
+function closeChat() { chatBox.classList.add('hidden'); chatBox.blur(); }
+chatBox.addEventListener('keydown', e => {
+  e.stopPropagation();
+  if (e.key === 'Enter') { const v = chatBox.value; closeChat(); chatSend(v); }
+  else if (e.key === 'Escape') closeChat();
+});
+chatBox.addEventListener('blur', () => chatBox.classList.add('hidden'));
 const keys = new Set();
 window.addEventListener('keydown', e => {
   if (!G || !$('modal').classList.contains('hidden')) return;
+  if (e.target === chatBox) return;
   if (e.key.startsWith('Arrow')) { keys.add(e.key); e.preventDefault(); return; }
+  if (e.key === 'Enter') { e.preventDefault(); openChat(); return; }
   if (e.key === 'Escape') { if (G.placing || G.pending) { G.placing = null; G.pending = null; } else if (G.menu !== 'main') G.menu = 'main'; else select(null); uiDirty(); return; }
   if (e.key === 'F1') { e.preventDefault(); select(G.builder); centerOn(G.builder); return; }
   if (e.key === 'F2' && G.hero) { e.preventDefault(); select(G.hero); centerOn(G.hero); return; }

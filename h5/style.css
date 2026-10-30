@@ -71,6 +71,8 @@ html, body, button, button:disabled, #minimap, #cv { cursor: url(assets/cursors/
 #w-board { font-size: 11px; color: #9fb8a4; margin-top: 3px; border-top: 1px solid rgba(255,255,255,.08); padding-top: 2px; }
 #w-board b { color: #ffe8a0; font-weight: 600; } #w-board .me { color: #6fd17a; } #w-board .out { color: #777; text-decoration: line-through; }
 #msgs { position: absolute; left: 64px; bottom: 10px; display: flex; flex-direction: column; gap: 3px; pointer-events: none; max-width: 55%; }
+#chat { position: absolute; left: 64px; bottom: 10px; width: min(420px, 55%); padding: 5px 8px; background: rgba(0,0,0,.75); color: #ffe8a0; border: 1px solid #8a7a3a; border-radius: 4px; font: inherit; outline: none; z-index: 5; }
+main:has(#chat:not(.hidden)) #msgs { bottom: 44px; }
 #msgs div { background: rgba(0,0,0,.6); padding: 3px 8px; border-radius: 4px; color: #ffe8a0; animation: fade 6s forwards; }
 @keyframes fade { 0%,80% { opacity: 1 } 100% { opacity: 0 } }
 #tip { position: absolute; right: 8px; bottom: 8px; width: 300px; max-height: 60%; overflow: auto; padding: 8px 10px; font-size: 12px;
@@ -196,6 +198,7 @@ html, body, button, button:disabled, #minimap, #cv { cursor: url(assets/cursors/
   #top .menu button { padding: 3px 6px; }
   #tip { left: 8px; width: auto; }
   #msgs { left: 8px; max-width: 90%; }
+  #chat { left: 8px; width: 90%; }
 }
 .cb .thumb { position: absolute; inset: 0; }
 
@@ -247,6 +250,8 @@ html, body, button, button:disabled, #minimap, #cv { cursor: url(assets/cursors/
   #quick { top: calc(100% * 50 / 1200 + 8px); }
   #wavebox { top: calc(100% * 50 / 1200 + 8px); }
   #msgs { bottom: calc(100% * 342 / 1200 + 8px); left: 2%; }
+  #chat { bottom: calc(100% * 342 / 1200 + 8px); left: 2%; }
+  main:has(#chat:not(.hidden)) #msgs { bottom: calc(100% * 342 / 1200 + 44px); }
   #tip { bottom: calc(100% * 300 / 1200); right: 1%; width: 330px; background: rgba(0, 0, 0, .82); border: 1px solid #c9a94c; }
 
   #console { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; height: calc(100% * 342 / 1200); display: block; padding: 0; gap: 0;
