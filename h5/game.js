@@ -163,7 +163,8 @@ function newGame(mode, players = 1, player = null, bots = false) {     // player
     klPow: 0, klSpd: 0,      // 狂狼的玩家科技：狼力 R00R / 狼速 R00S
     lich: { tech: 0, mr: 0, nk: 0, kc: 0, mq: false },
     rm: { fg: 1, fi: 1, fh: 1, kz: 0, fj: 0, k0: 1, hg: 0, hh: false, breakAt: -Infinity },
-    beast: { tech: 1, tamed: false, elite: [false, false, false], wpn: null },   // wpn：训兽 a1~a5 / b1~b5 每组打开的是攻击 1（'a'）还是攻击 2（'b'），见 beastUnlock
+    beast: { tech: 1, tamed: false, elite: [false, false, false], wpn: null },
+    abyss: { de: Array(MAX_PLAYERS).fill(0), ho: Array(MAX_PLAYERS).fill(1) },   // 深渊塔的玩家变量 DE（辅助塔附加伤害倍数）/ HO（暴击塔 Bingo 倍数），见深渊塔技能包   // wpn：训兽 a1~a5 / b1~b5 每组打开的是攻击 1（'a'）还是攻击 2（'b'），见 beastUnlock
     godLock: new Set(),      // 神塔：本机建造栏里被关掉的（见 godRefresh）
     honorLv: null,           // 荣誉光环 4 个光环的等级（这次随机建造里第一次建时定下）
     god: { hq: 0, lq: 0, my: 0, lv: 0, r01l: Array(MAX_PLAYERS).fill(0) },   // 神塔的全局变量：暗牧 Hq、海妖 LQ、圣灵 My（记的是上次触发的时间）、猎人 Lv（到这个时间才能捕猎）、精准攻击 R01L 按玩家
@@ -511,6 +512,7 @@ function upgradeTower(t, branchKey) {
   if (branchKey) { t.levels = [t.levels[0]].concat(f.branches[branchKey]); t.branch = branchKey; }
   t.lv++;
   achCombo();                             // 原图 rG：升级完成时检查组合成就
+  abyssUpgradeHO(t);                      // 原图 BCd：深渊塔 DE、暴击塔 Bingo 倍数 HO
   if (t.fam === '暴击塔' && isMax(t)) for (let i = 0; i < 5; i++) {     // 原图 BCd：暴击塔升到 MAX 时，每个等级随机一座自己的混乱塔致命一击变成 2 级（25% 4.5 倍）
     const c = G.towers.filter(o => o.fam === '混乱塔' && o.lv === i && mine(o));
     if (c.length) pick(c).critLv = 2;
@@ -520,6 +522,8 @@ function upgradeTower(t, branchKey) {
   uiDirty();
 }
 function sellTower(t) {
+  abyssSellHO(t);                         // 原图 BC9（回收时被回收的塔还在）
+  if (t.fam === '深渊塔') G.abyss.de[pidOf(t)] = 0;
   G.gold += t.spent;                      // ConstructionRefundRate = UpgradeRefundRate = 1.0
   const kit = KITS[t.fam];
   if (kit && kit.sell) kit.sell(t);       // 功勋木材、容器金币等额外返还，主塔记下技能等级
@@ -1106,6 +1110,24 @@ function field(owner, x, y, r, dur, o) { G.zones.push({ owner, x, y, r, t0: G.t,
 
 // ---------------------------------------------------------------- 另类塔给别的塔的加成（按玩家算，回收后归零）
 const ownTower = (pid, fam) => G.towers.find(o => o.fam === fam && o.cat !== 'summon' && pidOf(o) === pid);
+// 深渊塔的 HO（见深渊塔技能包）：某玩家的深渊塔 MAX 座数 / 第一座超级深渊 / 某种辅助塔 MAX 有没有
+const abyssMaxN = pid => G.towers.filter(o => o.fam === '深渊塔' && !o.super && isMax(o) && pidOf(o) === pid).length;
+const abyssSuper = pid => G.towers.find(o => o.fam === '深渊塔' && o.super && pidOf(o) === pid);
+const supMax = (pid, f) => G.towers.some(o => o.fam === f && isMax(o) && pidOf(o) === pid);
+function abyssUpgradeHO(t) {   // BCd：升级完成
+  const pid = pidOf(t), A = G.abyss;
+  if (t.fam === '深渊塔' && t.lv >= 1) A.de[pid] = [1, 4, 6, 8][t.lv];
+  const max4 = ['暴击塔', '腐蚀塔', '冰霜塔', '重击塔'].every(f => supMax(pid, f)), sup = abyssSuper(pid);
+  if ((max4 && abyssMaxN(pid) || sup) && A.ho[pid] === 1) { A.ho[pid] = sup && sup.talent ? 3 : 2; msg(`[暴击塔Bingo能力提升${A.ho[pid]}倍]`); }
+}
+function abyssSellHO(t) {   // BC9：回收任何塔时（被回收的塔还算在内），三个条件都是 and / or 从左往右算，照搬
+  const pid = pidOf(t), A = G.abyss, hi = A.ho[pid] >= 2, n = f => supMax(pid, f), mx = abyssMaxN(pid), sp = G.towers.filter(o => o.fam === '深渊塔' && o.super && pidOf(o) === pid).length;
+  const tail = !n('腐蚀塔') || !n('冰霜塔') || !n('重击塔');
+  const c1 = (hi && !n('暴击塔')) || tail || (!mx && !sp);
+  const c2 = (hi && t.fam === '深渊塔' && t.super && !n('暴击塔')) || tail || (!mx && sp === 1);
+  const c3 = (hi && t.fam === '深渊塔' && !t.super && isMax(t) && !n('暴击塔')) || tail || (mx === 1 && !sp);
+  if (c1 || c2 || c3) { if (hi) msg('[暴击塔Bingo能力下降]'); A.ho[pid] = 1; }     // 原图每次条件成立都提示（没有四种辅助 MAX 时每回收一座塔都提示），这里只在真的下降时提示
+}
 const techLv = t => { const o = ownTower(pidOf(t), '科技塔'); return o ? o.lv + 1 : 0; };                     // 原图 C1 = C2：科技塔等级
 const stoneLv = (t, k) => { const o = ownTower(pidOf(t), '魔石塔'); return o && o.ms.sel === k ? o.lv + 1 : 0; };   // 魔石塔 1 DZ 剑圣 / 2 DY 天神 / 3 Da 炎魔 / 4 Db 灵魂
 const STONE_FOR = ['剑圣塔', '天神塔', '炎魔塔', '灵魂塔'];
@@ -2364,31 +2386,30 @@ const KITS = {
         `扫射塔杀敌 +${fmt(1 + 0.2 * c)} 魔法；神圣塔 MAX + 地精塔 MAX：额外 400 范围 魔法×${(1 + c / 32).toFixed(3)}${c >= 4 ? '；超级深渊召唤深渊霸主' : ''}`];
     },
   },
-  // 深渊塔（原图 DE：1~MAX 级 2 / 4 / 6 / 8，超级 10，回收归零）：自己的腐蚀 / 重击 / 冰霜 / 暴击塔每次攻击，在目标处 100 范围再造成
+  // 深渊塔：DE 每个玩家一个值（不分哪座深渊塔）：建成 1 级时 1（BC7）、升到 2 / 3 / MAX 级时 4 / 6 / 8（BCd，1 级那句永远不触发）、升超级深渊 10，
+  // 回收任何一座深渊塔都归零（有几座时也一样，照搬）。DE ≥ 1 时自己的腐蚀 / 重击 / 冰霜 / 暴击塔每次攻击，在目标处 100 范围再造成
   // 90 × 辅助塔等级 × DE 的穿刺 / 混乱 / 魔法 / 普通伤害。
   // 暴击塔 Bingo：原图条件是"魔法 ≥ 1 且 1/20 且有超级深渊 或 有深渊塔 MAX"（and / or 从左往右算），所以有深渊塔 MAX 时暴击塔每次攻击都 Bingo，
-  // 超级深渊时只有第一座暴击塔 MAX（建成时给 1 点魔法）有 1/20；300 范围 80000×HO。HO：平时 1，四种辅助 MAX + 深渊塔 MAX 或者有超级深渊时 2，
-  // 超级深渊激活天赋后 3（原图建成时才重算 HO，这里随时按条件算）。
+  // 超级深渊时只有第一座暴击塔 MAX（建成时给 1 点魔法）有 1/20；300 范围 80000×HO（超级深渊激活过天赋时是 Bingo#，英雄伤害）。
+  // HO 每个玩家一个值，只在自己的塔升级完成时重算（BCd：四种辅助 MAX + 深渊塔 MAX 或者有超级深渊，且 HO = 1 时 → 2，超级深渊激活过天赋 → 3），
+  // 回收时按 BC9 降回 1（abyssSellHO）；升超级深渊不算升级完成，激活天赋也不会马上变 3，都照搬。
   // 深渊塔 MAX 花 11400 金"升级超级深渊"（A0EQ，要四种辅助 MAX，还要没建主塔——用掉主塔名额）：每 15 秒召唤一个深渊领主（会走动，活 15 秒；
   // 升级时科技塔 MAX 是深渊霸主，否则魔石塔选了炎魔（Da ≥ 1）是深渊魔主），领主每次攻击在目标 190 范围加 超级深渊魔法×(10+Da) 英雄伤害，
   // 每 5 次攻击放死亡新星（目标 40000、350 范围 20000）；领主杀敌超级深渊 +1 魔法。天赋（50 木材）：Bingo# 伤害翻倍
   深渊塔: {
     init(t) { t.ik = 0; },
-    de: t => t.super ? 10 : 2 * (t.lv + 1),
-    // HO（暴击塔 Bingo 倍数）
-    ho(t) {
-      const pid = pidOf(t), max4 = ['暴击塔', '腐蚀塔', '冰霜塔', '重击塔'].every(f => G.towers.some(o => o.fam === f && isMax(o) && pidOf(o) === pid));
-      return t.super ? (t.talent ? 3 : 2) : max4 && isMax(t) ? 2 : 1;
-    },
+    built(t) { G.abyss.de[pidOf(t)] = 1; return t; },
+    de: t => G.abyss.de[pidOf(t)],
+    ho: t => G.abyss.ho[pidOf(t)],
     anyAttack(t, o, target) {
-      const ty = ABYSS_SUP[o.fam];
-      if (!ty || o.cat === 'summon' || pidOf(o) !== pidOf(t) || ownTower(pidOf(t), '深渊塔') !== t) return;   // DE 每个玩家只有一个值：只算第一座深渊塔
-      aoeAt(o, target.x, target.y, 100, 90 * (o.lv + 1) * KITS.深渊塔.de(t), ty);
+      const ty = ABYSS_SUP[o.fam], pid = pidOf(t), de = G.abyss.de[pid];
+      if (!ty || o.cat === 'summon' || pidOf(o) !== pid || ownTower(pid, '深渊塔') !== t || de < 1) return;   // 每个玩家只触发一次（借第一座深渊塔的技能包）
+      aoeAt(o, target.x, target.y, 100, 90 * (o.lv + 1) * de, ty);
       FXS.ring(target.x, target.y, 100, '#b04dff', 0.25, 3);
       if (o.fam !== '暴击塔') return;
-      const first = G.towers.find(x => x.fam === '暴击塔' && isMax(x) && pidOf(x) === pidOf(t));
-      if (!((first === o && Math.random() < 1 / 20 && t.super) || (!t.super && isMax(t)))) return;
-      const ho = KITS.深渊塔.ho(t), sharp = t.super && t.talent;
+      const first = G.towers.find(x => x.fam === '暴击塔' && isMax(x) && pidOf(x) === pid), sup = abyssSuper(pid);
+      if (!((first === o && Math.random() < 1 / 20 && sup) || abyssMaxN(pid))) return;
+      const ho = G.abyss.ho[pid], sharp = !!(sup && sup.talent);
       aoeAt(o, target.x, target.y, 300, 80000 * ho, sharp ? 'hero' : 'normal');
       popText(target.x, target.y + 40, sharp ? 'Bingo#!' : ho > 1 ? 'Bingo+!' : 'Bingo!', '#ff3030');
       FXS.nova(target.x, target.y, 300, '#ff3030', 0.35);
@@ -2408,6 +2429,7 @@ const KITS = {
     },
     kill(t, m, src) { if (t.super && src && src.owner === t) addMana(t, 1); },
     upgrade(t) {
+      G.abyss.de[pidOf(t)] = 10;
       t.super = true; t.cat = 'main'; t.levels = t.levels.concat([D.towers.深渊塔.super]); t.lv = t.levels.length - 1;
       t.spent += 11400; t.maxMana = 2000; t.mana = 0; t.ik = 0; delete t.cds.lord;
       t.lord = techLv(t) >= 4 ? 2 : stoneLv(t, 3) >= 1 ? 3 : 1;
@@ -2426,7 +2448,7 @@ const KITS = {
     talent: { wood: 50, name: 'Bingo# 伤害翻倍', only: t => t.super ? null : '只能对超级深渊塔激活', tip: '暴击塔 Bingo 变成 Bingo#：80000×3 英雄伤害' },
     info(t) {
       const out = [`辅助塔附加伤害：DE ${KITS.深渊塔.de(t)}（目标 100 范围 90×辅助塔等级×DE）`,
-        `暴击塔 Bingo：${t.super ? '第一座暴击塔 MAX 1/20' : isMax(t) ? '暴击塔每次攻击' : '要深渊塔 MAX'}，300 范围 ${fmt(80000 * KITS.深渊塔.ho(t))}`];
+        `暴击塔 Bingo：${abyssMaxN(pidOf(t)) ? '暴击塔每次攻击' : abyssSuper(pidOf(t)) ? '第一座暴击塔 MAX 1/20' : '要深渊塔 MAX'}，300 范围 ${fmt(80000 * KITS.深渊塔.ho(t))}（HO ${KITS.深渊塔.ho(t)}，升级完成时重算）`];
       if (t.super) out.push(`召唤${ABYSS_LORD[t.lord - 1].name}：${cdReady(t, 'lord') ? '就绪' : Math.ceil(cdLeft(t, 'lord')) + ' 秒'}，附加 ${fmt(Math.floor(t.mana * (10 + stoneLv(t, 3))))} 英雄伤害`);
       return out;
     },
