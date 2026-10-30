@@ -127,6 +127,7 @@ def main():
                 if aid in A and 'ico:abil-' + aid not in reg: put('ico:abil-' + aid, A[aid].get('Art'))
     for n, h in D['heroes'].items():
         put('icon:hero:' + n, U[h['id']].get('Art')); put('portrait:hero:' + n, U[h['id']].get('Art'))
+        if h.get('skin'): put('portrait:hero:' + n + ':皮肤', U[h['skin']['id']].get('Art'))
         for i, s in enumerate(h['skills']):                    # 技能书里的 4~5 个技能（tools/add_heroes.py）
             put(f'icon:skill:{n}:{i}', A.get(s['id'], {}).get('Art'))
         for i, s in enumerate(h.get('cmds', [])):             # 没有技能书的英雄：单位上的命令技能

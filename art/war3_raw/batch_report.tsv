@@ -238,3 +238,14 @@ model:tower:Units/Creeps/DarkTrollTrapper/DarkTrollTrapper	ok	高 1.22 m | ppm 4
 model:tower:Units/Naga/NagaSiren/NagaSiren	ok	高 2.62 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无
 model:tower:Units/Orc/Wolfrider/Wolfrider	ok	高 2.02 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无
 model:tower:Abilities/Spells/NightElf/Rejuvenation/RejuvenationTarget	ok	高 2.00 m | ppm 40 | 缺贴图 0 | 动作 idle,death | 光效 无
+model:hero:Units/Orc/Hellscream/Hellscream	ok	高 3.09 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell,spin | 光效 无（出图的动作里看不见）
+model:hero:Units/Naga/NagaRoyalGuard/NagaRoyalGuard	ok	高 2.53 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无
+model:hero:Units/Undead/Abomination/Abomination	ok	高 2.43 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death | 光效 无
+model:hero:Units/Orc/Thrall/Thrall	ok	高 2.38 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无
+model:hero:Units/NightElf/SpiritOfVengeance/SpiritOfVengeance	ok	高 2.91 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 有
+model:hero:Units/Creeps/LordGarithos/LordGarithos	ok	高 2.58 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 有
+model:hero:Buildings/NightElf/AncientofWar/AncientofWar	ok	高 2.42 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death | 光效 有
+model:hero:Units/Creeps/FirePandarenBrewmaster/FirePandarenBrewmaster	ok	高 2.11 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,spell | 光效 无
+model:hero:Units/Creeps/MagnataurBlue/MagnataurBlue	ok	高 2.34 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无
+model:hero:Units/Other/HeroArchMageGhost/HeroArchMageGhost	ok	高 2.00 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 有
+model:hero:Units/Creeps/OgreLord/OgreLord	ok	高 2.68 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death | 光效 无

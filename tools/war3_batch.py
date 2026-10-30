@@ -67,6 +67,7 @@ def entities():
         out += [(f'tower:{fam}:{i + 1}', 'tower', l['id']) for i, l in enumerate(lv) if i]
         if t.get('super'): out.append((f'tower:{fam}:{len(lv) + 1}', 'tower', t['super']['id']))   # 超级深渊塔：接在深渊塔 MAX 后面
     out += [('hero:' + n, 'hero', h['id']) for n, h in D['heroes'].items()]
+    out += [('hero:' + n + ':皮肤', 'hero', h['skin']['id']) for n, h in D['heroes'].items() if h.get('skin')]   # 皮肤 / 进化形态（game.js HERO_SKIN）
     out.append(('builder', 'builder', BUILDER_ID))
     out.append(('shop', 'tower', SHOP_ID))                            # 地图中央的商店（模型是"摇滚阿尔萨斯"）
     out += [(k, 'fx', uid) for k, (uid, _) in FX_UNITS.items()]

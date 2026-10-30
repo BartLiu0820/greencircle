@@ -28,8 +28,11 @@ POOL = [('剑神', 'H03Q', 'h03R'), ('大巫师', 'H05J', 'h05I'), ('幻影', 'H
         ('伏魔', 'H05Y', 'h05Z'), ('驯龙', 'H062', 'h061'), ('恶魔之子', 'H06B', 'h06A'), ('图腾', 'H06K', 'h06L'), ('猛犸', 'H060', 'h05R'),
         ('先知', 'H06S', 'h06T'), ('鬼', 'H074', 'h075'), ('虫', 'H07A', 'h072'), ('妖灵', 'H05O', 'h05N'), ('大法师', 'H07N', 'h07P'),
         ('狗头人觉醒者', 'H07Z', 'h086'), ('巨魔召唤师', 'H08A', 'h08B'), ('地狱火', 'H08W', 'h08O'), ('龙鹰', 'H092', 'h093'), ('月之女神', 'H095', 'h097'),
-        ('巨人', 'H099', 'h098'), ('凤凰', 'H09F', 'h073')]
+        ('巨人', 'H099', 'h098'), ('凤凰', 'H09F', 'h073'),
+        # 炼金（H05W）：不在随机池里（hc = 0），只能从守卫者的英雄旗帜里选（game.js BANNERS）
+        ('炼金', 'H05W', 'h05X')]
 SPONSOR_FROM = 18
+BANNER_ONLY = {'炼金'}
 # 技能书里名字只是代号（QS1、kn1、WS 1……）的，按技能说明起名
 NAMES = {
     '大巫师': ['巫伤', '恐怖嚎叫', '死亡呐喊', '巫驱', '巫缓'],
@@ -52,6 +55,7 @@ NAMES = {
     '凤凰': ['重置殇', '重置舞', '殇的护甲', '舞的护甲'],
 }
 CMD_NAMES = {'先知': ['释魂', '命运', '强化最小攻击', '强化最大攻击', '吸收'], '鬼': ['提升属性', '药水 Q', '药水 W', '药水 E', '药水 R'],
+             '炼金': ['功勋', '自爆地精', '火箭轰炸', '超度之光', '点金'],
              '地狱火': ['增加召唤数', '切换颜色', '随机技能']}
 # 不在单位命令面板上的通用技能（升级、属性选择、无敌、查询等）
 NOT_CMD = {'A0B6', 'A0CD', 'A0V9', 'Avul', 'Aloc', 'AInv', 'A04D', 'A04B'}
@@ -82,7 +86,17 @@ for i, (nm, hid, bid) in enumerate(POOL):
                       gold=fl(b, 'goldcost', 1500), wood=fl(b, 'lumbercost', 5), food=fl(b, 'fused', 4),
                       splash=fl(u, 'Farea1') if wt == 'msplash' else 0,
                       bounce=dict(n=int(fl(u, 'targCount1', 1)), jump=fl(u, 'Farea1', 500)) if wt == 'mbounce' else None,
-                      instant=wt == 'instant', skills=skills, cmds=cmds, sponsor=i + 1 >= SPONSOR_FROM)
+                      instant=wt == 'instant', skills=skills, cmds=cmds, sponsor=i + 1 >= SPONSOR_FROM and nm not in BANNER_ONLY)
+    if nm in BANNER_ONLY: heroes[nm].update(hc=0, banner=True)
+# 皮肤 / 进化形态（原图按平台"赞+7"或赞助自动换成另一个英雄单位，触发器和原英雄共用，game.js HERO_SKIN）：只导出和原英雄不同的攻击数值和名字
+SKINS = {'剑神': 'H05P', '猛犸': 'H05S', '枪神': 'H05T', '狂牛': 'H05U', '电法': 'H06E', '伏魔': 'H06F', '风神': 'H06G', '渔人': 'H06H',
+         '古树': 'H06X', '箭灵': 'H06Z', '大法师': 'H089', '坦克': 'H08N', '巨人': 'H09D'}
+for nm, sid in SKINS.items():
+    u, h = U[sid], heroes[nm]
+    wt = u.get('weapTp1')
+    h['skin'] = dict(id=sid, name=cl(u.get('Propernames')) or nm, title=cl(u.get('Name')), cd=fl(u, 'cool1', 1), range=fl(u, 'rangeN1', 700),
+                     splash=fl(u, 'Farea1') if wt == 'msplash' else 0,
+                     bounce=dict(n=int(fl(u, 'targCount1', 1)), jump=fl(u, 'Farea1', 500)) if wt == 'mbounce' else None)
 D['heroes'] = heroes
 # 怪物的等级和攻击（伏魔驯化后的随从用）
 for uid, v in D['units'].items():
