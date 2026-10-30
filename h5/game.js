@@ -165,6 +165,7 @@ function newGame(mode, players = 1, player = null, bots = false) {     // player
     rm: { fg: 1, fi: 1, fh: 1, kz: 0, fj: 0, k0: 1, hg: 0, hh: false, breakAt: -Infinity },
     beast: { tech: 1, tamed: false, elite: [false, false, false] },
     godLock: new Set(),      // 神塔：本机建造栏里被关掉的（见 godRefresh）
+    honorLv: null,           // 荣誉光环 4 个光环的等级（这次随机建造里第一次建时定下）
     god: { hq: 0, lq: 0, my: 0, lv: 0, r01l: Array(MAX_PLAYERS).fill(0) },   // 神塔的全局变量：暗牧 Hq、海妖 LQ、圣灵 My（记的是上次触发的时间）、猎人 Lv（到这个时间才能捕猎）、精准攻击 R01L 按玩家
     panda: { stomp: 1, master: 1, fire: 1 },
     cmd: { type: rint(1, 3), lv: 1, ys: [0, 0, 0, 0, 0, 0] },   // 原始指挥官：宁静类型 Jf（开局随机）、宁静等级 Jg（天赋 2）、强化原始塔 JY / JZ / Ja / Jb / Jc / Jd   // 熊猫：熊猫践踏 Gd、家族大师 Gf、火焰强化 Gg（原图按玩家记）
@@ -221,6 +222,7 @@ function rerollBuild(free) {
   const hc = rint(1, G.sponsor ? 34 : 17);                          // 有英雄赞助：1~34（18~34 是赞助英雄）
   G.heroChoice = MODES[G.mode].hero || Object.keys(D.heroes).find(n => D.heroes[n].hc === hc);
   G.placing = null;
+  G.honorLv = null;
   godRefresh();
   uiDirty();
 }
@@ -2769,7 +2771,27 @@ const KITS = {
     sell() { G.god.hq = 0; },        // 原图回收圣灵塔也把暗牧塔的计数 Hq 清零（照搬）
     info: () => [`潜伏圣灵：场上 ${G.monsters.filter(m => m.spirit && !m.dead).length}/2`],
   },
+  // 荣誉光环（h08M）：4 个光环的等级在随机到它时定好（原图 MS / MU / MT / MV = Jq+1~8），建成时设上（BJP），到下次随机建造前建的都一样
+  荣誉光环: {
+    init: t => { t.honor = mine(t) ? (G.honorLv || (G.honorLv = honorRoll(honorJq()))) : honorRoll(0); },
+    info: t => HONOR.kinds.map((k, i) => `${k.name} ${t.honor[i]} 级：${k.txt(honorV(t.honor[i]))}（${honorArea(i, t.honor[i])} 范围）`),
+  },
 };
+// 荣誉光环的 4 个光环（顺序同 MS / MU / MT / MV）：技能表只填了 1~4 级（6% / 8% / 10% / 12%，减防 -6 ~ -12），
+// 说明写 6%~20%，5~8 级按每级 +2% 补；范围 5~8 级沿用 4 级。可与任意光环叠加（同是荣誉光环的取大）
+const HONOR = {
+  kinds: [
+    { name: '攻击光环', area: [500], txt: v => `攻击 +${pctTxt(v)}` },                 // A0TE AEar
+    { name: '减防光环', area: [800, 800, 800, 900], txt: v => `敌人护甲 -${Math.round(v * 100)}` },   // A0TB AHad
+    { name: '减速光环', area: [400], txt: v => `敌人移速 -${pctTxt(v)}` },             // A0TC AOae
+    { name: '速度光环', area: [500], txt: v => `攻速 +${pctTxt(v)}` },                 // A0TD AOae
+  ],
+};
+const honorV = lv => 0.04 + 0.02 * lv;
+const honorArea = (k, lv) => { const a = HONOR.kinds[k].area; return a[Math.min(lv, a.length) - 1]; };
+const honorRoll = jq => HONOR.kinds.map(() => rint(jq + 1, 8));
+// Jq（q9）：平台荣誉 RY ≥ 90 是 2、≥ 60 是 1。这里用玩家档案里的荣誉（原图无尽积分到 1 万时 +1，上限 300）
+function honorJq() { const h = G.player ? profileOf(G.player).honor || 0 : 0; return h >= 90 ? 2 : h >= 60 ? 1 : 0; }
 // 神塔的数值（技能表 / 单位表 / 触发器）
 const GOD = {
   qmCd: 3, qmStun: 6,                                // 驱魔一击 A0L7：冷却 3 秒（说明写 10 秒）、晕眩 6 秒
@@ -5293,6 +5315,13 @@ function applyAuras() {
     for (const [a, r, v] of slowAuras) if (dist2(a.x, a.y, m.x, m.y) <= r * r) m.auraSlow = Math.max(m.auraSlow, v);
     for (const [a, r, v] of heroSlows) if (dist2(a.x, a.y, m.x, m.y) <= r * r) m.heroSlow = Math.max(m.heroSlow, v);
   }
+  // 荣誉光环：加在上面同类光环取大的结果上（可与任意光环叠加），几座荣誉光环之间取大
+  const honors = G.towers.filter(a => a.fam === '荣誉光环' && a.honor);
+  if (honors.length) {
+    const best = (x, y, k) => Math.max(0, ...honors.map(a => { const lv = a.honor[k], r = honorArea(k, lv); return dist2(a.x, a.y, x, y) <= r * r ? honorV(lv) : 0; }));
+    for (const t of G.towers) { t.buffDmg += best(t.x, t.y, 0); t.buffAS += best(t.x, t.y, 3); }
+    for (const m of G.monsters) if (!m.dead) { m.auraArmorDown += best(m.x, m.y, 1) * 100; m.auraSlow += best(m.x, m.y, 2); }
+  }
   // 精英怪光环 (900 范围)、怪物自带的光环（魔王、熊猫 BOSS 等，monsterAuras）
   const srcs = [];
   for (const e of G.monsters) {
@@ -5881,7 +5910,10 @@ function endlessWave() {
 }
 function endlessTick() {
   const E = G.endless;
-  for (const [text, n, ok] of ENDLESS_GOALS) if (!E.goals[text] && ok(E)) { E.goals[text] = true; msg(`所有玩家 ${text}：至尊+${n}`, 10); earnAch(n * 10, text); }
+  for (const [text, n, ok] of ENDLESS_GOALS) if (!E.goals[text] && ok(E)) {
+    E.goals[text] = true; msg(`所有玩家 ${text}：至尊+${n}`, 10); earnAch(n * 10, text);
+    if (text === '无尽达到10000分' && G.player && G.mode !== 'demo') { const p = profileOf(G.player); p.honor = Math.min(300, (p.honor || 0) + 1); saveProfiles(); msg('荣誉 +1（荣誉 ≥ 60 / 90 时荣誉光环的等级下限提高）'); }
+  }
   if (G.t >= E.hintAt) { E.hintAt = G.t + 0.5; refreshHint(); }
 }
 function endlessEnd() {
@@ -6004,7 +6036,8 @@ function rerollSlot(cat) {
   const idx = G.build.map((f, i) => D.towers[f] && kinds.includes(slotOf(f)) ? i : -1).filter(i => i >= 0);
   if (!idx.length) return msg(`建造栏里没有${CAT_CN[cat]}`), false;
   for (const i of idx) {
-    const s = slotOf(G.build[i]), all = slotPool(s), pool = all.filter(f => f !== G.build[i]);
+    // 光环之球只在 4 种普通光环里换（原图 Jx = 1~4），抽不到荣誉光环
+    const s = slotOf(G.build[i]), all = slotPool(s).filter(f => !(cat === 'aura' && f === '荣誉光环')), pool = all.filter(f => f !== G.build[i]);
     G.build[i] = pick(pool.length ? pool : all);
   }
   if (G.placing && G.placing !== 'hero' && !G.build.includes(G.placing)) G.placing = null;
@@ -6103,7 +6136,7 @@ const SHOP_ITEMS = [
   { id: 'I01Y', key: 'A', name: '天赋卷轴', wood: 15, firstAt: 1200, cd: 300, inv: true, range: 750,
     tip: `对 MAX 光环塔使用，激活<b>基础天赋</b>：光环升到 2 级（加速 +80% / 攻击 +142% / 减防 -100 / 减速 -70%），不能再激活至尊天赋<br>对全场唯一塔（恐惧 / 火速 / 神力 / 冰封 / 银行）使用：技能 +1 级<br>主塔、原始塔、辅助塔、另类塔等的天赋不用卷轴：守卫者「使用木材 → 激活天赋」直接扣木材激活<br>开局 1200 秒后开放，购买间隔 300 秒`,
     pick: '天赋卷轴：选择一座 MAX 光环塔或全场唯一塔（Esc 取消）',
-    ok: t => !t || !t.fam ? '只能对塔使用' : UNIQ_TALENT.has(t.fam) ? null : t.cat !== 'aura' || !isMax(t) ? '只能对MAX光环使用（其他塔的天赋用守卫者的"激活天赋"）' : t.talent ? '该单位已经激活' : null,
+    ok: t => !t || !t.fam ? '只能对塔使用' : UNIQ_TALENT.has(t.fam) ? null : t.fam === '荣誉光环' ? '荣誉光环不能激活天赋' : t.cat !== 'aura' || !isMax(t) ? '只能对MAX光环使用（其他塔的天赋用守卫者的"激活天赋"）' : t.talent ? '该单位已经激活' : null,
     use: t => {
       if (UNIQ_TALENT.has(t.fam)) return ulUp(t, 1, '天赋卷轴');
       t.talent = true; FXS.ring(t.x, t.y, 220, '#9fffb0', 0.6, 4); msg(`${curLevel(t).name}获得了基础天赋`);
@@ -6115,7 +6148,7 @@ const SHOP_ITEMS = [
     ok: t => !t || !t.remote ? '只能对友军的守卫者使用' : sameBuild(G.roster[t.pid]) ? '复制相同建造能力守护者无效' : null,
     use: b => copyBuild(G.roster[b.pid]) },
   { id: 'I00B', key: 'D', name: '收购卷轴', gold: 1800, inv: true, range: 600,
-    tip: '对一个允许收购的友军 1 级光环塔使用，收购这个光环；出售者获得 1500 金币（原图收购荣誉光环要 10000 金币，本复刻没有荣誉光环）<br>自己的 1 级光环塔可以在命令面板里设成"允许收购"',
+    tip: '对一个允许收购的友军 1 级光环塔使用，收购这个光环；出售者获得 1500 金币；收购荣誉光环时你有 10000 金币就付给对方 10000 金币（对方另得 4 木材），不够 10000 时和普通光环一样<br>自己的 1 级光环塔可以在命令面板里设成"允许收购"',
     pick: '收购卷轴：选择队友允许收购的 1 级光环塔（Esc 取消）',
     why: () => G.towers.some(t => !mine(t) && t.cat === 'aura') ? null : '没有队友的光环塔可以收购（多人规模开局可以放模拟队友）',
     ok: t => !t || !t.fam || t.cat !== 'aura' || mine(t) ? '只能对友军的光环塔使用' : t.lv !== 0 ? '只能收购 1 级光环塔' : !t.forSale ? '收购失败：对方没有允许收购' : null,
@@ -6223,18 +6256,20 @@ function freeSpotNear(x, y, r) {
 // 复制卷轴（原图 BKX）：建造栏换成对方的（含英雄塔），以后随机建造要 6 木材；对方 +5 木材
 const sameBuild = p => p.build.join() === G.build.join() && p.heroChoice === G.heroChoice;
 function copyBuild(p) {
-  G.build = p.build.slice(); G.heroChoice = p.heroChoice; G.rerolls = Math.max(G.rerolls, 1); G.placing = null;
+  G.build = p.build.slice(); G.heroChoice = p.heroChoice; G.rerolls = Math.max(G.rerolls, 1); G.placing = null; G.honorLv = null;
   godRefresh();
   addWood(p, 5);
   NET.send({ t: 'copy', slot: G.me, target: p.slot });
   msg(`复制成功：建造栏换成了 ${p.name} 的（${G.build.join('、')}${G.heroChoice ? '、' + G.heroChoice : ''}）；${p.name} 获得 5 木材`);
 }
 // 收购卷轴（原图 BKC）：对方的 1 级光环塔要打开"允许收购"（A03K 2 级），收购后归你，出售者 +1500 金
+// 荣誉光环（最大魔法 8）且收购者有 10000 金：收购者付 10000，出售者 +10000 金、+4 木（提示写 3 木，触发器加的是 4）；钱不够时按普通光环 +1500
 function buyAura(t) {
-  const p = G.roster[pidOf(t)];
-  addGold(p, 1500); t.pid = G.me; t.forSale = false;
-  NET.send({ t: 'buy', slot: G.me, tower: t.id });
-  msg(`收购成功：${curLevel(t).name} 现在是你的了；${p.name} 获得 1500 金币`);
+  const p = G.roster[pidOf(t)], honor = t.fam === '荣誉光环' && G.gold >= 10000;
+  if (honor) { G.gold -= 10000; addGold(p, 10000); addWood(p, 4); } else addGold(p, 1500);
+  t.pid = G.me; t.forSale = false;
+  NET.send({ t: 'buy', slot: G.me, tower: t.id, honor });
+  msg(`收购成功：${curLevel(t).name} 现在是你的了；${p.name} 获得 ${honor ? '10000 金币、4 木材' : '1500 金币'}`);
 }
 // 投票踢人（原图 s2 / tD / tH）：守护宗师卖投票卷轴，买下后所有玩家弹出投票对话框，每票 +2，某人票数超过在场人数就被踢出；
 // 59 秒后才能再买（原图 TriggerSleepAction 59）。原图买卷轴的判断里 B2 恒为 true，实际不扣英雄点 / 成就币，照搬
@@ -6305,7 +6340,7 @@ function netReceive(ev) {
   else if (ev.t === 'vote') castVote(ev.slot, ev.target);
   else if (ev.t === 'like') giveLike(ev.slot, ev.target);
   else if (ev.t === 'copy' && ev.target === G.me) { G.wood += 5; msg(`${p.name}复制了你的建造能力，你获得 5 木材`); }
-  else if (ev.t === 'buy') { const t = G.towers.find(o => o.id === ev.tower); if (t && mine(t)) { t.pid = ev.slot; t.forSale = false; G.gold += 1500; msg(`${p.name}收购了你的${curLevel(t).name}，你获得 1500 金币`); } }
+  else if (ev.t === 'buy') { const t = G.towers.find(o => o.id === ev.tower); if (t && mine(t)) { t.pid = ev.slot; t.forSale = false; G.gold += ev.honor ? 10000 : 1500; if (ev.honor) G.wood += 4; msg(`${p.name}收购了你的${curLevel(t).name}，你获得 ${ev.honor ? '10000 金币、4 木材' : '1500 金币'}`); } }
   uiDirty();
 }
 window.GC = { receive: netReceive, roster: () => G && G.roster };
@@ -6377,7 +6412,7 @@ const ITEMS = {
     use: () => G.hero ? RABBIT_SHOP.find(i => i.id === 'I00Q').use(G.hero) : (msg('还没有建造英雄塔'), false) },
   I029: { id: 'I029', name: '知识药水', self: true, tip: '对英雄塔使用：属性选择那项 +7~12', use: () => G.hero ? RABBIT_SHOP.find(i => i.id === 'I02A').use(G.hero) : (msg('还没有建造英雄塔'), false) },
   I01X: { id: 'I01X', name: '天赋秘籍', range: 750, tip: RABBIT_SHOP.find(i => i.id === 'I01W').tip.split('<br>每局')[0], pick: '天赋秘籍：选择 MAX 光环塔或全场唯一塔（Esc 取消）',
-    ok: t => !t || !t.fam ? '只能对塔使用' : UNIQ_TALENT.has(t.fam) ? null : t.cat !== 'aura' || !isMax(t) ? '只能对MAX光环使用' : t.talent ? '该单位已经激活' : null,
+    ok: t => !t || !t.fam ? '只能对塔使用' : UNIQ_TALENT.has(t.fam) ? null : t.fam === '荣誉光环' ? '荣誉光环不能激活天赋' : t.cat !== 'aura' || !isMax(t) ? '只能对MAX光环使用' : t.talent ? '该单位已经激活' : null,
     use: t => {
       if (UNIQ_TALENT.has(t.fam)) return ulUp(t, t.fam === '银行塔' ? 3 : 2, '天赋秘籍');
       t.talent = 2; FXS.ring(t.x, t.y, 220, '#9fffb0', 0.6, 4); msg(`${curLevel(t).name}获得了至尊天赋`);
@@ -7353,6 +7388,7 @@ const AURA_LOOK = {
   攻击光环: { c1: '#ff5a3c', c2: '#ffd257', glyph: 'blade' },     // 攻击：红金，刀刃符文
   减防光环: { c1: '#e0204a', c2: '#b45cff', glyph: 'crack' },     // 减防：血红 + 紫，破碎的盾
   减速光环: { c1: '#5ab8ff', c2: '#dff6ff', glyph: 'flake' },     // 减速：冰蓝，雪花
+  荣誉光环: { c1: '#ffb52e', c2: '#ffe9a8', glyph: 'blade' },     // 荣誉：金色
 };
 function auraLevel(t) { return t.levels.length > 1 ? t.lv / (t.levels.length - 1) : 1; }   // 0 ~ 1
 // 原图光环塔单位的模型就是光环特效本身（units 表的 file），每级 modelScale 变大：
@@ -7363,6 +7399,7 @@ const AURA_MDX = {
   攻击光环: ['abilities/spells/human/devotionaura/devotionaura.mdx', [1.3, 1.45, 1.6, 1.75, 1.9, 2.2]],
   减防光环: ['abilities/spells/undead/vampiricaura/vampiricaura.mdx', [0.8, 0.95, 1.1, 1.25, 1.4, 1.55]],
   减速光环: ['abilities/spells/nightelf/trueshotaura/trueshotaura.mdx', [1, 1.2, 1.4, 1.6, 1.8, 2]],
+  荣誉光环: ['abilities/spells/orc/commandaura/commandaura.mdx', [1.6]],    // 单位表的模型是统御光环
 };
 if (U3) [...Object.values(AURA_MDX).map(a => a[0]), FOD.mdx].forEach(U3.preload);
 function auraModel(t) {
@@ -7747,7 +7784,7 @@ function renderInfo() {
     left = portrait(e, e.fam, e.cat === 'aura' ? '#2f7a3b' : '#2a3a4e') + bar('hp', 1, 1, '无敌的') +
       (e.maxMana ? bar('mp', e.mana, e.maxMana, `${Math.floor(e.mana)} / ${e.maxMana}`) : bar('mp', e.lv + 1, e.levels.length, `等级 ${e.lv + 1}/${e.levels.length}`));
     mid = `<div class="nm">${lv.name}</div><div class="sub">${CAT_CN[e.cat]}${e.branch ? ' · ' + e.branch + '分支' : ''} ${e.cat === 'aura' ? atkTag('aura') : atkTag(lv.atk)}</div><div class="kv">`;
-    if (e.cat === 'aura') { const ab = auraAb(e) || {}; mid += `<span>光环</span><b>${auraText(e.fam, ab)}${e.talent ? `（${talentName(e)}）` : ''}</b><span>范围</span><b>${ab.area}</b>`; }
+    if (e.cat === 'aura') { const ab = auraAb(e) || {}; mid += `<span>光环</span><b>${auraText(e.fam, ab)}${e.talent ? `（${talentName(e)}）` : ''}</b><span>范围</span><b>${e.honor ? e.honor.map((lv, k) => honorArea(k, lv)).join(' / ') : ab.area}</b>`; }
     else mid += `<span>攻击力</span><b>${fmt(st.dmg)}${bonusTxt(towerAtk(e))}</b><span>攻击间隔</span><b>${st.cd}s${bonusTxt(towerAS(e), '攻速')}</b><span>射程</span><b>${st.range}</b>`;
     mid += `<span>击杀/伤害</span><b>${e.kills} / ${fmt(e.dealt || 0)}</b><span>已投入</span><b class="gold">${e.spent} 金</b></div>${towerInfo(e)}<div class="tip">${(lv.tip || '').replace(/\n/g, ' ')}</div>`;
   } else {
@@ -7810,7 +7847,7 @@ function renderCard(e) {
       name = lv.name; sub = `${CAT_CN[e.cat]}${e.branch ? ' · ' + e.branch + '分支' : ''} · 等级 ${e.lv + 1}/${e.levels.length}`;
       if (!mine(e)) sub += ` · <span style="color:#9fd8ff">${escHtml(pname(pidOf(e)))} 的塔${e.forSale ? '（允许收购）' : ''}</span>`;
       else if (e.forSale) sub += ' · 允许收购';
-      if (e.cat === 'aura') { const ab = auraAb(e) || {}; c1 = stat('armor-fortified', '护甲', INVULN); c2 = `<div class="st"><div><span>光环：</span><b>${auraText(e.fam, ab)}${e.talent ? `（${talentName(e)}）` : ''}</b><br><span>范围：</span><b>${ab.area}</b></div></div>`; }
+      if (e.cat === 'aura') { const ab = auraAb(e) || {}; c1 = stat('armor-fortified', '护甲', INVULN); c2 = `<div class="st"><div><span>光环：</span><b>${auraText(e.fam, ab)}${e.talent ? `（${talentName(e)}）` : ''}</b><br><span>范围：</span><b>${e.honor ? e.honor.map((lv, k) => honorArea(k, lv)).join(' / ') : ab.area}</b></div></div>`; }
       else {
         c1 = stat(ATK_ICON[lv.atk] || 'attack-melee', '攻击力', fmt(st.dmg) + bonusTxt(towerAtk(e))) + stat('armor-fortified', '护甲', INVULN);
         c2 = `<div class="st"><div><span>攻击间隔：</span><b>${st.cd}s</b>${bonusTxt(towerAS(e), '攻速')}<br><span>射程：</span><b>${st.range}</b><br>
@@ -7884,7 +7921,7 @@ function towerInfo(t) {
 }
 function auraText(fam, ab) {
   const v = Math.abs(ab.A || 0);
-  return { 加速光环: `范围内塔攻速 +${Math.round(v * 100)}%`, 攻击光环: `范围内塔攻击 +${Math.round(v * 100)}%`, 减防光环: `范围内敌人护甲 -${v}`, 减速光环: `范围内敌人移速 -${Math.round(v * 100)}%` }[fam];
+  return { 加速光环: `范围内塔攻速 +${Math.round(v * 100)}%`, 攻击光环: `范围内塔攻击 +${Math.round(v * 100)}%`, 减防光环: `范围内敌人护甲 -${v}`, 减速光环: `范围内敌人移速 -${Math.round(v * 100)}%`, 荣誉光环: '4 个光环，可与任意光环叠加' }[fam];
 }
 
 // 命令面板：4×3，和 WC3 一样每个按钮有热键
@@ -8318,7 +8355,7 @@ function fitDialog() {
 window.addEventListener('resize', () => { if (!$('modal').classList.contains('hidden')) fitDialog(); });
 // 开局先输入玩家名称（代替原图的平台账号）：同名继承账号成就点数，下面列出本机已有的名称可以直接点
 const escHtml = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-const profileLine = name => { const p = profileOf(name), t = achTier(p.pts); return `${p.pts} 点 · ${t.name}${p.endless ? ` · 无尽最高 ${p.endless} 分` : ''} · 开局当局成就 ${RULE.startAch + t.lv + endlessBonus(p.endless || 0)}`; };
+const profileLine = name => { const p = profileOf(name), t = achTier(p.pts); return `${p.pts} 点 · ${t.name}${p.endless ? ` · 无尽最高 ${p.endless} 分` : ''}${p.honor ? ` · 荣誉 ${p.honor}` : ''} · 开局当局成就 ${RULE.startAch + t.lv + endlessBonus(p.endless || 0)}`; };
 function askName() {
   const names = Object.keys(profiles.all).sort((a, b) => profiles.all[b].pts - profiles.all[a].pts).slice(0, 4);
   const foot = `同一个名称继承它的账号成就点数（存在本机浏览器里）。账号成就每到达新的一波 +${PROFILE.wave}、每次 Perfect +${PROFILE.perfect}、通关 +${PROFILE.clear}，攒够档位开局多给当局成就；英雄塔要 ${RULE.heroAch} 点当局成就才能建`;
@@ -8395,6 +8432,7 @@ function showHelp() {
       无尽不能通关，怪数超过上限时结束，按无尽积分（杀怪 +4、每波按空位加分）结算。玩家档案记下无尽最高分，下局开局多给当局成就（≥1 +2、≥5000 +4、≥1 万 +6、≥1.5 万 +8、≥2 万 +10 …… ≥2.5 万 +15）。</p>
     <p><b>英雄塔</b>：每次随机建造给出 1 个英雄塔（和原图随机模式一样），1500 金 + 5 木材 + 4 人口，还要 <b>${RULE.heroAch} 点当局成就</b>（建成扣掉），全场唯一，建造后不能回收。建成时随机给出力量 / 敏捷 / 智力的成长值（合计 10），每次升级按成长值加属性；属性选择决定杀精英怪 +1 的属性和满级后升级 +3 的属性。升级要 等级×100 金 + 200 魔法（英雄每击杀 +2 魔法）。学技能：第 1 个免费；第 2/3/4 个分别要 18/36/54 木材，且力量 ≥ 80/160/240，最多 4 个（第 5 个特殊技能有额外条件）。英雄有技能点：建成 3 点、每升一级 3~9 点，每点力量 / 敏捷 / 智力 +2 或随机。
       随机建造在原图随机模式的 17 个英雄里抽，原图的主动技能都是攻击时自动放。</p>
+    <p><b>荣誉光环</b>：光环格随机的第 5 种（光环之球换不到），10000 金、只有 1 级。身上有攻击 / 减防 / 减速 / 速度 4 个光环，等级在随机建造后各自随机 1~8 级（6%~20%，减防 6~20 点），可以和任意光环叠加。队友用收购卷轴买它要付 10000 金。</p>
     <p><b>神塔</b>：建造栏第 8 格，每次随机建造从驱魔 / 树妖 / 暗牧 / 海妖 / 猎人 / 圣灵塔里抽 1 座。全场唯一：任何玩家建了之后所有人都不能再建，回收也不返还建造处，要等下次随机建造（而且全场没人有这座时才放开）。
       驱魔塔（手动，晕眩 6 秒并遣返到随机出怪口）、树妖塔（纠缠，树妖箭每次永久 -20 护甲）、暗牧塔（自动减速，第 9 次起扣目标 12% 当前生命）、海妖塔（8 秒一次对精英 / 无尽怪物 200 万伤害，杀精英 +200 攻击）、
       猎人塔（手动，捕获一个敌人为你战斗 600 秒）、圣灵塔（霜冻减速，3 秒一次往出怪口派圣灵，圣灵被杀时纠缠附近敌人 3 秒）。</p>

@@ -92,6 +92,8 @@ for name, uid in GOD.items():
 sp = U['h08S']
 D['units']['h08S'] = dict(id='h08S', name=sp.get('Name'), hp=fl(sp, 'HP'), armor=fl(sp, 'def'), armorType=sp.get('defType') or 'small',
                           speed=fl(sp, 'spd', 220), bounty=0.0, regen=0.0, level=1)
+# 荣誉光环（h08M）：随机模式光环格（He = 1~5）的第 5 种，10000 金、只有 1 级；身上 4 个光环 A0TE / A0TB / A0TC / A0TD 的等级建成时随机（game.js）
+D['towers']['荣誉光环'] = dict(name='荣誉光环', cat='aura', levels=[level('h08M')])
 # 超级深渊塔（n02Q）：深渊塔 MAX 用"升级超级深渊"（A0EQ）变成，不在升级链上
 sup = level('n02Q')
 sup['name'] = cl(sup['name'])

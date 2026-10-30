@@ -13,9 +13,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RAW = os.path.join(ROOT, 'art', 'war3_raw')
 OUT = os.path.join(ROOT, 'h5', 'assets', 'w3')
 SHEETS_JS = os.path.join(ROOT, 'h5', 'assets', 'sprites.js')
-# 精灵表里没有、游戏直接按路径画的特效模型：4 种光环塔（原图单位的模型就是光环特效）、死亡之指命中（A04W 的 TargetArt）
+# 精灵表里没有、游戏直接按路径画的特效模型：5 种光环塔（原图单位的模型就是光环特效，荣誉光环是统御光环）、死亡之指命中（A04W 的 TargetArt）
 EXTRA = ['abilities/spells/nightelf/thornsaura/thornsaura.mdx', 'abilities/spells/human/devotionaura/devotionaura.mdx',
          'abilities/spells/undead/vampiricaura/vampiricaura.mdx', 'abilities/spells/nightelf/trueshotaura/trueshotaura.mdx',
+         'abilities/spells/orc/commandaura/commandaura.mdx',
          'abilities/spells/demon/demonboltimpact/demonboltimpact.mdx']
 # 不在精灵表里、游戏直接按路径画的单位模型（game.js 的 w3meta）：守护宗师 / 许愿商人 / 宠物商人、小精灵、小偷、宠物和野生宠物（浣熊原模型不在包里，用蜥蜴代替）
 EXTRA += ['units/critters/villagerman1/villagerman1.mdx', 'units/critters/villagerwoman/villagerwoman.mdx', 'units/critters/highelfpeasant/highelfpeasant.mdx',
