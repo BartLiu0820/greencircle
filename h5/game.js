@@ -853,11 +853,24 @@ function aoeAt(src, x, y, r, dmg, atk, opt) { for (const m of inRange(x, y, r)) 
 // 扫射塔：360 度旋转射线（穿透之箭 AUcs，宽 100，CD 0.1/0.05 秒，无视护甲）。转速受攻速光环影响，伤害不受光环影响。
 // 强化 A07J（每级 200 魔法，共 7 级）：射线长 600/650/…/850/900，伤害 ×1/2/3/4/5/6/10
 // 射线之外，武器本身每次攻击（间隔 0.2 秒，吃攻速）走一次原图的攻击触发器（BBn 一带）：+0.06 魔法、放炮和巨魔蝙蝠、天赋的穿透火箭（扫射塔技能包的 attack）
+// 改变技能旋转方向 A00K（14 级，点一次 +1，14 级再点回 1 级）：1 级逆时针转（原图角度每次 +30°，说明写的"顺时针"）、2 级反过来转；
+// 3~14 级定向：射线在 c±30° 里来回扫（c = 30°、60°…360°，即 ↗ ↗ ↑ ↖ ↖ ← ↙ ↙ ↓ ↘ ↘ →），炮不再打攻击目标，改打塔边 c 方向 500 距离的点。
+// 每次攻击加的魔法：1~2 级 +0.06、定向 +0.04（原图 BBn）
 const SWEEP_MUL = [1, 2, 3, 4, 5, 6, 10];
+const SWEEP_DIR = ['⊙', '⊙', '↗', '↗', '↑', '↖', '↖', '←', '↙', '↙', '↓', '↘', '↘', '→'];
+const sweepDir = lv => (lv - 2) * Math.PI / 6;
+const sweepDirTxt = lv => lv === 1 ? '360° 逆时针旋转' : lv === 2 ? '360° 顺时针旋转' : `定向 ${SWEEP_DIR[lv - 1]}（${(lv - 2) * 30}°）`;
 function sweepUpdate(t, dt, st) {
   const lv = curLevel(t), arrow = abil(lv, 'AUcs'), k = t.sw ? t.sw.k : 1;
-  const asMul = towerAS(t);
-  t.angle = (t.angle + dt * 2.2 * asMul) % (Math.PI * 2);
+  const asMul = towerAS(t), step = dt * 2.2 * asMul, dir = t.sw ? t.sw.dir : 1;
+  if (dir === 1) t.angle = (t.angle + step) % TAU;
+  else if (dir === 2) t.angle = ((t.angle - step) % TAU + TAU) % TAU;
+  else {   // 定向（A00K 3~14 级）：原图每次攻击 -30°，到 c-30° 以下跳回 c+30°（c = (等级-2)×30°）
+    const c = sweepDir(dir), d = Math.PI / 6;
+    t.angle -= step;
+    const rel = ((t.angle - c) % TAU + TAU + Math.PI) % TAU - Math.PI;
+    if (rel < -d) t.angle = c + d;
+  }
   if ((t.swAtk = (t.swAtk || 0) - dt * asMul) <= 0) {
     const target = lockTarget(t, st.range);
     if (target && !bv(t, 'silence')) { t.swAtk += st.cd; t.attacks++; t.atkT = G.t; monsterAttacked(target, t); KITS.扫射塔.attack(t, target); } else t.swAtk = 0;
@@ -1344,16 +1357,17 @@ const KITS = {
   // 扫射塔：杀敌 +1 魔法，每次攻击 +0.06 魔法；强化（200 魔法）提升射线长度和伤害倍数，共 7 级。
   // 炮 A08E / 巨魔蝙蝠 A07H：1 级是没学（技能表 1 级的射程、召唤都是空的），用"升级炮击"A08F / "升级巨魔等级"A07D 升到 8 级（MAX），天赋到 9 级。
   // 炮：每次攻击冷却好了就对目标放：200 范围 100×塔等级×炮等级² 普通伤害，减速 8 秒（有地精塔 MAX 再加 100×炮等级² 英雄伤害），中了的敌人被巨魔蝙蝠打时多受一份混乱伤害（buff B00R）；
-  // 巨魔蝙蝠：冷却 6 秒，在塔旁召唤一只树魔猎手 4 秒（9 级 7 秒）。炮 / 巨魔等级回收后再建会恢复（原图 D5 / D6）；改变技能旋转方向 A00K 没做，射线一直按顺时针转
+  // 巨魔蝙蝠：冷却 6 秒，在塔旁召唤一只树魔猎手 4 秒（9 级 7 秒）。炮 / 巨魔等级回收后再建会恢复（原图 D5 / D6）；
+  // 改变技能旋转方向 A00K 见 sweepUpdate 上面的说明（回收后再建回到 1 级，原图只记魔法 D7）
   扫射塔: {
-    init(t, mem) { t.maxMana = 1000; t.mana = mem ? mem.mana : 0; t.sw = { k: mem ? mem.k : 1, cannon: mem ? mem.cannon : 1, bat: mem ? mem.bat : 1, rocket: false }; },
+    init(t, mem) { t.maxMana = 1000; t.mana = mem ? mem.mana : 0; t.sw = { k: mem ? mem.k : 1, cannon: mem ? mem.cannon : 1, bat: mem ? mem.bat : 1, rocket: false, dir: 1 }; },
     kill(t) { addMana(t, 1 + 0.2 * techLv(t)); },     // 科技塔每级 +0.2（原图 C1）
     attack(t, target) {
       const w = t.sw, L = w.cannon, B = w.bat;
-      addMana(t, 0.06);
-      if (L >= 2 && cdReady(t, 'cannon') && dist2(t.x, t.y, target.x, target.y) <= 900 ** 2) {
+      addMana(t, w.dir >= 3 ? 0.04 : 0.06);
+      if (L >= 2 && cdReady(t, 'cannon') && (w.dir >= 3 || dist2(t.x, t.y, target.x, target.y) <= 900 ** 2)) {
         setCd(t, 'cannon', SWEEP.cannonCd[L - 1]);
-        const x = target.x, y = target.y;
+        const a = sweepDir(w.dir), x = w.dir >= 3 ? t.x + Math.cos(a) * 500 : target.x, y = w.dir >= 3 ? t.y + Math.sin(a) * 500 : target.y;
         FXS.launch('cannon', { x: t.x, y: t.y, z: 120 }, { x, y }, () => {
           for (const m of inRange(x, y, 200)) { hurt(m, 100 * (t.lv + 1) * L * L, 'normal', t); slowM(m, SWEEP.cannonSlow[L - 1], 8); m.cannonUntil = G.t + 8; }
           if (G.towers.some(o => o.fam === '地精塔' && isMax(o) && pidOf(o) === pidOf(t))) aoeAt(t, x, y, 200, 100 * L * L, 'hero', { ignoreArmor: true });
@@ -1385,11 +1399,13 @@ const KITS = {
         costCmd(t, 'W', '升级炮击', `炮：${lvTxt(L)}。每次攻击对目标放炮击（冷却好了就放）：200 范围 100×塔等级×炮等级² 普通伤害，减速 8 秒；被炮中的敌人挨树魔猎手打时多受一份混乱伤害${cNext}`,
           { gold: cGold, mana: cMana }, () => { w.cannon++; msg(`扫射塔：炮升到${lvTxt(w.cannon)}`); }, { why: L >= 8 ? '已经是最高等级' : null, o: { ico: 'abil-A08F' } }),
         costCmd(t, 'E', '升级巨魔等级', `巨魔蝙蝠：${lvTxt(B)}。冷却 6 秒，召唤一只树魔猎手 4 秒（射程 700）${B < 8 ? `<br>下一级：攻击 ${fmt(SWEEP.bat[B][0])}，间隔 ${SWEEP.bat[B][1]} 秒` : ''}`,
-          { gold: bGold, mana: bMana }, () => { w.bat++; msg(`扫射塔：巨魔蝙蝠升到${lvTxt(w.bat)}`); }, { why: B >= 8 ? '已经是最高等级' : null, o: { ico: 'abil-A07D' } })];
+          { gold: bGold, mana: bMana }, () => { w.bat++; msg(`扫射塔：巨魔蝙蝠升到${lvTxt(w.bat)}`); }, { why: B >= 8 ? '已经是最高等级' : null, o: { ico: 'abil-A07D' } }),
+        cmd('F', SWEEP_DIR[w.dir - 1], '改变技能方向', `<b>改变技能方向</b>（${w.dir}/14）<br>现在：${sweepDirTxt(w.dir)}<br>下一个：${sweepDirTxt(w.dir % 14 + 1)}<br>旋转时炮打攻击目标（900 范围），每次攻击 +0.06 魔法；定向时炮打这个方向 500 距离的地方，每次攻击 +0.04 魔法`,
+          () => { w.dir = w.dir % 14 + 1; msg(`扫射塔：${sweepDirTxt(w.dir)}`); uiDirty(); }, { ico: 'abil-A00K' })];
     },
     info(t) {
       const w = t.sw, k = w.k, a = abil(curLevel(t), 'AUcs'), L = w.cannon, B = w.bat;
-      return [`强化 ${k}/7：射线长 ${k === 7 ? 900 : 550 + k * 50}，每次 ${(a ? a.A : 6) * SWEEP_MUL[k - 1]} 伤害`,
+      return [`强化 ${k}/7：射线长 ${k === 7 ? 900 : 550 + k * 50}，每次 ${(a ? a.A : 6) * SWEEP_MUL[k - 1]} 伤害 · ${sweepDirTxt(w.dir)}`,
         `炮：${L < 2 ? '未学' : `200 范围 ${fmt(100 * (t.lv + 1) * L * L)}，冷却 ${SWEEP.cannonCd[L - 1]} 秒，减速 ${pctTxt(SWEEP.cannonSlow[L - 1])}`} · 巨魔蝙蝠：${B < 2 ? '未学' : `树魔猎手攻击 ${fmt(SWEEP.bat[B - 1][0])}，${B === 9 ? 7 : 4} 秒`}${w.rocket ? ' · 穿透火箭' : ''}`];
     },
     sell(t) { G.mem.扫射塔 = { k: t.sw.k, mana: t.mana, cannon: t.sw.cannon, bat: t.sw.bat }; },
