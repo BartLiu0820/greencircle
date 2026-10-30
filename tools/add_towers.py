@@ -101,6 +101,19 @@ D['towers']['深渊塔']['super'] = sup
 # 兽王驯化的怪物吃不吃训兽科技 R00Z（+700 攻击 / 级）：看单位的科技列表
 for uid, u in D['units'].items():
     if 'R00Z' in (U.get(uid, {}).get('upgrades') or ''): u['train'] = 1
+# 被抓 / 驯化的怪用哪种攻击（game.js beastAtk）：怪物的武器默认关着（weapsOn 空），靠训兽 c（R01F）打开攻击 1，
+# 训兽 a1~a5 / b1~b5（renw 1 / 2）每组随机打开攻击 1 或攻击 2。tw = 'c' 或 [组, 有 a, 有 b]；有 b 的另外导出攻击 2（atk2）
+TW = {'R01A': (1, 0), 'R016': (1, 1), 'R015': (2, 0), 'R017': (2, 1), 'R01E': (3, 0), 'R018': (3, 1), 'R01D': (4, 0), 'R019': (4, 1), 'R01G': (5, 0), 'R014': (5, 1)}
+for uid, u in D['units'].items():
+    v = U.get(uid, {}); ups = (v.get('upgrades') or '').split(',')
+    u.pop('tw', None); u.pop('atk2', None)
+    if 'R01F' in ups: u['tw'] = 'c'
+    hit = [TW[x] for x in ups if x in TW]
+    if hit:
+        u['tw'] = [hit[0][0], int(any(b == 0 for _, b in hit)), int(any(b == 1 for _, b in hit))]
+        if u['tw'][2] and v.get('atkType2') and v.get('weapTp2'):
+            u['atk2'] = dict(dmg=fl(v, 'dmgplus2') + fl(v, 'dice2', 1) * (fl(v, 'sides2', 1) + 1) / 2, cd=fl(v, 'cool2', 1.5),
+                             range=max(100, fl(v, 'rangeN2', 100)), type=v.get('atkType2'), splash=fl(v, 'Farea2') if v.get('weapTp2') == 'msplash' else 0)
 # 弹跳塔 MAX（h021）：不在建造栏，由 3 座 4 级弹跳塔合成（A0CI）或天赋快建得到；武器是 mbounce，17 个目标
 bmax = level('h021')
 bmax.update(targets=int(fl(U['h021'], 'targCount1', 1)), tip='伤害类型为【通用】，弹射 17 个目标；每次攻击放灵魂重击')

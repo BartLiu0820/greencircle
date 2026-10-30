@@ -163,7 +163,7 @@ function newGame(mode, players = 1, player = null, bots = false) {     // player
     klPow: 0, klSpd: 0,      // 狂狼的玩家科技：狼力 R00R / 狼速 R00S
     lich: { tech: 0, mr: 0, nk: 0, kc: 0, mq: false },
     rm: { fg: 1, fi: 1, fh: 1, kz: 0, fj: 0, k0: 1, hg: 0, hh: false, breakAt: -Infinity },
-    beast: { tech: 1, tamed: false, elite: [false, false, false] },
+    beast: { tech: 1, tamed: false, elite: [false, false, false], wpn: null },   // wpn：训兽 a1~a5 / b1~b5 每组打开的是攻击 1（'a'）还是攻击 2（'b'），见 beastUnlock
     godLock: new Set(),      // 神塔：本机建造栏里被关掉的（见 godRefresh）
     honorLv: null,           // 荣誉光环 4 个光环的等级（这次随机建造里第一次建时定下）
     god: { hq: 0, lq: 0, my: 0, lv: 0, r01l: Array(MAX_PLAYERS).fill(0) },   // 神塔的全局变量：暗牧 Hq、海妖 LQ、圣灵 My（记的是上次触发的时间）、猎人 Lv（到这个时间才能捕猎）、精准攻击 R01L 按玩家
@@ -710,7 +710,7 @@ function towerUpdate(t, dt) {
   if (t.fam === '扫射塔') return sweepUpdate(t, dt, st);
   t.cdLeft -= dt * towerAS(t);
   if (t.cdLeft > 0) return;
-  if (t.noAttack || bv(t, 'silence')) { t.cdLeft = 0; return; }     // 沉默魔法：不能攻击
+  if (t.noAttack || t.unarmed || bv(t, 'silence')) { t.cdLeft = 0; return; }     // 沉默魔法：不能攻击；unarmed：被抓的怪没有打开攻击（beastAtk）
   const target = lockTarget(t, st.range);
   if (!target) { t.cdLeft = 0; return; }
   if (target.onAttacked) target.onAttacked(t);            // 原图"单位被攻击"事件：小精灵疾风步、小偷掉东西
@@ -1023,6 +1023,21 @@ const BEAST = {   // 兽王塔
   idle: new Set(['咆哮', '火焰雨', '战争践踏', '雷霆一击']),   // 每秒放的（不用目标）；其他的随从攻击时对目标放
   trainGold: 5000, trainAtk: 700, trainMax: 20, upWood: 14, eliteGold: 10000, eliteMana: 400, tameCd: 7, tameMana: 10, tameMore: 70,
 };
+// 训兽 a / b / c（原图 Lw，按玩家一次：猎人塔第一次捕猎 BW7、兽王第一次驯化 BIT、伏魔第一次驯化 BIm 时打开）。
+// 怪物的武器默认是关着的（weapsOn 空），训兽 c（R01F）打开一大批怪的攻击 1；a1~a5 / b1~b5 五组怪各随机打开攻击 1（a）或攻击 2（b）。
+// 两样都没有的怪（飞蛇、苦工、僵尸、狼骑士等）被抓 / 驯化后不会攻击，照搬；打开时训兽 R00Z 被设回 1 级（之前在兽王买的训兽等级会丢），也照搬
+function beastUnlock() {
+  const P = G.beast; if (P.wpn) return;
+  P.tech = 1; P.wpn = [0, 0, 0, 0, 0].map(() => rint(1, 2) === 1 ? 'a' : 'b');
+}
+function beastAtk(uid) {   // 被抓 / 驯化的怪用的攻击；null = 不会攻击
+  const u = D.units[uid] || {}, tw = u.tw, w = G.beast.wpn;
+  if (tw === 'c') return u.atk || null;
+  if (!tw || !w) return null;
+  return w[tw[0] - 1] === 'b' ? (tw[2] && u.atk2) || null : (tw[1] && u.atk) || null;
+}
+const BEAST_NOATK = { dmg: 0, cd: 1.5, range: 100, type: 'normal', splash: 0 };
+const beastWpnTxt = () => G.beast.wpn ? '训兽 a/b：' + G.beast.wpn.map((c, i) => `${c}${i + 1}`).join(' ') : '训兽 a/b/c 还没打开（第一次驯化 / 捕猎时打开）';
 const WX = {   // 五行塔：五行（金 / 木 / 水 / 火 / 土）各有两种激活方式（吞噬 1 级光环塔或自己），1~10 级（MAX 塔才能升到 9、10 级）
   names: ['金', '木', '水', '火', '土'],
   opts: [   // [技能, 吞噬的单位, 名字]
@@ -1867,8 +1882,8 @@ const KITS = {
         (rint(1, 110) <= 40 + P.tech * 2 || (!P.tamed && t.mana >= 80) || free.includes(1) || free.includes(2));
       if (!ok) { stun(m, 4); return msg(free.length ? '驯化失败：目标晕眩 4 秒' : '随从已满 3 个'); }
       if (P.tamed) t.mana = Math.max(0, t.mana - BEAST.tameMore);
-      P.tamed = true;
-      const sk = pick(BEAST.skills), a = u.atk || { dmg: 20, cd: 1.5, range: 100, type: 'normal', splash: 0 };
+      P.tamed = true; beastUnlock();
+      const sk = pick(BEAST.skills), a0 = beastAtk(m.uid), a = a0 || BEAST_NOATK;
       let dmg = 0, as = 0;
       if (sk === '加强天赋') { dmg += 15000; as += 1.5; }
       if (m.elite) { dmg += 4000; as += 0.4; }
@@ -1876,13 +1891,13 @@ const KITS = {
       if (rint(P.tech, 42) === 40) { dmg += 15000; msg('该随从拥有 2 级加攻天赋'); } else if (rint(P.tech, 24) === 20) { dmg += 8000; msg('该随从拥有 1 级加攻天赋'); }
       m.dead = true; G.monsters = G.monsters.filter(o => o !== m);
       const slot = free[0], train = !!u.train;
-      const s = summon(t, { fam: '随从', title: `${m.name}（${sk}）`, label: '随', x: m.x, y: m.y, skill: sk, ul: 1, slot, mobile: { speed: m.speed || 300, leash: 2000 },
+      const s = summon(t, { fam: '随从', title: `${m.name}（${sk}）`, label: '随', x: m.x, y: m.y, skill: sk, ul: 1, slot, mobile: { speed: m.speed || 300, leash: 2000 }, unarmed: !a0,
         levels: [{ name: m.name, dmg: a.dmg, cd: a.cd, range: a.range, atk: a.type === 'siege' ? 'normal' : a.type, targets: 1, splash: a.splash || 0,
           abils: sk === '致命一击' ? [{ code: 'AOcr', A: 25, B: 10 }] : [] }],
         stats: () => ({ dmg: a.dmg + (train ? BEAST.trainAtk * (G.beast.tech - 1) : 0) + dmg, cd: a.cd, as }),
         onLaunch(f, tg) { if (!BEAST.idle.has(f.skill)) KITS.兽王塔.cast(t, f, tg); },
         onHit(f, e) { if (f.skill === '腐蚀') debuffM(e, 'fear', 200, 5); if (f.skill === '重击') { stun(e, 1.2); hurt(e, 5000, 'normal', f); } } });
-      b.slots[slot] = s; FXS.ring(m.x, m.y, 160, '#ffd257', 0.6, 4); msg(`驯化成功：${s.title} 成为 ${slot + 1} 号随从`);
+      b.slots[slot] = s; FXS.ring(m.x, m.y, 160, '#ffd257', 0.6, 4); msg(`驯化成功：${s.title} 成为 ${slot + 1} 号随从${a0 ? '' : '（这种怪没有训兽科技打开攻击，不会攻击）'}`);
     },
     kill(t) { addMana(t, 1); },
     anyKill(t, owner) { if (owner !== t && owner.fam === '灵魂塔' && mine(owner) === mine(t)) addMana(t, 1); },
@@ -1907,7 +1922,7 @@ const KITS = {
     },
     info(t) {
       const k = KITS.兽王塔;
-      return [`训兽 ${G.beast.tech} 级 · 随从 ${[0, 1, 2].filter(i => k.alive(t, i)).length}/3${t.mana < 1 ? '（魔法不足，随从停手）' : ''}`,
+      return [`训兽 ${G.beast.tech} 级 · 随从 ${[0, 1, 2].filter(i => k.alive(t, i)).length}/3${t.mana < 1 ? '（魔法不足，随从停手）' : ''}`, beastWpnTxt(),
         [0, 1, 2].map(i => { const s = k.alive(t, i); return `${i + 1} 号${G.beast.elite[i] ? '★' : ''}：${s ? `${s.skill} ${s.ul} 级` : '空'}`; }).join(' · ')];
     },
     sell(t) {
@@ -2751,13 +2766,14 @@ const KITS = {
       if ((u.level || 1) > 12 || /^[A-Z]/.test(m.uid) || m.spirit) return msg('捕猎失败：只能捕获 12 级以下、不是英雄的敌人');
       if (G.t < G.god.lv) return msg(`CD:${Math.ceil(G.god.lv - G.t)}秒`);
       G.towers = G.towers.filter(o => o !== G.god.prey);
-      const a = u.atk || { dmg: 20, cd: 1.5, range: 100, type: 'normal', splash: 0 }, el = !!m.elite;
+      beastUnlock();
+      const a0 = beastAtk(m.uid), a = a0 || BEAST_NOATK, el = !!m.elite;
       m.dead = true; G.monsters = G.monsters.filter(o => o !== m);
-      G.god.prey = summon(t, { fam: '猎物', title: `${m.name}（捕获）`, label: '猎', x: m.x, y: m.y, until: G.t + GOD.preyLife, speed: m.speed || 300, wt: 0,
+      G.god.prey = summon(t, { fam: '猎物', title: `${m.name}（捕获）`, label: '猎', x: m.x, y: m.y, until: G.t + GOD.preyLife, speed: m.speed || 300, wt: 0, unarmed: !a0,
         levels: [{ name: m.name, dmg: a.dmg, cd: a.cd, range: a.range, atk: a.type === 'siege' ? 'normal' : a.type, targets: 1, splash: a.splash || 0, abils: [] }],
         stats: () => ({ dmg: a.dmg + (u.train ? BEAST.trainAtk * (G.beast.tech - 1) : 0) + (el ? 4000 : 0), cd: a.cd, as: el ? 0.4 : 0 }),
         tick: (s, dt) => KITS.猎人塔.preyMove(t, s, dt) });
-      FXS.ring(m.x, m.y, 160, '#ffd257', 0.6, 4); msg(`捕猎成功：${m.name} 为你战斗 ${GOD.preyLife} 秒`);
+      FXS.ring(m.x, m.y, 160, '#ffd257', 0.6, 4); msg(`捕猎成功：${m.name} 为你战斗 ${GOD.preyLife} 秒${a0 ? '' : '（这种怪没有训兽科技打开攻击，不会攻击）'}`);
     },
     preyMove(t, s, dt) {
       if ((s.wt -= dt) <= 0) { s.wt += 2; const a = rnd(0, TAU); s.goal = [t.x + Math.cos(a) * 256, t.y + Math.sin(a) * 256]; }
@@ -2773,7 +2789,7 @@ const KITS = {
         () => { G.pending = 'heroPick'; G.placing = null; G.heroPick = { label: '捕获这个敌人', fn: (x, y, hit) => KITS.猎人塔.cast(t, hit) }; msg('捕猎：选择一个敌人（Esc 取消）'); uiDirty(); },
         { disabled: !cdReady(t, 'hunt'), cdOf: () => [cdLeft(t, 'hunt'), GOD.huntCd], ico: 'abil-A0RQ' })];
     },
-    info: () => { const p = G.god.prey; return [p && G.towers.includes(p) ? `随从：${p.title}，还剩 ${Math.ceil(p.until - G.t)} 秒` : '还没有捕获敌人']; },
+    info: () => { const p = G.god.prey; return [p && G.towers.includes(p) ? `随从：${p.title}，还剩 ${Math.ceil(p.until - G.t)} 秒${p.unarmed ? '（不会攻击）' : ''}` : '还没有捕获敌人', beastWpnTxt()]; },
   },
   // 圣灵塔（原图 Zs / BJS、Zu / BJV）：攻击带霜冻 A0TS（移速 -30% 10 秒）。攻击时（全局计数 My ≥ 3，即 3 秒一次；场上圣灵少于 2 个）
   // 在自己的出怪口给敌方刷一个圣灵 h08S（5 生命、飞行、20 秒），跟着怪走、不算怪数；圣灵被杀时原地放战争践踏 A0TR（spiritDied）
@@ -2835,6 +2851,7 @@ function preciseKill(m, src) {
   if (g[p] < 100) g[p]++;
 }
 // 圣灵被杀（BJV）：凶手在原地放战争践踏 A0TR——250 范围 20 伤害、纠缠 3 秒（魔法免疫的不受影响）
+// 原图 BJV 在凶手的主人那里建马甲放践踏；圣灵到时间消失时凶手为空，马甲建不出来，所以不放践踏（step 里到时间直接移除，不走这里）
 function spiritDied(m, src) {
   FXS.nova(m.x, m.y, 250, '#b8ffb0', 0.5);
   for (const e of inRange(m.x, m.y, 250)) { if (e.spirit || e.magicImmune) continue; stun(e, 3); hurt(e, 20, 'magic', src); }
@@ -3859,7 +3876,7 @@ function fmFollower(h, o) {
   const skill = o.skill, talent = o.talent || { dmg: 0, as: 0 };
   const s = hsum(h, o.x, o.y, 0, { cd: o.cd, range: o.range, atk: o.atk, splash: o.splash || 0,
     abils: skill === '致命一击' ? [{ code: 'AOcr', A: 25, B: 10 }] : [] },
-    { label: o.label, title: `${o.title}（${skill}）`, kind: 'follower', family: o.family, ud: 1, skill, mobile: { speed: o.speed || 300, leash: 2000 },
+    { label: o.label, title: `${o.title}（${skill}）`, kind: 'follower', family: o.family, ud: 1, skill, mobile: { speed: o.speed || 300, leash: 2000 }, unarmed: o.unarmed,
       stats: () => { const t = o.tech ? fmTech(h) : { atk: 0, as: 0 }; return { dmg: o.dmg + 700 * t.atk + talent.dmg, as: 0.1 * t.as + talent.as }; },
       onHit(f, m) {
         if (skill === '腐蚀') debuffM(m, 'fear', 200, 5);
@@ -3886,14 +3903,15 @@ function fmTame(h, m) {
   const u = D.units[m.uid] || {};
   // 驯化条件（BIl）：等级 ≤12、不是魔王 / 英雄、有 8 木材、有空位；不满足时只是风暴之锤把它晕 15 秒
   if ((u.level || 1) > 12 || m.uid === 'Udea' || m.boss || G.wood < 8 || !fmSlots(h).some(s => !s || !G.towers.includes(s))) { stun(m, 15); return fail('驯化失败：目标晕眩 15 秒'); }
-  G.wood -= 8;
-  const a = u.atk || { dmg: 20, cd: 1.5, range: 100, type: 'normal', splash: 0 }, sk = pick(FM_TAME);
+  G.wood -= 8; beastUnlock();
+  const a0 = beastAtk(m.uid), a = a0 || BEAST_NOATK, sk = pick(FM_TAME);
   let as = m.elite ? 0.4 : 0, dmg = 0;                                   // 精英怪（带光环）+40% 攻速
   if (Math.random() < 0.1) as += 0.8; else if (Math.random() < 1 / 30) as += 1.5;
   if (Math.random() < 0.1) dmg += 8000; else if (Math.random() < 1 / 30) dmg += 15000;
   if (sk === '加强天赋') { dmg += 15000; as += 1.5; }
   m.dead = true; G.monsters = G.monsters.filter(o => o !== m);
-  fmFollower(h, { x: m.x, y: m.y, label: '随', title: m.name, skill: sk, dmg: a.dmg, cd: a.cd, range: a.range, atk: a.type === 'siege' ? 'normal' : a.type, splash: a.splash, speed: m.speed, talent: { dmg, as } });
+  fmFollower(h, { x: m.x, y: m.y, label: '随', title: m.name, skill: sk, dmg: a.dmg, cd: a.cd, range: a.range, atk: a.type === 'siege' ? 'normal' : a.type, splash: a.splash, speed: m.speed, talent: { dmg, as }, unarmed: !a0 });
+  if (!a0) msg('这种怪没有训兽科技打开攻击，不会攻击');
   FXS.ring(m.x, m.y, 160, '#ffd257', 0.6, 4);
 }
 function fmCall(h) {
@@ -4103,7 +4121,7 @@ Object.assign(HERO_DEF, {
           { ...cmdIco(h, 3), cost: 800, cdOf: () => [cdLeft(h, 'call'), 12] }),
       ];
     },
-    info: h => [`随从：${h.sk.fm.slots.map(s => s && G.towers.includes(s) ? `${s.title} Lv${clamp(Math.floor(s.ud / 100), 1, 5)}` : '空').join(' · ')}${h.sk.fm.nh ? ' · 疯狂伏魔令' : ''}`],
+    info: h => [`随从：${h.sk.fm.slots.map(s => s && G.towers.includes(s) ? `${s.title} Lv${clamp(Math.floor(s.ud / 100), 1, 5)}` : '空').join(' · ')}${h.sk.fm.nh ? ' · 疯狂伏魔令' : ''}`, beastWpnTxt()],
   },
   驯龙: {
     init(h) { h.sk.xl = { lv: { 火速: 0, 冰封: 0, 恐惧: 0, 神力: 0, 震荡波: 0 }, dragon: {}, last: null, ik: 0 }; h.sk.du = 0; h.sk.r012 = 0; },
@@ -6296,10 +6314,12 @@ function freeSpotNear(x, y, r) {
   }
   return null;
 }
-// 复制卷轴（原图 BKX）：建造栏换成对方的（含英雄塔），以后随机建造要 6 木材；对方 +5 木材
-const sameBuild = p => p.build.join() === G.build.join() && p.heroChoice === G.heroChoice;
+// 复制卷轴（原图 BKX）：建造栏换成对方的（含英雄塔），以后随机建造要 6 木材；对方 +5 木材。
+// 神塔：BKX 复制了对方的 H8，但开放时按另一套编号（1 = 暗牧、3 = 驱魔；随机建造时 1 = 驱魔、3 = 暗牧），所以复制到的驱魔 / 暗牧塔对调，照搬
+const GOD_COPY = { 驱魔塔: '暗牧塔', 暗牧塔: '驱魔塔' };
+const sameBuild = p => p.build.map(f => GOD_COPY[f] || f).join() === G.build.join() && p.heroChoice === G.heroChoice;
 function copyBuild(p) {
-  G.build = p.build.slice(); G.heroChoice = p.heroChoice; G.rerolls = Math.max(G.rerolls, 1); G.placing = null; G.honorLv = null;
+  G.build = p.build.map(f => GOD_COPY[f] || f); G.heroChoice = p.heroChoice; G.rerolls = Math.max(G.rerolls, 1); G.placing = null; G.honorLv = null;
   godRefresh();
   addWood(p, 5);
   NET.send({ t: 'copy', slot: G.me, target: p.slot });
