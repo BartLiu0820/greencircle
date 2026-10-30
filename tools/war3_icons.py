@@ -18,6 +18,8 @@ from war3_batch import INDEX, D, U, BUILDER_ID  # noqa: E402
 OUT = os.path.join(ROOT, 'h5', 'assets', 'icons', 'war3')
 A = json.load(open(os.path.join(ROOT, 'analysis', 'raw', 'abilities_all.json'), encoding='utf8'))
 ITEMS = json.load(open(os.path.join(ROOT, 'analysis', 'raw', 'items_all.json'), encoding='utf8'))
+UPG = json.load(open(os.path.join(ROOT, 'analysis', 'raw', 'upgrades_all.json'), encoding='utf8'))
+TECHS = ['R01N', 'R01O', 'R01P', 'R01Q', 'R01S', 'R01T']   # 玩家科技：巨魔攻速 / 攻击（近战、远程），地狱火之速 / 之力（命令面板 ico:upg-<科技 ID>）
 # 兔子（成就商店 nshe）卖的道具 + 兔子卷轴 + 地图中央商店（u00L）卖的道具：命令面板图标 ico:item-<物品 ID>
 SHOP_ITEMS = ['I00K', 'I00M', 'I00N', 'I00L', 'I01I', 'I01U', 'I02A', 'I00Q', 'I00S'] + U['u00L']['Sellitems'].split(',')
 # 守护宗师 / 宠物商人 / 许愿商人卖的、兔子的天赋秘籍、地上会掉的物品（糖果、马上有钱的字、药水、光环碎片、许愿石）
@@ -136,6 +138,8 @@ def main():
     put('portrait:shop', U['u00L'].get('Art'))
     for iid in SHOP_ITEMS:
         put('ico:item-' + iid, ITEMS[iid].get('Art'))
+    for uid in TECHS:
+        put('ico:upg-' + uid, UPG[uid].get('Art'))
     for k, art in GENERIC.items():
         put('ico:' + k, art)
 

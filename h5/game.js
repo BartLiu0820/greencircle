@@ -3573,7 +3573,7 @@ function plantAncient(h, x, y) {
 // init(h) 建成时    second(h) 每秒（原图 BGU 等 1 秒计时器）    tick(h, dt) 每帧    stats(h) → { dmg, as, multi, multiR } 攻击加成 / 弹幕
 // auras(h) → [{ x, y, r, kind, v }] 光环（kind：towerDmg / towerAS / drums 给塔，armor / slow / heroSlow 给敌人）
 // onLaunch(h, tg) 攻击出手时（在技能之前）    onKill(h, m, src) 英雄或召唤物杀敌    onElite(h, src)    anyAttack(h, t, tg) 任意塔攻击时
-// onLevel(h) 升级时（HERO_LEVEL）    onLevelBtn(h) 点"升级"时（原图 BaJ，升级之后判断等级）    towerUpgraded(h, t)    cmds(h) 额外命令    info(h) 信息面板多的几行
+// onLevel(h) 升级时（HERO_LEVEL）    onLevelBtn(h) 点"升级"时（原图 BaJ，升级之后判断等级）    onPoint(h) 分配技能点后（HERO_SKILL）    towerUpgraded(h, t)    cmds(h) 额外命令    info(h) 信息面板多的几行
 // randomStat 没有"属性选择"（A0CD）的英雄：杀精英 +1、满级升级 +3、知识药水、重修药水都改成随机一项（原图对 H05J 单独判断）
 const HERO_DEF = {
   剑神: {}, 火魂: {},
@@ -4560,6 +4560,17 @@ Object.assign(HERO_DEF, {
 const JM_TROLL = { h08E: ['蓝', 'magic', 0.85, 800, 260, 0], h08D: ['紫', 'pierce', 0.85, 800, 260, 0], h08F: ['绿', 'chaos', 0.85, 800, 380, 0], h08H: ['紫', 'chaos', 0.7, 400, 680, 0],
   h08C: ['蓝', 'magic', 0.7, 400, 280, 0], h08I: ['蓝', 'normal', 0.6, 800, 260, 0], h08J: ['紫', 'normal', 0.55, 400, 380, 300], h08G: ['绿', 'pierce', 0.7, 400, 260, 0] };
 const JM_STAMP = [500, 1000, 2000, 4000, 6000, 15000, 30000, 50000, 90000];
+// 巨魔科技（玩家科技，原图在巨魔身上研究，选中巨魔时显示）：近战巨魔（h08C / h08G / h08H / h08J）R01N 攻速 +25%/级、R01O 攻击 +800/级；
+// 远程巨魔（h08D / h08E / h08F / h08I）和巨魔召唤师本身 R01P 攻速 +18%/级、R01Q 攻击 +500/级。各 5 级，每级 6 / 8 木材（不要金币）
+const JM_MELEE = new Set(['h08C', 'h08G', 'h08H', 'h08J']);
+const JM_TECH = { melee: { as: 0.25, atk: 800, name: '近战', ids: ['R01N', 'R01O'] }, ranged: { as: 0.18, atk: 500, name: '远程', ids: ['R01P', 'R01Q'] } };
+const jmCls = uid => JM_MELEE.has(uid) ? 'melee' : 'ranged';
+function jmTechCmds(t) {
+  const h = t.owner, c = jmCls(t.uid), T = h.sk.jm.tech[c], k = JM_TECH[c];
+  const up = (key, f, wood, id, label, step) => costCmd(t, key, `巨魔${label}（${k.name}）`, `${T[f]}/5 级，现在 +${step(T[f])}${T[f] < 5 ? `，下一级 +${step(T[f] + 1)}` : ''}<br>所有${k.name}巨魔${c === 'ranged' ? '和巨魔召唤师' : ''}都有效`,
+    { wood: T[f] < 5 ? wood : 0 }, () => { T[f]++; msg(`巨魔${label}（${k.name}）升到 ${T[f]} 级`); }, { why: T[f] >= 5 ? '已经是最高等级' : null, o: { ico: 'upg-' + id } });
+  return [up('Q', 'atk', 8, k.ids[1], '攻击力', n => fmt(n * k.atk)), up('W', 'as', 6, k.ids[0], '攻速', n => pctTxt(n * k.as))];
+}
 const jmTrolls = h => heroUnits(h).filter(t => t.kind === 'troll');
 const jmHas = (h, ...ids) => ids.every(id => jmTrolls(h).some(t => t.uid === id));
 function jmTrollHit(h, t, tg) {   // BXa：从左到右的 and / or（同级运算）
@@ -4582,7 +4593,9 @@ function jmSummon(h, x, y) {
   if (!canPlace(gx, gy)) return msg('需要放到可建造的位置');
   const r = rint(1, 6), uid = r === 1 ? 'h08E' : r === 2 ? 'h08D' : r === 3 ? 'h08F' : r === 5 ? 'h08H' : r === 6 ? 'h08C' : rint(1, 6) === 4 ? 'h08I' : rint(1, 3) === 2 ? 'h08J' : 'h08G';
   const [c, atk, cd, range, dmg, splash] = JM_TROLL[uid];
-  hsum(h, gx, gy, 0, { dmg, cd, range, atk, splash }, { label: c, title: `巨魔（${c}）`, kind: 'troll', uid, solid: true, onLaunch(t, tg) { jmTrollHit(h, t, tg); } });
+  const T = h.sk.jm.tech[jmCls(uid)], k = JM_TECH[jmCls(uid)];
+  hsum(h, gx, gy, 0, { dmg, cd, range, atk, splash }, { label: c, title: `巨魔（${c}）`, kind: 'troll', uid, solid: true, onLaunch(t, tg) { jmTrollHit(h, t, tg); },
+    stats: () => ({ dmg: dmg + T.atk * k.atk, as: T.as * k.as }) });
   FXS.ring(gx, gy, 160, '#9fffb0', 0.5, 4);
 }
 function jmRandom(h) {
@@ -4601,7 +4614,8 @@ function jmRandom(h) {
 Object.assign(HERO_KITS, { 巨魔召唤师: [] });
 Object.assign(HERO_DEF, {
   巨魔召唤师: {
-    init(h) { h.sk.jm = { mj: [0, 0, 0, 0, 0, 0], mk: 0, ml: 0, bat: 1, mm: 0 }; },
+    init(h) { h.sk.jm = { mj: [0, 0, 0, 0, 0, 0], mk: 0, ml: 0, bat: 1, mm: 0, tech: { melee: { atk: 0, as: 0 }, ranged: { atk: 0, as: 0 } } }; },
+    stats: h => { const T = h.sk.jm.tech.ranged; return { dmg: T.atk * JM_TECH.ranged.atk, as: T.as * JM_TECH.ranged.as }; },   // 远程巨魔科技也作用于英雄（H08A 的科技列表）
     second(h) {                                         // 自爆巨魔 1 级：每秒一次惊吓
       if (h.sk.jm.bat !== 1 || !anyEnemy(h.x, h.y, 1200)) return;
       const L = h.stat.str >= 320 ? 9 : Math.floor(h.stat.str / 40) + 1, a = rnd(0, TAU), cx = h.x + Math.cos(a) * 200, cy = h.y + Math.sin(a) * 200;
@@ -4626,7 +4640,7 @@ Object.assign(HERO_DEF, {
         }), { ico: 'sell' }),
       ];
     },
-    info: h => [`巨魔 ${jmTrolls(h).length} 个 · 技能 ${h.sk.jm.mk}/2`],
+    info: h => { const T = h.sk.jm.tech; return [`巨魔 ${jmTrolls(h).length} 个 · 技能 ${h.sk.jm.mk}/2 · 科技 近战 攻击 ${T.melee.atk} 攻速 ${T.melee.as} / 远程 攻击 ${T.ranged.atk} 攻速 ${T.ranged.as}（选中巨魔研究）`]; },
   },
 });
 // ---------------------------------------------------------------- 地狱火（BXv ~ BYY）
@@ -4637,6 +4651,13 @@ Object.assign(HERO_DEF, {
 //   橙：英雄每 5 次攻击 250 范围 敏捷×20×橙色个数 穿刺（无视护甲），英雄是橙色时每 41 次 550 范围 敏捷×90×…；橙色小地狱火每 5 次 敏捷×10×(1+…)
 //   红：英雄每次攻击 120 范围 智力×(4 / 嗜血时 12)×红色个数 混乱（英雄是红色再加 6 / 18 倍）；红色小地狱火 智力×2×…
 // 每 20 秒英雄得到嗜血（等级 (橙色个数+1)×橙技能）和神力（(黄色个数+1)×黄技能）。小地狱火在英雄 1000 范围内召唤，数量上限花金币提升（英雄等级 ≥ 次数×6）
+// 地狱火之力 R01T（攻击 +300/级）/ 地狱火之速 R01S（攻速 +10%/级），各 50 级，对英雄、小地狱火、灵魂地狱火都有效，触发器自动给：
+// 英雄升级时 力量 ≥ (之力等级+1)×30 → +1 级（敏捷 / 之速同理）；学技能点时条件写成 力量 ≥ 之力等级×30（少了 +1，照搬），每次最多 +1 级
+function dyhTech(h, lvUp) {
+  const s = h.sk.dyh, n = lvUp ? 1 : 0;
+  if (s.str < 50 && h.stat.str >= (s.str + n) * 30) { s.str++; msg(`地狱火之力 ${s.str} 级`); }
+  if (s.agi < 50 && h.stat.agi >= (s.agi + n) * 30) { s.agi++; msg(`地狱火之速 ${s.agi} 级`); }
+}
 const DYH_C = ['绿', '黄', '橙', '红'];
 const dyhN = (h, c) => [h, ...heroUnits(h).filter(t => t.kind === 'dyh')].filter(t => t.dyh === c).length;
 const dyhK = (h, c) => Math.min(3, dyhN(h, c));
@@ -4648,7 +4669,7 @@ function dyhMinion(h, x, y) {
   const extra = pick(DYH_EXTRA), L2 = Math.random() < 0.25;
   const t = hsum(h, x, y, 0, { cd: 1.2, range: 700, atk: 'normal', splash: 250, abils: extra === '致命' ? [{ code: 'AOcr', A: L2 ? 10 : 5, B: 10 }] : [] },
     { label: '火', title: `小地狱火（${extra}）`, kind: 'dyh', dyh: rint(0, 3), extra, n: 0, base: 80,
-      stats: t2 => ({ dmg: t2.base * (1 + (extra === '神力' ? (L2 ? 1 : 0.6) : 0)), as: extra === '嗜血' ? (L2 ? 0.7 : 0.4) : 0 }),
+      stats: t2 => ({ dmg: (t2.base + 300 * s.str) * (1 + (extra === '神力' ? (L2 ? 1 : 0.6) : 0)), as: (extra === '嗜血' ? (L2 ? 0.7 : 0.4) : 0) + 0.1 * s.agi }),
       onLaunch(t2, tg) { dyhAttack(h, t2, tg); },
       onHit(t2, m) { if (extra === '重击' && Math.random() < (L2 ? 0.25 : 0.2)) { hurt(m, L2 ? 6000 : 2000, 'normal', t2); stun(m, 4); } } });
   FXS.fall(x, y, { z: 700, dx: -200, dy: 120, dur: 0.3, color: '#7cff4a', core: '#e8ffd0', size: 30, rock: '#203018', onEnd: () => FXS.explosion(x, y, 0.8, '#7cff4a') });
@@ -4667,7 +4688,8 @@ function dyhAttack(h, t, tg) {   // BYG / BYS / BYV / BYY：英雄和小地狱�
   // 黄：灵魂地狱火（英雄或黄色小地狱火攻击时 1/15，英雄是黄色时另有 1/50 大灵魂）
   if (E[2] && dyhN(h, 1) && (isH ? s.color === 1 : t.dyh === 1)) {
     const souls = heroUnits(h).filter(o => o.kind === 'dyhsoul').length;
-    const soul = (life, title) => hsum(h, tg.x, tg.y, life, { cd: 0.4, range: 300 }, { label: '魂', title, kind: 'dyhsoul', silent: true, onLaunch(u, m) { aoe(h, m, 120, s.ms * E[2] * dyhN(h, 1), 'normal', title === '大灵魂地狱火'); } });
+    const soul = (life, title) => hsum(h, tg.x, tg.y, life, { cd: 0.4, range: 300 }, { label: '魂', title, kind: 'dyhsoul', silent: true, stats: () => ({ dmg: 1 + 300 * s.str, as: 0.1 * s.agi }),
+      onLaunch(u, m) { hurt(m, 1 + 300 * s.str, 'normal', u); aoe(h, m, 120, s.ms * E[2] * dyhN(h, 1), 'normal', title === '大灵魂地狱火'); } });   // 灵魂本身的攻击 1 点（+地狱火之力）
     if (souls <= dyhN(h, 1) && rint(1, 15) === 7) soul(10, '灵魂地狱火');
     if (isH && rint(1, 50) === 6 && !heroUnits(h).some(o => o.title === '大灵魂地狱火')) soul(6, '大灵魂地狱火');
   }
@@ -4700,7 +4722,9 @@ function dyhRandom(h) {   // BXy：随机技能，最多 3 个，不重复
 Object.assign(HERO_KITS, { 地狱火: [] });
 Object.assign(HERO_DEF, {
   地狱火: {
-    init(h) { h.sk.dyh = { color: rint(0, 3), me: [0, 0, 0, 0, 0], mb: 0, mm: 0, mz: 0, mv: 0, ms: 0, max: 0, up: 1 }; h.dyh = h.sk.dyh.color; },
+    init(h) { h.sk.dyh = { color: rint(0, 3), me: [0, 0, 0, 0, 0], mb: 0, mm: 0, mz: 0, mv: 0, ms: 0, max: 0, up: 1, str: 0, agi: 0 }; h.dyh = h.sk.dyh.color; },
+    onLevel(h) { dyhTech(h, true); },
+    onPoint(h) { dyhTech(h, false); },
     second(h) {
       const s = h.sk.dyh; s.mm++;
       if (Math.floor(G.t) % 20 !== 0) return;                // BYD：每 20 秒
@@ -4708,7 +4732,7 @@ Object.assign(HERO_DEF, {
       if (s.me[2]) giveBuff(h, 'divine', Math.min(5, (dyhN(h, 1) + 1) * s.me[2]), 20);
       if (s.me[1] && dyhN(h, 0)) { aoeAt(h, h.x, h.y, 1000, h.stat.str * 150 * s.me[1] * dyhK(h, 0) + 20000, 'hero'); FXS.nova(h.x, h.y, 1000, '#7cff4a', 0.6); }
     },
-    stats: h => ({ dmg: h.sk.dyh.ms * 2 }),             // 黄色英雄杀敌累计的基础攻击（原图直接加在单位攻击上）
+    stats: h => ({ dmg: h.sk.dyh.ms * 2 + 300 * h.sk.dyh.str, as: 0.1 * h.sk.dyh.agi }),   // 黄色英雄杀敌累计的基础攻击（原图直接加在单位攻击上）+ 地狱火之力 / 之速
     onLaunch(h, tg) { dyhAttack(h, h, tg); },
     onKill(h, m, src) {                                 // BYM：黄色地狱火杀敌加攻击
       const s = h.sk.dyh; if (!s.me[2] || !dyhN(h, 1)) return;
@@ -4731,7 +4755,8 @@ Object.assign(HERO_DEF, {
           h.mana -= 30; t.dyh = (t.dyh + 1) % 4; t.extra = pick(DYH_EXTRA); t.title = `小地狱火（${t.extra}）`; uiDirty(); }), { ico: 'upgrade' }),
       ];
     },
-    info: h => { const s = h.sk.dyh; return [`英雄 ${DYH_C[s.color]}色 · 绿 ${dyhN(h, 0)} 黄 ${dyhN(h, 1)} 橙 ${dyhN(h, 2)} 红 ${dyhN(h, 3)} · 技能 ${[1, 2, 3, 4].filter(k => s.me[k]).map(k => DYH_C[k - 1]).join('') || '无'}`]; },
+    info: h => { const s = h.sk.dyh; return [`英雄 ${DYH_C[s.color]}色 · 绿 ${dyhN(h, 0)} 黄 ${dyhN(h, 1)} 橙 ${dyhN(h, 2)} 红 ${dyhN(h, 3)} · 技能 ${[1, 2, 3, 4].filter(k => s.me[k]).map(k => DYH_C[k - 1]).join('') || '无'}`,
+      `地狱火之力 ${s.str} 级（攻击 +${300 * s.str}）· 地狱火之速 ${s.agi} 级（攻速 +${pctTxt(0.1 * s.agi)}）`]; },
   },
 });
 // ---------------------------------------------------------------- 龙鹰（BYe ~ BY7）
@@ -5253,6 +5278,7 @@ function spendPoint(h, k) {
     if (st === 'all') for (const s in h.stat) h.stat[s] += v; else h.stat[st] += v;
     msg(`${st === 'all' ? '全属性' : statCN(st)} +${v}`);
   }
+  const def = HERO_DEF[h.heroName]; if (def.onPoint) def.onPoint(h);     // 原图 EVENT_PLAYER_HERO_SKILL（学属性技能）
   uiDirty();
 }
 // 大巫师的巫祭（BSl）：献祭自己的一座塔
@@ -8086,6 +8112,7 @@ function buildCmds() {
     out.push(...own.slice(0, 2));
     return out;                                      // 英雄塔建造后不能回收（原图英雄塔说明）
   }
+  if (e.kind === 'troll' && e.owner && mine(e.owner)) return jmTechCmds(e);     // 巨魔：研究巨魔科技
   if (e.fam && e.cat !== 'summon') {
     if (!mine(e)) return out;                                  // 队友的塔：只能看
     const f = famOf(e), kit = KITS[e.fam];
