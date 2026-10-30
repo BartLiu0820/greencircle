@@ -84,6 +84,14 @@ for name, uid in MAIN.items():
     D['towers'][name] = dict(name=name, cat='main', levels=chain(uid))
 for name, uid in ALT.items():
     D['towers'][name] = dict(name=name, cat='alt', levels=chain(uid))
+# 随机模式的"神塔"（H8 = 1~6）：全场唯一，任何玩家建了别人都不能再建，回收后也不返还建造处（LR[1~6]）
+GOD = {'驱魔塔': 'n06F', '树妖塔': 'h05L', '暗牧塔': 'n06I', '海妖塔': 'n084', '猎人塔': 'h080', '圣灵塔': 'n08X'}
+for name, uid in GOD.items():
+    D['towers'][name] = dict(name=name, cat='god', levels=chain(uid))
+# 圣灵塔给敌方刷的圣灵（h08S）：5 生命、飞行，不算怪数
+sp = U['h08S']
+D['units']['h08S'] = dict(id='h08S', name=sp.get('Name'), hp=fl(sp, 'HP'), armor=fl(sp, 'def'), armorType=sp.get('defType') or 'small',
+                          speed=fl(sp, 'spd', 220), bounty=0.0, regen=0.0, level=1)
 # 超级深渊塔（n02Q）：深渊塔 MAX 用"升级超级深渊"（A0EQ）变成，不在升级链上
 sup = level('n02Q')
 sup['name'] = cl(sup['name'])
@@ -96,4 +104,4 @@ bmax = level('h021')
 bmax.update(targets=int(fl(U['h021'], 'targCount1', 1)), tip='伤害类型为【通用】，弹射 17 个目标；每次攻击放灵魂重击')
 D['towers']['弹跳塔']['max'] = bmax
 open(dpath, 'w', encoding='utf-8').write(head + 'window.GAME_DATA = ' + json.dumps(D, ensure_ascii=False, separators=(',', ':')) + ';\n')
-print('data.js 补进塔：', ' '.join(f'{n}({c})' for n, (c, _) in FAMILIES.items()), ' 主塔：', ' '.join(MAIN), ' 另类塔：', ' '.join(ALT))
+print('data.js 补进塔：', ' '.join(f'{n}({c})' for n, (c, _) in FAMILIES.items()), ' 主塔：', ' '.join(MAIN), ' 另类塔：', ' '.join(ALT), ' 神塔：', ' '.join(GOD))

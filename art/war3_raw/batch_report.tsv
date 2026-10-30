@@ -231,3 +231,10 @@ model:monster:Units/Critters/DuneWorm/DuneWorm	ok	高 0.35 m | ppm 40 | 缺贴�
 model:monster:Abilities/Spells/Other/StrongDrink/BrewmasterMissile	ok	高 0.88 m | ppm 40 | 缺贴图 0 | 动作 idle,death | 光效 无
 model:monster:Units/Creeps/BlackDragon/BlackDragon	ok	高 1.28 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death | 光效 无
 model:monster:Units/Undead/Gargoyle/Gargoyle	ok	高 0.91 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death | 光效 无
+model:monster:Abilities/Spells/NightElf/Rejuvenation/RejuvenationTarget	ok	高 2.00 m | ppm 40 | 缺贴图 0 | 动作 idle,death | 光效 无
+model:tower:Units/Creeps/Watcher/Watcher	ok	高 1.34 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无
+model:tower:Units/NightElf/Dryad/Dryad	ok	高 0.92 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无
+model:tower:Units/Creeps/DarkTrollTrapper/DarkTrollTrapper	ok	高 1.22 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death | 光效 无
+model:tower:Units/Naga/NagaSiren/NagaSiren	ok	高 2.62 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无
+model:tower:Units/Orc/Wolfrider/Wolfrider	ok	高 2.02 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无
+model:tower:Abilities/Spells/NightElf/Rejuvenation/RejuvenationTarget	ok	高 2.00 m | ppm 40 | 缺贴图 0 | 动作 idle,death | 光效 无

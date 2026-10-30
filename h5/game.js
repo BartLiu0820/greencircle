@@ -45,7 +45,7 @@ const ATK_CN = { normal: '普通', pierce: '穿刺', magic: '魔法', chaos: '�
 const ATK_COLOR = { normal: '#e8e8e8', pierce: '#ffb347', magic: '#7ab8ff', chaos: '#c48bff', hero: '#ffd257', spells: '#7ab8ff' };
 const COUNTER = { '物理': 'magic', '抗性': 'normal', '魔法': 'pierce', '神圣': 'chaos' };
 const SPAWNER = { '多': { every: 0.25, count: 62 }, '中': { every: 0.6, count: 32 }, '少': { every: 1.0, count: 15 } };
-const CAT_CN = { main: '主塔', raw: '原始塔', sup: '辅助塔', aura: '光环塔', alt: '另类塔', hero: '英雄塔', big: '大辅助', witch: '巫系辅助', uniq: '全场唯一', evo: '大辅助（进化）', summon: '召唤物' };
+const CAT_CN = { main: '主塔', raw: '原始塔', sup: '辅助塔', aura: '光环塔', alt: '另类塔', hero: '英雄塔', big: '大辅助', witch: '巫系辅助', uniq: '全场唯一', god: '神塔', evo: '大辅助（进化）', summon: '召唤物' };
 
 // ---------------------------------------------------------------- 地图（原图 8 人布局：世界坐标就是 WC3 地图坐标）
 // 路网、出怪口、能不能建造、镜头范围都照原图：tools/war3_map.py 从地图包导出寻路图（wpm）、地块（w3e）、树（doo）和区域（assets/w3map.js）
@@ -164,6 +164,8 @@ function newGame(mode, players = 1, player = null, bots = false) {     // player
     lich: { tech: 0, mr: 0, nk: 0, kc: 0, mq: false },
     rm: { fg: 1, fi: 1, fh: 1, kz: 0, fj: 0, k0: 1, hg: 0, hh: false, breakAt: -Infinity },
     beast: { tech: 1, tamed: false, elite: [false, false, false] },
+    godLock: new Set(),      // 神塔：本机建造栏里被关掉的（见 godRefresh）
+    god: { hq: 0, lq: 0, my: 0, lv: 0, r01l: Array(MAX_PLAYERS).fill(0) },   // 神塔的全局变量：暗牧 Hq、海妖 LQ、圣灵 My（记的是上次触发的时间）、猎人 Lv（到这个时间才能捕猎）、精准攻击 R01L 按玩家
     panda: { stomp: 1, master: 1, fire: 1 },
     cmd: { type: rint(1, 3), lv: 1, ys: [0, 0, 0, 0, 0, 0] },   // 原始指挥官：宁静类型 Jf（开局随机）、宁静等级 Jg（天赋 2）、强化原始塔 JY / JZ / Ja / Jb / Jc / Jd   // 熊猫：熊猫践踏 Gd、家族大师 Gf、火焰强化 Gg（原图按玩家记）
     wx: { fu: 1, js: 0, lv: {}, mana: 0, fn: 0, waterWin: -1, earthWin: -1 },   // 五行（原图按玩家记）：激活次数 Fu、天赋 Js、各技能等级 Fp~Ft、魔法 Fv、火的攻击计数 Fn、水 / 土的冷却窗口 Fm / Fo   // 兽王：训兽科技 R00Z、驯化过 Iy、精训过的随从位 I8 / JB / I9（重造兽王保留）   // 人马（原图按玩家记）：爆雷 FG、雷怒 FI、雷嗜 FH、雷踏 Kz、魔法 FJ、雷霆 K0、雷霆次数 HG、天赋 HH、毁灭冷却   // 巫妖：巫妖之力 R01R、获得巫妖之力次数 MR、献祭巫系次数 NK、献祭自己次数 KC、天赋 MQ
@@ -197,12 +199,12 @@ function newGame(mode, players = 1, player = null, bots = false) {     // player
 }
 
 // ---------------------------------------------------------------- 建造栏
-// 原图随机建造（war3map.j 里 Qf / Hd / He / Hf / Hh / Hg / H7 七个随机数）：1 主塔、1 原始塔、1 光环塔、1 新辅助（4 大辅助 + 4 巫系）、
-// 1 小辅助、1 另类塔、1 全场唯一塔；另外 Hc = GetRandomInt(1,17) 从 17 个英雄塔里放开 1 个，有"英雄赞助"的玩家是 1~34（多 17 个赞助英雄）。
+// 原图随机建造（war3map.j 里 Qf / Hd / He / Hf / Hh / Hg / H7 / H8 八个随机数）：1 主塔、1 原始塔、1 光环塔、1 新辅助（4 大辅助 + 4 巫系）、
+// 1 小辅助、1 另类塔、1 全场唯一塔、1 神塔；另外 Hc = GetRandomInt(1,17) 从 17 个英雄塔里放开 1 个，有"英雄赞助"的玩家是 1~34（多 17 个赞助英雄）。
 // 原图的英雄赞助按玩家名字发（触发器里写死的名单）；这里名单先清空（RULE.heroSponsors），以后再设计赞助机制
 const FAM = Object.values(D.towers);
 const byCat = c => FAM.filter(f => f.cat === c).map(f => f.name);
-const SLOT_POOL = { main: ['main'], raw: ['raw'], aura: ['aura'], newsup: ['big', 'witch'], sup: ['sup'], alt: ['alt'], uniq: ['uniq'] };
+const SLOT_POOL = { main: ['main'], raw: ['raw'], aura: ['aura'], newsup: ['big', 'witch'], sup: ['sup'], alt: ['alt'], uniq: ['uniq'], god: ['god'] };
 const SLOTS = Object.keys(SLOT_POOL);
 const NOT_RANDOM = new Set(['图腾塔']);     // 图腾塔不在原图另类塔随机池（Hg = 1~10）里
 const slotPool = s => SLOT_POOL[s].flatMap(byCat).filter(f => !NOT_RANDOM.has(f));
@@ -219,8 +221,12 @@ function rerollBuild(free) {
   const hc = rint(1, G.sponsor ? 34 : 17);                          // 有英雄赞助：1~34（18~34 是赞助英雄）
   G.heroChoice = MODES[G.mode].hero || Object.keys(D.heroes).find(n => D.heroes[n].hc === hc);
   G.placing = null;
+  godRefresh();
   uiDirty();
 }
+// 神塔（H8 = 1~6：驱魔 / 树妖 / 暗牧 / 海妖 / 猎人 / 圣灵）全场唯一：随机建造时先全部关掉，抽中的那座只在全场没人有时（LR = 0）放开；
+// 任何玩家开始建造后所有人都关掉（BHm 等），回收时 LR 归零但不重新放开——要等下次随机建造。G.godLock 是本机建造栏里被关掉的神塔
+function godRefresh() { G.godLock = new Set(G.build.filter(f => D.towers[f] && D.towers[f].cat === 'god' && G.towers.some(t => t.fam === f))); }
 
 // ---------------------------------------------------------------- 伤害
 function armorMult(armor) {
@@ -255,6 +261,7 @@ function hurt(m, amount, atk, src, opt = {}) {
 function kill(m, src) {
   if (m.dead) return;
   m.dead = true; m.hp = 0;
+  if (m.spirit) return spiritDied(m, src);            // 圣灵塔的圣灵：不算击杀、没有赏金和掉落
   const pl = G.roster[pidOf(src)] || me();           // 击杀算在凶手的玩家头上（原图排行榜 Cp[凶手玩家] +1，赏金也给他）
   pl.kills++;
   addGold(pl, Math.round(m.bounty));
@@ -270,6 +277,7 @@ function kill(m, src) {
   }
   if (G.endless && !m.neutral) G.endless.score += G.endless.nm + 4;   // 原图 zi：无尽里每杀一只怪 Ds + (NM + 4)
   if (m.elite) {
+    preciseKill(m, src);
     const w = rint(1, 3); G.wood += w;
     const owner = src && (src.owner || src);
     if (owner && owner.isHero) {
@@ -464,6 +472,7 @@ function buildBlock(fam) {
   if (f.cat === 'big' && n(t => t.cat === 'big' || t.cat === 'evo') >= 2) return '只能建造 2 个新辅助（大辅助）';
   if (f.cat === 'witch' && n(t => t.cat === 'witch') >= 1) return '只能建造 1 个巫系辅助';
   if (f.cat === 'uniq' && n(t => t.fam === fam) >= 1) return '全场唯一，只能建造一个';
+  if (f.cat === 'god' && (G.godLock.has(fam) || G.towers.some(t => t.fam === fam))) return '神塔全场唯一：建造后全体不能再次建造，回收也不返还建造处（等下次随机建造）';
   if (ONLY_ONE.has(fam) && n(t => t.fam === fam) >= 1) return '只能建造一个';         // 科技塔 owtw、灵魂塔 otrb、精灵塔 obea
   return null;
 }
@@ -485,6 +494,7 @@ function buildTower(fam, x, y) {
   G.gold -= lv0.gold;
   const t = newTower(fam, x, y);
   G.towers.push(t);
+  if (t.cat === 'god') G.godLock.add(fam);
   const kit = KITS[fam];
   return kit && kit.built ? kit.built(t) : t;     // 建成时的触发器（弹跳天赋快建会把它换成 MAX）
 }
@@ -2646,7 +2656,150 @@ const KITS = {
         { why: G.hero ? null : '还没有建造英雄塔' })];
     },
   },
+  // ---------------------------------------------------------------- 神塔（随机建造的 H8 格，全场唯一，见 godRefresh）
+  // 驱魔塔（原图 Y8 / BHp）：驱魔一击 A0L7（手动，射程 900，冷却 3 秒）晕眩 6 秒；建成后第一次只晕眩（同时升到 2 级），之后还把目标传到一个出怪口（exorciseGate）
+  驱魔塔: {
+    init(t) { t.qm = 1; },
+    cast(t, m) {
+      if (!m || m.dead || !G.monsters.includes(m) || m.neutral) return msg('驱魔一击：要选一个敌人');
+      if (dist2(t.x, t.y, m.x, m.y) > 900 * 900) return msg('目标太远（施法距离 900）');
+      if (!cdReady(t, 'qm')) return msg('驱魔一击冷却中');
+      setCd(t, 'qm', GOD.qmCd); stun(m, GOD.qmStun);
+      FXS.ring(m.x, m.y, 120, '#c9a0ff', 0.4, 3);
+      if (t.qm === 1) { t.qm = 2; return msg('驱魔一击：第一次只晕眩，之后还会遣返'); }
+      teleportTo(m, exorciseGate(pidOf(t)));
+    },
+    cmds(t) {
+      return [cmd('Q', '驱', '驱魔一击', `对一个敌人使用（射程 900，冷却 ${GOD.qmCd} 秒）：晕眩 ${GOD.qmStun} 秒，并让它随机遣返到任意一个玩家的出怪口<br>建成后第一次只晕眩`,
+        () => { G.pending = 'heroPick'; G.placing = null; G.heroPick = { label: '对这个敌人放驱魔一击', fn: (x, y, hit) => KITS.驱魔塔.cast(t, hit) }; msg('驱魔一击：选择一个敌人（Esc 取消）'); uiDirty(); },
+        { disabled: !cdReady(t, 'qm'), cdOf: () => [cdLeft(t, 'qm'), GOD.qmCd], ico: 'abil-A0L7' })];
+    },
+    info: t => [`驱魔一击：${t.qm === 1 ? '下一次只晕眩' : '晕眩并遣返'}`],
+  },
+  // 树妖塔（原图 ZD / BH1 建成时刷树妖箭、ZG / BH7）：自己的攻击带纠缠 A0L8（100% 晕 0.5 秒，按 AHbh 处理）；
+  // 塔下面有一支看不见的树妖箭 n06H（0.5 秒一次，射程 900）：腐蚀攻击 A0L9 护甲 -200 持续 1 秒，每次攻击还永久扣目标 20 点护甲。回收时树妖箭跟着移除
+  树妖塔: {
+    built(t) {
+      summon(t, { fam: '树妖箭', title: '树妖箭', label: '箭', x: t.x, y: t.y, hide: true, silent: true,
+        levels: [{ name: '树妖箭', dmg: 2, cd: 0.5, range: 900, atk: 'pierce', targets: 1, abils: [] }],
+        onLaunch(s, m) {
+          hurt(m, 2, 'pierce', s);
+          m.shred = Math.max(m.shredUntil > G.t ? m.shred : 0, GOD.dryadShred); m.shredUntil = Math.max(m.shredUntil, G.t + 1);
+          m.armor -= GOD.dryadArmor;
+        } });
+      return t;
+    },
+    info: () => [`树妖箭：每 0.5 秒护甲 -${GOD.dryadShred}（1 秒），并永久 -${GOD.dryadArmor} 护甲`],
+  },
+  // 暗牧塔（原图 ZK / BIK）：减速 A0OH 自动施放（冷却 1 秒，射程 800）：移速 -60% 6 秒，只找身上没有这个减速的敌人（魔法免疫的不行）。
+  // 全场前 8 次施放只计数（Hq），之后每次把目标当前生命 ×0.88（说明写的是"最大生命的 12%"，触发器扣的是当前生命）
+  暗牧塔: {
+    tick(t) {
+      if (!cdReady(t, 'dm') || bv(t, 'silence')) return;
+      const c = inRange(t.x, t.y, 800).filter(m => !m.magicImmune && !(m.dmSlow > G.t) && !(m.invisUntil > G.t))
+        .sort((a, b) => dist2(t.x, t.y, a.x, a.y) - dist2(t.x, t.y, b.x, b.y))[0];
+      if (!c) return;
+      setCd(t, 'dm', 1); slowM(c, 0.6, 6); c.dmSlow = G.t + 6;
+      if (G.god.hq >= 8) { c.hp *= 0.88; FXS.ring(c.x, c.y, 90, '#8a5cff', 0.4, 3); } else G.god.hq++;
+    },
+    sell() { G.god.hq = 0; },
+    info: () => [G.god.hq >= 8 ? '暗影突袭：减速并扣目标当前生命的 12%' : `暗影突袭：再放 ${8 - G.god.hq} 次后开始扣生命`],
+  },
+  // 海妖塔（原图 ZB / BHv、ZC / BHy）：精准必杀——攻击精英怪或无尽怪物时 200 万英雄伤害（全局计数 LQ ≥ 8，即 8 秒一次；龙 / 魔王 / 熊猫除外）；
+  // 精准攻击 R01L 每级 +200 攻击（最多 100 级，见 preciseKill）。
+  // 原图必杀的条件写成"海妖塔 and … and LQ≥8 and 专注光环 or 减攻速光环 or … or 幽灵 and (不是龙 / 魔王 / 熊猫)"，不管 and / or 怎么结合，
+  // 字面意思都是"任何单位攻击带另外 4 种光环的精英怪或无尽怪物都打 200 万"（不需要有海妖塔）——这部分没有照搬，按说明只算海妖塔、8 秒一次
+  海妖塔: {
+    dmgPlus: t => GOD.preciseAtk * G.god.r01l[pidOf(t)],
+    attack(t, target) {
+      if (G.t - G.god.lq < GOD.seaCd || !(target.elite || GOD.endless.has(target.uid)) || GOD.seaImmune.has(target.uid)) return;
+      G.god.lq = G.t;
+      FXS.ring(target.x, target.y, 140, '#ff3030', 0.5, 4); popText(target.x, target.y + 100, '必杀', '#ff3030');
+      hurt(target, GOD.seaDmg, 'hero', t);
+    },
+    info: t => [`精准必杀：${G.t - G.god.lq >= GOD.seaCd ? '就绪' : Math.ceil(GOD.seaCd - (G.t - G.god.lq)) + ' 秒'} · 精准攻击 ${G.god.r01l[pidOf(t)]} 级（+${GOD.preciseAtk * G.god.r01l[pidOf(t)]} 攻击）`],
+  },
+  // 猎人塔（原图 BW6 / BW7 捕猎、ZQ / BIV 每 2 秒）：捕猎 A0RQ（手动，射程 900，冷却 180 秒）把一个 12 级以下、不是英雄 / 魔王的敌人变成随从
+  // （全场 1 个，新的顶掉旧的）：无敌、600 秒后死亡，用怪物自己的攻击（吃训兽科技 R00Z）；精英怪 +4000 攻击、+40% 攻速。每 2 秒攻击移动到猎人塔旁边 256 内随机一点。
+  // 目标不满足条件时技能照样进入冷却；回收猎人塔时随从移除，全场 180 秒内不能捕猎（Lv）
+  猎人塔: {
+    cast(t, m) {
+      if (!m || m.dead || !G.monsters.includes(m) || m.neutral) return msg('捕猎：要选一个敌人');
+      if (dist2(t.x, t.y, m.x, m.y) > 900 * 900) return msg('目标太远（施法距离 900）');
+      if (!cdReady(t, 'hunt')) return msg('捕猎冷却中');
+      setCd(t, 'hunt', GOD.huntCd);
+      const u = D.units[m.uid] || {};
+      if ((u.level || 1) > 12 || /^[A-Z]/.test(m.uid) || m.spirit) return msg('捕猎失败：只能捕获 12 级以下、不是英雄的敌人');
+      if (G.t < G.god.lv) return msg(`CD:${Math.ceil(G.god.lv - G.t)}秒`);
+      G.towers = G.towers.filter(o => o !== G.god.prey);
+      const a = u.atk || { dmg: 20, cd: 1.5, range: 100, type: 'normal', splash: 0 }, el = !!m.elite;
+      m.dead = true; G.monsters = G.monsters.filter(o => o !== m);
+      G.god.prey = summon(t, { fam: '猎物', title: `${m.name}（捕获）`, label: '猎', x: m.x, y: m.y, until: G.t + GOD.preyLife, speed: m.speed || 300, wt: 0,
+        levels: [{ name: m.name, dmg: a.dmg, cd: a.cd, range: a.range, atk: a.type === 'siege' ? 'normal' : a.type, targets: 1, splash: a.splash || 0, abils: [] }],
+        stats: () => ({ dmg: a.dmg + (u.train ? BEAST.trainAtk * (G.beast.tech - 1) : 0) + (el ? 4000 : 0), cd: a.cd, as: el ? 0.4 : 0 }),
+        tick: (s, dt) => KITS.猎人塔.preyMove(t, s, dt) });
+      FXS.ring(m.x, m.y, 160, '#ffd257', 0.6, 4); msg(`捕猎成功：${m.name} 为你战斗 ${GOD.preyLife} 秒`);
+    },
+    preyMove(t, s, dt) {
+      if ((s.wt -= dt) <= 0) { s.wt += 2; const a = rnd(0, TAU); s.goal = [t.x + Math.cos(a) * 256, t.y + Math.sin(a) * 256]; }
+      const r = curLevel(s).range;
+      if (nearest(s.x, s.y, r)) return;                                  // 射程里有敌人：站着打
+      const m = nearest(s.x, s.y, GOD.preyAcquire), [gx, gy] = m ? [m.x, m.y] : s.goal;   // 攻击移动：路上索敌范围里的敌人先追着打
+      const dx = gx - s.x, dy = gy - s.y, d = Math.hypot(dx, dy), step = Math.min(d - (m ? r * 0.8 : 0), s.speed * dt);
+      if (step > 0) { s.x += dx / d * step; s.y += dy / d * step; s.face = Math.atan2(dy, dx); }
+    },
+    sell() { G.god.lv = G.t + GOD.huntCd - 1; G.god.prey = null; },
+    cmds(t) {
+      return [cmd('Q', '猎', '捕猎', `对一个 12 级以下、不是英雄的敌人使用（射程 900，冷却 ${GOD.huntCd} 秒）：捕获它为你战斗 ${GOD.preyLife} 秒（最多 1 个，新的顶掉旧的）`,
+        () => { G.pending = 'heroPick'; G.placing = null; G.heroPick = { label: '捕获这个敌人', fn: (x, y, hit) => KITS.猎人塔.cast(t, hit) }; msg('捕猎：选择一个敌人（Esc 取消）'); uiDirty(); },
+        { disabled: !cdReady(t, 'hunt'), cdOf: () => [cdLeft(t, 'hunt'), GOD.huntCd], ico: 'abil-A0RQ' })];
+    },
+    info: () => { const p = G.god.prey; return [p && G.towers.includes(p) ? `随从：${p.title}，还剩 ${Math.ceil(p.until - G.t)} 秒` : '还没有捕获敌人']; },
+  },
+  // 圣灵塔（原图 Zs / BJS、Zu / BJV）：攻击带霜冻 A0TS（移速 -30% 10 秒）。攻击时（全局计数 My ≥ 3，即 3 秒一次；场上圣灵少于 2 个）
+  // 在自己的出怪口给敌方刷一个圣灵 h08S（5 生命、飞行、20 秒），跟着怪走、不算怪数；圣灵被杀时原地放战争践踏 A0TR（spiritDied）
+  圣灵塔: {
+    attack(t, target) {
+      slowM(target, GOD.frost, 10);
+      if (target.spirit || G.t - G.god.my < 3 || G.monsters.filter(m => m.spirit && !m.dead).length >= 2) return;
+      G.god.my = G.t;
+      const p = pidOf(t), s = spawnMonster('h08S', { gate: G.gates.includes(p) ? p : G.gates[0], noElite: true, noWaveHp: true });
+      if (s) { s.spirit = true; s.until = G.t + 20; s.bounty = 0; }
+    },
+    sell() { G.god.hq = 0; },        // 原图回收圣灵塔也把暗牧塔的计数 Hq 清零（照搬）
+    info: () => [`潜伏圣灵：场上 ${G.monsters.filter(m => m.spirit && !m.dead).length}/2`],
+  },
 };
+// 神塔的数值（技能表 / 单位表 / 触发器）
+const GOD = {
+  qmCd: 3, qmStun: 6,                                // 驱魔一击 A0L7：冷却 3 秒（说明写 10 秒）、晕眩 6 秒
+  dryadShred: 200, dryadArmor: 20,                   // 树妖箭：腐蚀 A0L9 护甲 -200 1 秒；BH7 每次攻击基础护甲 -20
+  seaCd: 8, seaDmg: 2000000, preciseAtk: 200,        // 海妖塔：LQ ≥ 8、200 万英雄伤害；精准攻击 R01L 每级 +200
+  endless: new Set(['nfgl', 'ndrl', 'ndrt', 'ndrn', 'nogo', 'nsw2', 'noga', 'nogn', 'ndsa', 'nglm']),
+  seaImmune: new Set(['Udea', 'Udre', 'nrdr', 'nrdk', 'ngrd', 'nbzd', 'Nfir', 'Npbm', 'Nalc', 'Ntin']),
+  huntCd: 180, preyLife: 600, preyAcquire: 600,      // 捕猎 A0RQ 冷却 180 秒、随从 600 秒；攻击移动时的索敌范围
+  frost: 0.3,                                        // 霜冻 Bfro：FrostMoveSpeedDecrease
+};
+// 驱魔一击的遣返（BHp）：按玩家顺序 1/8、1/8、1/7、1/6、1/5、1/4、1/3 的概率选这个玩家的口（他要在场）；
+// 最后一档 1/2 去 8 号口，但原图查的是 7 号玩家在不在场（照搬）；都没选中就是施法者自己的口
+function exorciseGate(p) {
+  const rolls = [[8, 1], [8, 2], [7, 2], [6, 3], [5, 4], [4, 3], [3, 2]];
+  for (let i = 0; i < rolls.length; i++) if (rint(1, rolls[i][0]) === rolls[i][1] && G.gates.includes(i)) return i;
+  if (rint(1, 2) === 1 && G.gates.includes(6)) return 7;
+  return p;
+}
+// 精准攻击 R01L（BHy）：条件"海妖塔杀了专注光环精英 or 带另外 4 种光环的精英死了"，后半句不看凶手——
+// 自己的单位杀死这 4 种精英，玩家的精准攻击也 +1（只影响海妖塔，照搬）
+function preciseKill(m, src) {
+  if (m.elite.aura.key === 'focus' && !(src && src.fam === '海妖塔')) return;
+  const g = G.god.r01l, p = pidOf(src);
+  if (g[p] < 100) g[p]++;
+}
+// 圣灵被杀（BJV）：凶手在原地放战争践踏 A0TR——250 范围 20 伤害、纠缠 3 秒（魔法免疫的不受影响）
+function spiritDied(m, src) {
+  FXS.nova(m.x, m.y, 250, '#b8ffb0', 0.5);
+  for (const e of inRange(m.x, m.y, 250)) { if (e.spirit || e.magicImmune) continue; stun(e, 3); hurt(e, 20, 'magic', src); }
+}
 // 嗜血术：给附近一座没有嗜血的塔加攻速（优先打得最多的）
 function lust(t, v, dur, cd, range) {
   if (!cdReady(t, 'lust') || !anyEnemy(t.x, t.y, 1500)) return;
@@ -5366,7 +5519,7 @@ const WR = window.WAVE_ROLLS;
 const NO_ELITE = new Set(['Nfir', 'Nalc', 'Ntin', 'Npbm', 'hhdl', 'nhef', 'njks', 'nhew', 'nsqt', 'nsko', 'nrdr', 'nrdk', 'nbzd', 'ngrd', 'ngst', 'nkob', 'nkot', 'nkog',
   'nglm', 'nfgl', 'ndrl', 'ndrt', 'ndrn', 'nogo', 'nsw2', 'nogn', 'noga', 'ndsa', 'Udea', 'nbal', 'nchw', 'nchg', 'njga', 'njgb', 'nskg', 'nanm', 'h08S']);
 const HINT_ARMOR = { '物理': 'small', '抗性': 'medium', '魔法': 'large', '神圣': 'divine' };
-function monstersAlive() { return G.monsters.filter(m => !m.dead && !m.neutral).length; }   // 中立单位（小精灵、小偷）不算怪数（原图只数 Player(11)）
+function monstersAlive() { return G.monsters.filter(m => !m.dead && !m.neutral && !m.spirit).length; }   // 中立单位（小精灵、小偷）不算怪数（原图只数 Player(11)）；圣灵塔的圣灵也不算
 // 场上怪物上限（原图 M3 = C9[1]+…+C9[8]）：每个在场玩家 40，无尽关卡里 15
 function cap() { return G.c9.reduce((a, b) => a + b, 0); }
 // 玩家离开（联机用）：原图 SQ 等触发器把他的 C9 每秒 -1 直到 0，上限慢慢降下来；他的出怪口照样出怪
@@ -6071,6 +6224,7 @@ function freeSpotNear(x, y, r) {
 const sameBuild = p => p.build.join() === G.build.join() && p.heroChoice === G.heroChoice;
 function copyBuild(p) {
   G.build = p.build.slice(); G.heroChoice = p.heroChoice; G.rerolls = Math.max(G.rerolls, 1); G.placing = null;
+  godRefresh();
   addWood(p, 5);
   NET.send({ t: 'copy', slot: G.me, target: p.slot });
   msg(`复制成功：建造栏换成了 ${p.name} 的（${G.build.join('、')}${G.heroChoice ? '、' + G.heroChoice : ''}）；${p.name} 获得 5 木材`);
@@ -7297,7 +7451,7 @@ function towerFit(m) {
   return Math.min(TOWER_MAX_W / w, TOWER_MAX_H / h, Math.max(1, TOWER_MIN_W / w));
 }
 function drawTower(t) {
-  if (!onScr(t.x, t.y)) return;
+  if (t.hide || !onScr(t.x, t.y)) return;          // 看不见的马甲（树妖箭）
   const K = kAt(t.y);
   const x = sx(t.x, t.y), y = sy(t.y), s = Math.max((t.cat === 'summon' ? 90 : 150) * K, (t.cat === 'summon' ? 9 : 14) * DPR);
   const atk = t.cat === 'aura' ? 'aura' : (t.isHero ? heroStats(t).atk : curLevel(t).atk);
@@ -7788,7 +7942,7 @@ function buildCmds() {
   }
   if (e.isBuilder) {
     if (G.menu === 'build') {
-      const keys = ['Q', 'W', 'E', 'R', 'A', 'S', 'D'];
+      const keys = ['Q', 'W', 'E', 'R', 'A', 'S', 'D', 'F'];   // 8 格随机建造，英雄塔接在后面（Z）
       G.build.forEach((fam, i) => {
         const d = D.towers[fam], l = d.levels[0], blocked = buildBlock(fam);
         out.push(cmd(keys[i], fam.slice(0, 2), fam, `<b>${fam}</b> ${d.cat === 'aura' ? atkTag('aura') : atkTag(l.atk)}<br>${CAT_CN[d.cat]} · <span class="gold">${l.gold} 金</span> · ${l.food || 0} 人口<br>${l.tip.replace(/\n/g, '<br>')}${blocked ? '<br><b style="color:#ff5a4f">' + blocked + '</b>' : ''}`,
@@ -7796,7 +7950,7 @@ function buildCmds() {
             ico: SVG_CATS.has(d.cat) ? 'tower-' + fam : null, cost: l.gold }));
       });
       if (G.heroChoice) { const h = D.heroes[G.heroChoice], blocked = heroBlock();
-        out.push(cmd('F', h.name, h.name + '（英雄塔）', `<b>${h.name}</b> ${atkTag(h.atk)}<br>英雄塔 · 全场唯一 · 建造后不能回收<br><span class="gold">${h.gold} 金</span> · ${h.wood} 木材 · ${h.food} 人口 · ${h.sponsor ? '<b style="color:#ffd257">赞助英雄</b>' : `<b style="color:#ff9ad5">${RULE.heroAch} 当局成就</b>`}<br>${h.title}${blocked ? '<br><b style="color:#ff5a4f">' + blocked + '</b>' : ''}`,
+        out.push(cmd('Z', h.name, h.name + '（英雄塔）', `<b>${h.name}</b> ${atkTag(h.atk)}<br>英雄塔 · 全场唯一 · 建造后不能回收<br><span class="gold">${h.gold} 金</span> · ${h.wood} 木材 · ${h.food} 人口 · ${h.sponsor ? '<b style="color:#ffd257">赞助英雄</b>' : `<b style="color:#ff9ad5">${RULE.heroAch} 当局成就</b>`}<br>${h.title}${blocked ? '<br><b style="color:#ff5a4f">' + blocked + '</b>' : ''}`,
           () => { G.placing = 'hero'; uiDirty(); }, { atk: h.atk, active: G.placing === 'hero', disabled: !!blocked || G.gold < h.gold || G.wood < h.wood, hero: true, iconKey: 'icon:hero:' + h.name, ico: 'hero-' + h.name, cost: h.gold })); }
       while (out.length < 11) out.push(null);
       out.push(back); return out;
@@ -7811,7 +7965,7 @@ function buildCmds() {
     out.push(cmd('M', '➜', '移动', '移动守卫者。也可以选中守卫者后直接右键 / 点击地面', () => { G.pending = 'move'; G.placing = null; uiDirty(); }, { active: G.pending === 'move', ico: 'move' }));
     out.push(cmd('S', '■', '停止', '停止当前命令（包括排队的命令）', () => { e.order = null; e.queue = []; G.pending = null; G.placing = null; uiDirty(); }, { ico: 'stop' }));
     out.push(cmd('F', '✦', '闪烁', '全图闪烁：瞬间移动到目标点，冷却 1 秒', () => { G.pending = 'blink'; G.placing = null; uiDirty(); }, { active: G.pending === 'blink', ico: 'blink' }));
-    out.push(cmd('B', '建', '建造', '打开建造栏（当前随机给出的 7 个塔 + 1 个英雄塔）', () => { G.menu = 'build'; uiDirty(); }, { ico: 'build' }));
+    out.push(cmd('B', '建', '建造', '打开建造栏（当前随机给出的 8 个塔 + 1 个英雄塔）', () => { G.menu = 'build'; uiDirty(); }, { ico: 'build' }));
     if (!endlessLock()) out.push(cmd('R', '🎲', '随机建造', `重新随机建造栏：1 主塔、1 原始塔、1 光环塔、1 新辅助（大辅助 / 巫系）、1 小辅助、1 另类塔、1 全场唯一、1 英雄塔<br>${G.rerolls === 0 ? '首次免费' : `需要 ${RULE.rerollWood} 木材`}`, () => rerollBuild(false), { disabled: G.rerolls > 0 && G.wood < RULE.rerollWood, ico: 'reroll' }));
     if (!endlessLock()) out.push(cmd('U', '木', '使用木材', '购买人口（12 木）、兑换金币（1 木 → 300 金）、激活天赋（10~50 木）。买木材去地图中央的商店', () => { G.menu = 'wood'; uiDirty(); }, { ico: 'woodmenu' }));
     const fw = fodBlock();
@@ -7982,7 +8136,7 @@ function hitTest(px, py) {
   for (const w of G.wild) if (d2(w, 80) < rpx(w, 90, 14)) return w;
   if (!G.pending) for (const it of G.items) if (d2(it, 30) < rpx(it, 60, 12)) return it;
   let best = null, bd = Infinity;
-  for (const t of G.towers) { const d = d2(t, t.cat === 'aura' ? 80 : 200); if (d < rpx(t, 120, 16) && d < bd) { bd = d; best = t; } }
+  for (const t of G.towers) { if (t.hide) continue; const d = d2(t, t.cat === 'aura' ? 80 : 200); if (d < rpx(t, 120, 16) && d < bd) { bd = d; best = t; } }
   if (best) return best;
   for (const m of G.monsters) { const d = d2(m, 110 * (m.elite ? 1.3 : 1)); if (d < rpx(m, 90, 12) && d < bd) { bd = d; best = m; } }
   return best;
@@ -8241,6 +8395,9 @@ function showHelp() {
       无尽不能通关，怪数超过上限时结束，按无尽积分（杀怪 +4、每波按空位加分）结算。玩家档案记下无尽最高分，下局开局多给当局成就（≥1 +2、≥5000 +4、≥1 万 +6、≥1.5 万 +8、≥2 万 +10 …… ≥2.5 万 +15）。</p>
     <p><b>英雄塔</b>：每次随机建造给出 1 个英雄塔（和原图随机模式一样），1500 金 + 5 木材 + 4 人口，还要 <b>${RULE.heroAch} 点当局成就</b>（建成扣掉），全场唯一，建造后不能回收。建成时随机给出力量 / 敏捷 / 智力的成长值（合计 10），每次升级按成长值加属性；属性选择决定杀精英怪 +1 的属性和满级后升级 +3 的属性。升级要 等级×100 金 + 200 魔法（英雄每击杀 +2 魔法）。学技能：第 1 个免费；第 2/3/4 个分别要 18/36/54 木材，且力量 ≥ 80/160/240，最多 4 个（第 5 个特殊技能有额外条件）。英雄有技能点：建成 3 点、每升一级 3~9 点，每点力量 / 敏捷 / 智力 +2 或随机。
       随机建造在原图随机模式的 17 个英雄里抽，原图的主动技能都是攻击时自动放。</p>
+    <p><b>神塔</b>：建造栏第 8 格，每次随机建造从驱魔 / 树妖 / 暗牧 / 海妖 / 猎人 / 圣灵塔里抽 1 座。全场唯一：任何玩家建了之后所有人都不能再建，回收也不返还建造处，要等下次随机建造（而且全场没人有这座时才放开）。
+      驱魔塔（手动，晕眩 6 秒并遣返到随机出怪口）、树妖塔（纠缠，树妖箭每次永久 -20 护甲）、暗牧塔（自动减速，第 9 次起扣目标 12% 当前生命）、海妖塔（8 秒一次对精英 / 无尽怪物 200 万伤害，杀精英 +200 攻击）、
+      猎人塔（手动，捕获一个敌人为你战斗 600 秒）、圣灵塔（霜冻减速，3 秒一次往出怪口派圣灵，圣灵被杀时纠缠附近敌人 3 秒）。</p>
     <p><b>账号成就</b>（玩家 ${escHtml(G.player || '—')}：${G.player ? profileLine(G.player) : '未登记'}）：开局输入的玩家名称代替原图的平台账号，同名继承点数，存在本机浏览器里。每到达新的一波 +${PROFILE.wave}、每次 Perfect +${PROFILE.perfect}、通关 +${PROFILE.clear}（演示模式不算）。
       档位（开局当局成就加成）：${ACH_TIERS.map(([n, t], i) => `${t} ${n} 点 +${i + 1}`).join('、')}。</p>
     <p style="color:#7f9483;font-size:11px">命令图标的图形来自 <a href="https://game-icons.net" target="_blank" style="color:#9fc4a6">game-icons.net</a>（Lorc、Delapouite 等，CC BY 3.0）。</p>

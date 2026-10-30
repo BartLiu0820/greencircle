@@ -1,0 +1,33 @@
+{
+ "key": "tower:暗牧塔",
+ "src": "sprites/w3_tower_Units_Creeps_DarkTrollTrapper_DarkTrollTrapper.png",
+ "frameW": 160,
+ "frameH": 160,
+ "cols": 10,
+ "rows": 2,
+ "anchor": [
+  0.5,
+  0.7
+ ],
+ "unitsPerPixel": 2.0,
+ "pitch": 50,
+ "actions": {
+  "idle": {
+   "row": 0,
+   "dirs": 1,
+   "frames": 10,
+   "fps": 7.9,
+   "loop": true
+  },
+  "attack": {
+   "row": 1,
+   "dirs": 1,
+   "frames": 6,
+   "fps": 14,
+   "loop": false
+  }
+ },
+ "modelScale": 0.9,
+ "aliasOf": "model:tower:Units/Creeps/DarkTrollTrapper/DarkTrollTrapper",
+ "war3": true
+}

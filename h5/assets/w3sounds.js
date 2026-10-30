@@ -1157,6 +1157,81 @@ window.W3_SOUNDS = {
     "sounds/Units/Undead/Banshee/BansheePissed5.wav"
    ]
   },
+  "tower:树妖塔": {
+   "what": [
+    "sounds/Units/NightElf/Dryad/DryadWhat1.wav",
+    "sounds/Units/NightElf/Dryad/DryadWhat2.wav",
+    "sounds/Units/NightElf/Dryad/DryadWhat3.wav",
+    "sounds/Units/NightElf/Dryad/DryadWhat4.wav"
+   ],
+   "yes": [
+    "sounds/Units/NightElf/Dryad/DryadYes1.wav",
+    "sounds/Units/NightElf/Dryad/DryadYes2.wav",
+    "sounds/Units/NightElf/Dryad/DryadYes3.wav",
+    "sounds/Units/NightElf/Dryad/DryadYes4.wav"
+   ],
+   "yesAttack": [
+    "sounds/Units/NightElf/Dryad/DryadYesAttack2.wav",
+    "sounds/Units/NightElf/Dryad/DryadYesAttack3.wav",
+    "sounds/Units/NightElf/Dryad/DryadYesAttack4.wav"
+   ],
+   "pissed": [
+    "sounds/Units/NightElf/Dryad/DryadPissed1.wav",
+    "sounds/Units/NightElf/Dryad/DryadPissed2.wav",
+    "sounds/Units/NightElf/Dryad/DryadPissed3.wav",
+    "sounds/Units/NightElf/Dryad/DryadPissed4.wav",
+    "sounds/Units/NightElf/Dryad/DryadPissed5.wav",
+    "sounds/Units/NightElf/Dryad/DryadPissed6.wav",
+    "sounds/Units/NightElf/Dryad/DryadPissed7.wav",
+    "sounds/Units/NightElf/Dryad/DryadPissed8.wav",
+    "sounds/Units/NightElf/Dryad/DryadPissed9.wav"
+   ],
+   "launch": [
+    "sounds/Abilities/Weapons/Dryadmissile/DryadMissile1.wav",
+    "sounds/Abilities/Weapons/Dryadmissile/DryadMissile2.wav"
+   ]
+  },
+  "tower:暗牧塔": {
+   "what": [
+    "sounds/Buildings/Orc/TaurenTotem/TaurenTotemWhat1.wav"
+   ]
+  },
+  "tower:海妖塔": {
+   "launch": [
+    "sounds/Abilities/Weapons/DragonHawkMissile/WindSerpentMissile.wav"
+   ]
+  },
+  "tower:猎人塔": {
+   "what": [
+    "sounds/Units/Creeps/Kobold/KoboldWhat1.wav",
+    "sounds/Units/Creeps/Kobold/KoboldWhat2.wav",
+    "sounds/Units/Creeps/Kobold/KoboldWhat3.wav"
+   ],
+   "yes": [
+    "sounds/Units/Creeps/Kobold/KoboldYes1.wav",
+    "sounds/Units/Creeps/Kobold/KoboldYes2.wav",
+    "sounds/Units/Creeps/Kobold/KoboldYes3.wav"
+   ],
+   "yesAttack": [
+    "sounds/Units/Creeps/Kobold/KoboldYesAttack1.wav",
+    "sounds/Units/Creeps/Kobold/KoboldYesAttack2.wav",
+    "sounds/Units/Creeps/Kobold/KoboldYesAttack3.wav"
+   ],
+   "pissed": [
+    "sounds/Units/Creeps/Kobold/KoboldPissed1.wav",
+    "sounds/Units/Creeps/Kobold/KoboldPissed2.wav",
+    "sounds/Units/Creeps/Kobold/KoboldPissed3.wav",
+    "sounds/Units/Creeps/Kobold/KoboldPissed4.wav"
+   ]
+  },
+  "tower:圣灵塔": {
+   "what": [
+    "sounds/Buildings/Orc/TaurenTotem/TaurenTotemWhat1.wav"
+   ],
+   "launch": [
+    "sounds/Abilities/Spells/Items/AIma/ManaPotion.wav"
+   ]
+  },
   "hero:剑神": {
    "what": [
     "sounds/Units/Orc/HeroBladeMaster/HeroBlademasterWhat1.wav",
@@ -2630,6 +2705,72 @@ window.W3_SOUNDS = {
   "unit:nsw2": {
    "death": [
     "sounds/Units/Demon/felhound/FelHoundDeath1.wav"
+   ]
+  },
+  "unit:nsoc": {
+   "death": [
+    "sounds/Units/Undead/Skeleton/SkeletonDeath1.wav"
+   ]
+  },
+  "unit:n070": {
+   "death": [
+    "sounds/Units/Undead/Skeleton/SkeletonDeath1.wav"
+   ]
+  },
+  "unit:n074": {
+   "death": [
+    "sounds/Units/Undead/Skeleton/SkeletonDeath1.wav"
+   ]
+  },
+  "unit:n073": {
+   "death": [
+    "sounds/Units/Undead/Skeleton/SkeletonDeath1.wav"
+   ]
+  },
+  "unit:n072": {
+   "death": [
+    "sounds/Units/Undead/Skeleton/SkeletonDeath1.wav"
+   ]
+  },
+  "unit:n075": {
+   "death": [
+    "sounds/Units/Undead/Skeleton/SkeletonDeath1.wav"
+   ]
+  },
+  "unit:n076": {
+   "death": [
+    "sounds/Units/Undead/Skeleton/SkeletonDeath1.wav"
+   ]
+  },
+  "unit:u000": {
+   "death": [
+    "sounds/Units/Undead/Shade/ShadeDeath1.wav"
+   ]
+  },
+  "unit:n08M": {
+   "death": [
+    "sounds/Units/Creeps/Spider/SpiderDeath1.wav"
+   ]
+  },
+  "unit:o00A": {
+   "death": [
+    "sounds/Units/Creeps/DireWolf/DireWolfDeath1.wav"
+   ]
+  },
+  "unit:nsqe": {
+   "death": [
+    "sounds/Units/Creeps/Wendigo/WendigoDeath.wav"
+   ]
+  },
+  "unit:n06W": {
+   "death": [
+    "sounds/Units/Undead/Gargoyle/GargoyleDeath1.wav",
+    "sounds/Units/Undead/Gargoyle/GargoyleDeathAlternate1.wav"
+   ]
+  },
+  "unit:h08S": {
+   "death": [
+    "sounds/Units/Human/Footman/FootmanDeath.wav"
    ]
   },
   "builder": {

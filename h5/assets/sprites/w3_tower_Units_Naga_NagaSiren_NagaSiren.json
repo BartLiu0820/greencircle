@@ -1,0 +1,31 @@
+{
+ "key": "model:tower:Units/Naga/NagaSiren/NagaSiren",
+ "src": "sprites/w3_tower_Units_Naga_NagaSiren_NagaSiren.png",
+ "frameW": 192,
+ "frameH": 192,
+ "cols": 10,
+ "rows": 2,
+ "anchor": [
+  0.5,
+  0.62
+ ],
+ "unitsPerPixel": 2.0,
+ "pitch": 50,
+ "actions": {
+  "idle": {
+   "row": 0,
+   "dirs": 1,
+   "frames": 10,
+   "fps": 3.75,
+   "loop": true
+  },
+  "attack": {
+   "row": 1,
+   "dirs": 1,
+   "frames": 6,
+   "fps": 14,
+   "loop": false
+  }
+ },
+ "modelScale": 1.0
+}

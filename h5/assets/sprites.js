@@ -4168,6 +4168,36 @@ window.SPRITE_SHEETS = {
    208
   ]
  },
+ "tower:圣灵塔": {
+  "key": "tower:圣灵塔",
+  "src": "sprites/w3_tower_Abilities_Spells_NightElf_Rejuvenation_RejuvenationTarget.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 18.76,
+    "loop": true
+   }
+  },
+  "modelScale": 1.3,
+  "aliasOf": "model:tower:Abilities/Spells/NightElf/Rejuvenation/RejuvenationTarget",
+  "war3": true,
+  "vis": [
+   0,
+   0
+  ]
+ },
  "tower:地精塔": {
   "key": "tower:地精塔",
   "src": "sprites/tower_地精塔.webp",
@@ -5708,6 +5738,43 @@ window.SPRITE_SHEETS = {
    190
   ]
  },
+ "tower:暗牧塔": {
+  "key": "tower:暗牧塔",
+  "src": "sprites/w3_tower_Units_Creeps_DarkTrollTrapper_DarkTrollTrapper.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 7.9,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 0.9,
+  "aliasOf": "model:tower:Units/Creeps/DarkTrollTrapper/DarkTrollTrapper",
+  "war3": true,
+  "vis": [
+   70,
+   86
+  ]
+ },
  "tower:暴击塔": {
   "key": "tower:暴击塔",
   "src": "sprites/w3_tower_Units_Human_Rifleman_Rifleman.webp",
@@ -5869,6 +5936,48 @@ window.SPRITE_SHEETS = {
   "vis": [
    114,
    104
+  ]
+ },
+ "tower:树妖塔": {
+  "key": "tower:树妖塔",
+  "src": "sprites/w3_tower_Units_NightElf_Dryad_Dryad.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.39,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 0.5,
+  "aliasOf": "model:tower:Units/NightElf/Dryad/Dryad",
+  "war3": true,
+  "tint": [
+   0.784,
+   0.784,
+   1.0
+  ],
+  "vis": [
+   40,
+   66
   ]
  },
  "tower:死亡塔": {
@@ -6249,6 +6358,43 @@ window.SPRITE_SHEETS = {
   "vis": [
    200,
    130
+  ]
+ },
+ "tower:海妖塔": {
+  "key": "tower:海妖塔",
+  "src": "sprites/w3_tower_Units_Naga_NagaSiren_NagaSiren.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.62
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 3.75,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "aliasOf": "model:tower:Units/Naga/NagaSiren/NagaSiren",
+  "war3": true,
+  "vis": [
+   156,
+   172
   ]
  },
  "tower:深渊塔": {
@@ -7348,6 +7494,43 @@ window.SPRITE_SHEETS = {
   "vis": [
    104,
    184
+  ]
+ },
+ "tower:猎人塔": {
+  "key": "tower:猎人塔",
+  "src": "sprites/w3_tower_Units_Orc_Wolfrider_Wolfrider.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.62
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 5.0,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "aliasOf": "model:tower:Units/Orc/Wolfrider/Wolfrider",
+  "war3": true,
+  "vis": [
+   86,
+   152
   ]
  },
  "tower:破坏塔": {
@@ -9208,6 +9391,43 @@ window.SPRITE_SHEETS = {
    120
   ]
  },
+ "tower:驱魔塔": {
+  "key": "tower:驱魔塔",
+  "src": "sprites/w3_tower_Units_Creeps_Watcher_Watcher.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 7.89,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "aliasOf": "model:tower:Units/Creeps/Watcher/Watcher",
+  "war3": true,
+  "vis": [
+   80,
+   128
+  ]
+ },
  "tower:魔幻塔": {
   "key": "tower:魔幻塔",
   "src": "sprites/w3_tower_Units_Human_BloodElfSpellThief_BloodElfSpellThief.webp",
@@ -10774,6 +10994,32 @@ window.SPRITE_SHEETS = {
   },
   "modelScale": 1.5,
   "aliasOf": "model:monster:Units/Critters/Skink/Skink",
+  "war3": true
+ },
+ "unit:h08S": {
+  "key": "unit:h08S",
+  "src": "sprites/w3_monster_Abilities_Spells_NightElf_Rejuvenation_RejuvenationTarget.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 6,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "death": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 0.6,
+  "aliasOf": "model:monster:Abilities/Spells/NightElf/Rejuvenation/RejuvenationTarget",
   "war3": true
  },
  "unit:h09H": {
@@ -19818,6 +20064,30 @@ window.SPRITE_SHEETS = {
   "modelScale": 1.0,
   "glow": true
  },
+ "model:monster:Abilities/Spells/NightElf/Rejuvenation/RejuvenationTarget": {
+  "key": "model:monster:Abilities/Spells/NightElf/Rejuvenation/RejuvenationTarget",
+  "src": "sprites/w3_monster_Abilities_Spells_NightElf_Rejuvenation_RejuvenationTarget.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 6,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "death": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 0.6
+ },
  "model:monster:Abilities/Spells/Other/StrongDrink/BrewmasterMissile": {
   "key": "model:monster:Abilities/Spells/Other/StrongDrink/BrewmasterMissile",
   "src": "sprites/w3_monster_Abilities_Spells_Other_StrongDrink_BrewmasterMissile.webp",
@@ -24498,6 +24768,30 @@ window.SPRITE_SHEETS = {
   "modelScale": 1.0,
   "glow": true
  },
+ "model:tower:Abilities/Spells/NightElf/Rejuvenation/RejuvenationTarget": {
+  "key": "model:tower:Abilities/Spells/NightElf/Rejuvenation/RejuvenationTarget",
+  "src": "sprites/w3_tower_Abilities_Spells_NightElf_Rejuvenation_RejuvenationTarget.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 18.76,
+    "loop": true
+   }
+  },
+  "modelScale": 1.3
+ },
  "model:tower:Abilities/Spells/Other/Doom/DoomTarget": {
   "key": "model:tower:Abilities/Spells/Other/Doom/DoomTarget",
   "src": "sprites/w3_tower_Abilities_Spells_Other_Doom_DoomTarget.webp",
@@ -25133,6 +25427,37 @@ window.SPRITE_SHEETS = {
   },
   "modelScale": 1.4
  },
+ "model:tower:Units/Creeps/DarkTrollTrapper/DarkTrollTrapper": {
+  "key": "model:tower:Units/Creeps/DarkTrollTrapper/DarkTrollTrapper",
+  "src": "sprites/w3_tower_Units_Creeps_DarkTrollTrapper_DarkTrollTrapper.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 7.9,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 0.9
+ },
  "model:tower:Units/Creeps/DireWolf/DireWolf": {
   "key": "model:tower:Units/Creeps/DireWolf/DireWolf",
   "src": "sprites/w3_tower_Units_Creeps_DireWolf_DireWolf.webp",
@@ -25444,6 +25769,37 @@ window.SPRITE_SHEETS = {
   },
   "modelScale": 1.5
  },
+ "model:tower:Units/Creeps/Watcher/Watcher": {
+  "key": "model:tower:Units/Creeps/Watcher/Watcher",
+  "src": "sprites/w3_tower_Units_Creeps_Watcher_Watcher.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 7.89,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0
+ },
  "model:tower:Units/Demon/HeroChaosBladeMaster/HeroChaosBladeMaster": {
   "key": "model:tower:Units/Demon/HeroChaosBladeMaster/HeroChaosBladeMaster",
   "src": "sprites/w3_tower_Units_Demon_HeroChaosBladeMaster_HeroChaosBladeMaster.webp",
@@ -25741,6 +26097,68 @@ window.SPRITE_SHEETS = {
   },
   "modelScale": 1.2
  },
+ "model:tower:Units/Naga/NagaSiren/NagaSiren": {
+  "key": "model:tower:Units/Naga/NagaSiren/NagaSiren",
+  "src": "sprites/w3_tower_Units_Naga_NagaSiren_NagaSiren.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.62
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 3.75,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0
+ },
+ "model:tower:Units/NightElf/Dryad/Dryad": {
+  "key": "model:tower:Units/NightElf/Dryad/Dryad",
+  "src": "sprites/w3_tower_Units_NightElf_Dryad_Dryad.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.39,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 0.5
+ },
  "model:tower:Units/NightElf/HeroDemonHunter/HeroDemonHunter": {
   "key": "model:tower:Units/NightElf/HeroDemonHunter/HeroDemonHunter",
   "src": "sprites/w3_tower_Units_NightElf_HeroDemonHunter_HeroDemonHunter.webp",
@@ -26026,6 +26444,37 @@ window.SPRITE_SHEETS = {
     "dirs": 1,
     "frames": 10,
     "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0
+ },
+ "model:tower:Units/Orc/Wolfrider/Wolfrider": {
+  "key": "model:tower:Units/Orc/Wolfrider/Wolfrider",
+  "src": "sprites/w3_tower_Units_Orc_Wolfrider_Wolfrider.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.62
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 5.0,
     "loop": true
    },
    "attack": {
