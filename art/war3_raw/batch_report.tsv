@@ -257,3 +257,17 @@ model:monster:Units/Creeps/Mammoth/Mammoth	ok	高 2.45 m | ppm 40 | 缺贴图 0 
 model:monster:Abilities/Spells/Undead/DeathCoil/DeathCoilMissile	ok	高 0.99 m | ppm 40 | 缺贴图 0 | 动作 death | 光效 无（出图的动作里看不见）
 model:monster:Abilities/Spells/Human/FlameStrike/FlameStrikeDamageTarget	ok	高 2.00 m | ppm 40 | 缺贴图 0 | 动作 idle,death | 光效 无
 model:monster:Objects/InventoryItems/UndeadCaptureFlag/UndeadCaptureFlag	ok	高 2.01 m | ppm 40 | 缺贴图 0 | 动作 idle,death | 光效 无
+model:monster:Units/Creeps/HeroTinkerRobot/HeroTinkerRobot	ok	高 1.44 m | ppm 40 | 缺贴图 0 | 动作 attack,death | 光效 无
+model:monster:Units/Creeps/HeroTinker/HeroTinker	ok	高 1.13 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无
+model:monster:Units/Other/DwarfCar/DwarfCar	ok	高 1.70 m | ppm 40 | 缺贴图 0 | 动作 idle,walk | 光效 无
+model:monster:Units/Other/DiabloCar/DiabloCar	ok	高 2.18 m | ppm 40 | 缺贴图 0 | 动作 idle,walk | 光效 无
+model:monster:Units/Other/Orccar/Orccar	ok	高 1.46 m | ppm 40 | 缺贴图 0 | 动作 idle,walk | 光效 无
+model:monster:Units/Other/UndeadCar/UndeadCar	ok	高 1.80 m | ppm 40 | 缺贴图 0 | 动作 idle,walk | 光效 无
+model:monster:SharedModels/EntangleWisp	ok	高 2.00 m | ppm 40 | 缺贴图 0 | 动作 idle | 光效 有
+model:tower:Units/Creeps/HeroTinkerRobot/HeroTinkerRobot	ok	高 1.15 m | ppm 40 | 缺贴图 0 | 动作 attack,death | 光效 无
+model:tower:Abilities/Weapons/LavaSpawnMissile/LavaSpawnBirthMissile	ok	高 1.21 m | ppm 40 | 缺贴图 0 | 动作 idle,death | 光效 有
+model:tower:Units/Creeps/LavaSpawn/LavaSpawn	ok	高 2.10 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death | 光效 有
+model:hero:Units/Creeps/HeroFlameLord/HeroFlameLord	ok	高 2.09 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 有
+model:hero:Units/Creeps/HEROGoblinALCHEMIST/HeroGoblinAlchemist	ok	高 2.97 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,death | 光效 无
+model:hero:Units/Other/Orccar/Orccar	ok	高 1.55 m | ppm 40 | 缺贴图 0 | 动作 idle,walk | 光效 无
+model:hero:Units/Creeps/HeroTinker/HeroTinker	ok	高 1.80 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无

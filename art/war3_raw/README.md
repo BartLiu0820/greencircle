@@ -7,6 +7,8 @@
 ```bash
 # 1. 解压（不要音效和界面背景，约 290 MB）
 unzip -q -o war3-assets.zip -d art/war3_raw -x '__MACOSX/*' '*/Sound/*' '*/UI/Glues/*' '*.wav'
+# 1b. 补充包（war3-assets.zip 里缺的原版文件，见下面"补充包"）：只补新文件，不覆盖已有的
+unzip -q -n war3-missing-originals.zip -d art/war3_raw/tft -x manifest.json README.txt 'MPQ路径清单.txt'
 # 2. 怪物 / 塔 / 英雄 / 守卫者的精灵表（约 40 分钟，JOBS=6 个 Blender 并行），结果在 batch_report.tsv
 python3 tools/war3_batch.py
 # 3. 信息面板里会动的头像（*_Portrait.mdx，用模型自带的镜头）→ h5/assets/w3portraits.js、h5/assets/portraits/
@@ -34,7 +36,7 @@ python3 tools/war3_sounds.py
 - **头像**：模型同目录的 `*_Portrait.mdx`，用里面的镜头（CAMS）取景，播放 Portrait 动作；建筑类没有头像模型的用图标。
 - **控制台**：暗夜精灵的 `NightElfUITile01~04`（拼成 1600×512，上面是顶栏、下面是底栏），桌面浏览器里按原版的位置摆放小地图、头像、血蓝条、信息区和命令卡；
   手机竖屏仍用简化的两行布局。
-- **商店**：地图中央的商店 `u00L`，模型是摇滚阿尔萨斯（`Doodads/Cinematic/RockinArthas`），登记成 `shop`。兔子（`nshe`）的复活节兔子模型不在包里，游戏里程序绘制。
+- **商店**：地图中央的商店 `u00L`，模型是摇滚阿尔萨斯（`Doodads/Cinematic/RockinArthas`），登记成 `shop`。兔子（`nshe`）用复活节兔子模型（`Units/Critters/EasterRabbit`，放大 3 倍）实时渲染，没有 3D 时程序绘制。
 - **剑刃风暴**：原图召唤剑魂 `n05F`（1.5 倍的剑圣，带幽灵所以半透明）施放旋风斩；精灵图是剑圣模型的 `Attack Walk Stand Spin` 动作（`fx:bladestorm`）。
 - **投射物**：塔 / 英雄 1 级单位的 `Missileart`、`Missilespeed`、`Missilearc`。速度 ≥ 5000 或瞬间命中的（原图里其实是直接命中）、
   或者没有填的，继续用程序绘制的弹道。命中效果沿用程序绘制的（能看出溅射范围）。
@@ -51,9 +53,13 @@ python3 tools/war3_sounds.py
   包里没有 `AnimSounds.slk`，模型动画里的声音事件对不上号，所以是按文件名推断的。扫射塔没有攻击声（原图是技能射线）。
   `h5/assets/sounds/` 不入库，没有时游戏静音；小地图旁的 ♪ 按钮切换 全开 / 只有音效 / 静音。
 
-## 原版包里没有、继续用 Hive 版的
-地精修补匠（`ndtr`）、修补匠机器人（`n08V`、`ncg3`、地精塔）、4 辆车（`nerw`、`nfod`、`nfor`、`nfot`）、火焰领主（火魂）。
-这几个也没有原版图标；地精塔的投射物（TinkerRocket）也不在包里。
+## 补充包
+`war3-assets.zip` 不完整，缺了一批原版文件。`war3-missing-originals.zip`（项目根目录，不入库）补上了 35 个 MDX、102 个 BLP、100 个 WAV，
+按 MPQ 原路径解压进 `art/war3_raw/tft/`（同名的已有文件不覆盖，其中 `Textures/HeroLich.blp`、`Textures/clouds_anim1_bw.blp` 两个内容不同，保留原来的）。
+包里的说明和校验和存在 `art/war3_raw/supplement_2026-11/`。补上的有：复活节兔子、浣熊、精灵（EntangleWisp）、炎魔（LavaSpawn）、火焰领主（火魂）、
+地精炼金术士（炼金）、地精修补匠（维修工、坦克皮肤）、修补匠机器人（地精塔、地精头头、人工地精、自爆地精）、4 辆车（第 40 波坦克、枪神皮肤）、
+神力塔的 LavaSpawnBirthMissile；投射物 TinkerRocket / LavaSpawnMissile / LordofFlameMissile / VolcanoMissile / FireLordDeathExplode / BottleImpact；
+对应的图标、头像模型和音效（`tools/war3_sounds.py` 会读 `art/war3_raw/tft/` 里的 wav）；死亡溅血等粒子模型 Gutz1 / Bones1 / Feather / NEBirth。
 
 光环塔原图用的是光环特效模型，游戏里继续程序绘制。
 

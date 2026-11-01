@@ -1,9 +1,9 @@
 {
  "key": "hero:火魂",
- "src": "sprites/hero_火魂.png",
+ "src": "sprites/w3_hero_Units_Creeps_HeroFlameLord_HeroFlameLord.png",
  "frameW": 192,
  "frameH": 192,
- "cols": 8,
+ "cols": 10,
  "rows": 24,
  "anchor": [
   0.5,
@@ -15,8 +15,8 @@
   "idle": {
    "row": 0,
    "dirs": 8,
-   "frames": 6,
-   "fps": 8,
+   "frames": 10,
+   "fps": 4.62,
    "loop": true
   },
   "attack": {
@@ -33,5 +33,13 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.0,
+ "aliasOf": "model:hero:Units/Creeps/HeroFlameLord/HeroFlameLord",
+ "war3": true,
+ "tint": [
+  1.0,
+  1.0,
+  0.0
+ ]
 }

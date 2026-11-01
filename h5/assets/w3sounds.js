@@ -487,12 +487,10 @@ window.W3_SOUNDS = {
     "sounds/Buildings/Other/ElvenGuardTower/ElvenGuardTowerWhat1.wav"
    ],
    "launch": [
-    "sounds/Abilities/Weapons/CannonTowerMissile/CannonTowerMissileLaunch1.wav",
-    "sounds/Abilities/Weapons/CannonTowerMissile/CannonTowerMissileLaunch2.wav",
-    "sounds/Abilities/Weapons/CannonTowerMissile/CannonTowerMissileLaunch3.wav"
+    "sounds/Abilities/Spells/Other/TinkerRocket/TinkerMissileLaunch1.wav"
    ],
    "hit": [
-    "sounds/Abilities/Weapons/Mortar/MortarImpact.wav"
+    "sounds/Abilities/Spells/Other/TinkerRocket/TinkerMissileDeath1.wav"
    ]
   },
   "tower:弹跳塔": {
@@ -1129,6 +1127,26 @@ window.W3_SOUNDS = {
     "sounds/Units/Orc/Catapult/CatapultAttack1.wav"
    ]
   },
+  "tower:炎魔塔": {
+   "what": [
+    "sounds/Units/Creeps/LavaSpawn/LavaSpawnWhat1.wav",
+    "sounds/Units/Creeps/LavaSpawn/LavaSpawnWhat2.wav"
+   ],
+   "yes": [
+    "sounds/Units/Creeps/LavaSpawn/LavaSpawnYes1.wav",
+    "sounds/Units/Creeps/LavaSpawn/LavaSpawnYes2.wav"
+   ],
+   "yesAttack": [
+    "sounds/Units/Creeps/LavaSpawn/LavaSpawnYesAttack1.wav",
+    "sounds/Units/Creeps/LavaSpawn/LavaSpawnYesAttack2.wav"
+   ],
+   "launch": [
+    "sounds/Abilities/Weapons/LavaSpawnMissile/LavaSpawnMissileBirth1.wav"
+   ],
+   "hit": [
+    "sounds/Abilities/Weapons/LavaSpawnMissile/LavaSpawnMissileDeath1.wav"
+   ]
+  },
   "tower:魔石塔": {
    "what": [
     "sounds/Units/Undead/Banshee/BansheeWhat1.wav",
@@ -1230,6 +1248,11 @@ window.W3_SOUNDS = {
    ],
    "launch": [
     "sounds/Abilities/Spells/Items/AIma/ManaPotion.wav"
+   ]
+  },
+  "tower:荣誉光环": {
+   "what": [
+    "sounds/Buildings/Human/HumanTower/ArcaneTowerWhat1.wav"
    ]
   },
   "hero:剑神": {
@@ -1340,13 +1363,40 @@ window.W3_SOUNDS = {
    ]
   },
   "hero:火魂": {
+   "what": [
+    "sounds/Units/Creeps/HeroFlameLord/HeroFirelordWhat1.wav",
+    "sounds/Units/Creeps/HeroFlameLord/HeroFirelordWhat2.wav",
+    "sounds/Units/Creeps/HeroFlameLord/HeroFirelordWhat3.wav"
+   ],
+   "yes": [
+    "sounds/Units/Creeps/HeroFlameLord/HeroFirelordYes1.wav",
+    "sounds/Units/Creeps/HeroFlameLord/HeroFirelordYes2.wav",
+    "sounds/Units/Creeps/HeroFlameLord/HeroFirelordYes3.wav",
+    "sounds/Units/Creeps/HeroFlameLord/HeroFirelordYes4.wav"
+   ],
+   "yesAttack": [
+    "sounds/Units/Creeps/HeroFlameLord/HeroFirelordYesAttack1.wav",
+    "sounds/Units/Creeps/HeroFlameLord/HeroFirelordYesAttack2.wav",
+    "sounds/Units/Creeps/HeroFlameLord/HeroFirelordYesAttack3.wav"
+   ],
+   "pissed": [
+    "sounds/Units/Creeps/HeroFlameLord/HeroFirelordPissed1.wav",
+    "sounds/Units/Creeps/HeroFlameLord/HeroFirelordPissed2.wav",
+    "sounds/Units/Creeps/HeroFlameLord/HeroFirelordPissed3.wav",
+    "sounds/Units/Creeps/HeroFlameLord/HeroFirelordPissed4.wav",
+    "sounds/Units/Creeps/HeroFlameLord/HeroFirelordPissed5.wav",
+    "sounds/Units/Creeps/HeroFlameLord/HeroFirelordPissed6.wav",
+    "sounds/Units/Creeps/HeroFlameLord/HeroFirelordPissed7.wav"
+   ],
    "launch": [
-    "sounds/Abilities/Weapons/FireBallMissile/FireBallMissileLaunch1.wav",
-    "sounds/Abilities/Weapons/FireBallMissile/FireBallMissileLaunch2.wav",
-    "sounds/Abilities/Weapons/FireBallMissile/FireBallMissileLaunch3.wav"
+    "sounds/Units/Creeps/HeroFlameLord/HeroFirelordAttack1.wav",
+    "sounds/Units/Creeps/HeroFlameLord/HeroFirelordAttack2.wav"
    ],
    "hit": [
     "sounds/Abilities/Weapons/FireBallMissile/FireBallMissileDeath.wav"
+   ],
+   "death": [
+    "sounds/Units/Creeps/HeroFlameLord/HeroFirelordDeath1.wav"
    ]
   },
   "hero:狂牛": {
@@ -1559,7 +1609,10 @@ window.W3_SOUNDS = {
     "sounds/Units/Human/SteamTank/SteamTankPissed2.wav"
    ],
    "launch": [
-    "sounds/Units/Human/SteamTank/SteamTankAttack1.wav"
+    "sounds/Abilities/Spells/Other/TinkerRocket/TinkerMissileLaunch1.wav"
+   ],
+   "hit": [
+    "sounds/Abilities/Spells/Other/TinkerRocket/TinkerMissileDeath1.wav"
    ],
    "death": [
     "sounds/Units/Human/SteamTank/SteamTankDeath1.wav"
@@ -1940,6 +1993,37 @@ window.W3_SOUNDS = {
     "sounds/Units/NightElf/HeroMoonPriestess/HeroMoonPriestessDeath1.wav"
    ]
   },
+  "hero:炼金": {
+   "what": [
+    "sounds/Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistWhat1.wav",
+    "sounds/Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistWhat2.wav",
+    "sounds/Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistWhat3.wav",
+    "sounds/Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistWhat4.wav"
+   ],
+   "yes": [
+    "sounds/Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistYes1.wav",
+    "sounds/Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistYes2.wav",
+    "sounds/Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistYes3.wav",
+    "sounds/Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistYes4.wav"
+   ],
+   "yesAttack": [
+    "sounds/Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistYesAttack1.wav",
+    "sounds/Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistYesAttack2.wav",
+    "sounds/Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistYesAttack3.wav"
+   ],
+   "pissed": [
+    "sounds/Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistPissed1.wav",
+    "sounds/Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistPissed2.wav",
+    "sounds/Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistPissed3.wav",
+    "sounds/Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistPissed4.wav",
+    "sounds/Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistPissed5.wav",
+    "sounds/Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistPissed6.wav"
+   ],
+   "death": [
+    "sounds/Units/Creeps/HEROGoblinALCHEMIST/AlchemistDeath.wav",
+    "sounds/Units/Creeps/HEROGoblinALCHEMIST/AlchemistDeathAlternate.wav"
+   ]
+  },
   "tower:炎魔": {
    "launch": [
     "sounds/Abilities/Weapons/FireBallMissile/FireBallMissileLaunch1.wav",
@@ -1948,6 +2032,11 @@ window.W3_SOUNDS = {
    ],
    "hit": [
     "sounds/Abilities/Weapons/FireBallMissile/FireBallMissileDeath.wav"
+   ]
+  },
+  "unit:Nfir": {
+   "death": [
+    "sounds/Units/Creeps/HeroFlameLord/HeroFirelordDeath1.wav"
    ]
   },
   "unit:e000": {
@@ -2170,6 +2259,11 @@ window.W3_SOUNDS = {
     "sounds/Units/Critters/Hydralisk/HydraliskDeath1.wav"
    ]
   },
+  "unit:n08V": {
+   "death": [
+    "sounds/Units/Creeps/HeroTinkerRobot/ClockwerkGoblinDeath1.wav"
+   ]
+  },
   "unit:n090": {
    "death": [
     "sounds/Units/Creeps/Spider/SpiderDeath1.wav"
@@ -2235,6 +2329,11 @@ window.W3_SOUNDS = {
     "sounds/Units/Creeps/CentaurArcher/CentaurArcherDeath.wav"
    ]
   },
+  "unit:ncg3": {
+   "death": [
+    "sounds/Units/Creeps/HeroTinkerRobot/ClockwerkGoblinDeath1.wav"
+   ]
+  },
   "unit:nchg": {
    "death": [
     "sounds/Units/Undead/Abomination/AbominationAlternateDeath1.wav",
@@ -2273,7 +2372,8 @@ window.W3_SOUNDS = {
   },
   "unit:ndtr": {
    "death": [
-    "sounds/Units/Creeps/ForestTroll/ForestTrollDeath.wav"
+    "sounds/Units/Creeps/HeroTinker/TinkerDeath1.wav",
+    "sounds/Units/Creeps/HeroTinker/TinkerDeathAlt1.wav"
    ]
   },
   "unit:ndtw": {
@@ -2771,6 +2871,77 @@ window.W3_SOUNDS = {
   "unit:h08S": {
    "death": [
     "sounds/Units/Human/Footman/FootmanDeath.wav"
+   ]
+  },
+  "unit:h084": {
+   "death": [
+    "sounds/Units/Human/MortarTeam/MortarteamDeath.wav"
+   ]
+  },
+  "unit:ndrw": {
+   "death": [
+    "sounds/Units/Creeps/RockGolem/RockGolemDeath1.wav"
+   ]
+  },
+  "unit:h06W": {
+   "death": [
+    "sounds/Units/Human/Sorceress/SorceressDeath.wav"
+   ]
+  },
+  "unit:n07F": {
+   "death": [
+    "sounds/Units/Creeps/Owlbear/OwlBearDeath1.wav"
+   ]
+  },
+  "unit:ndtb": {
+   "death": [
+    "sounds/Units/Undead/Skeleton/SkeletonDeath1.wav"
+   ]
+  },
+  "unit:u002": {
+   "death": [
+    "sounds/Units/Undead/Banshee/BansheeDeath.wav"
+   ]
+  },
+  "unit:uktg": {
+   "death": [
+    "sounds/Units/Creeps/Zombie/ZombieDeath1.wav"
+   ]
+  },
+  "unit:nhrh": {
+   "death": [
+    "sounds/Units/Creeps/Harpy/HarpyDeath.wav"
+   ]
+  },
+  "unit:h06I": {
+   "death": [
+    "sounds/Units/Human/GyroCopter/GyrocopterDeath1.wav"
+   ]
+  },
+  "unit:nowe": {
+   "death": [
+    "sounds/Abilities/Spells/Undead/DeathCoil/DeathCoilMissileLaunch1.wav",
+    "sounds/Abilities/Spells/Undead/DeathCoil/DeathCoilSpecialArt1.wav"
+   ]
+  },
+  "unit:n08O": {
+   "death": [
+    "sounds/Units/Demon/DoomGuard/DoomGuardDeath1.wav"
+   ]
+  },
+  "unit:n09L": {
+   "death": [
+    "sounds/Units/Demon/Infernal/InfernalDeath.wav"
+   ]
+  },
+  "unit:ngir": {
+   "death": [
+    "sounds/Units/Creeps/IronGolem/IronGolemDeath1.wav"
+   ]
+  },
+  "unit:nepl": {
+   "death": [
+    "sounds/Units/Creeps/CorruptedEnt/EntDeath1.wav"
    ]
   },
   "builder": {

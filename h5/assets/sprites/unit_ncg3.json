@@ -1,30 +1,26 @@
 {
  "key": "unit:ncg3",
- "src": "sprites/unit_ncg3.png",
+ "src": "sprites/w3_monster_Units_Creeps_HeroTinkerRobot_HeroTinkerRobot.png",
  "frameW": 128,
  "frameH": 128,
- "cols": 8,
- "rows": 16,
+ "cols": 6,
+ "rows": 8,
  "anchor": [
   0.5,
   0.7
  ],
- "unitsPerPixel": 2.0,
+ "unitsPerPixel": 1.3333333333333333,
  "pitch": 50,
  "actions": {
-  "walk": {
-   "row": 0,
-   "dirs": 8,
-   "frames": 8,
-   "fps": 12,
-   "loop": true
-  },
   "death": {
-   "row": 8,
+   "row": 0,
    "dirs": 8,
    "frames": 6,
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 1.5,
+ "aliasOf": "model:monster:Units/Creeps/HeroTinkerRobot/HeroTinkerRobot",
+ "war3": true
 }

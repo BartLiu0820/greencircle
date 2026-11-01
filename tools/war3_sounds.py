@@ -29,6 +29,13 @@ FILES = {}
 for n in sorted(Z.namelist(), key=lambda n: n.startswith('tft/')):
     if n.startswith('__MACOSX') or not re.search(r'\.(wav|mp3)$', n, re.I): continue
     FILES[n.split('/', 1)[1].lower()] = n
+# 补充包（art/war3_raw/supplement_*/ 说明，文件已合并进 art/war3_raw/tft/）里 war3-assets.zip 没有的音效：值是本地路径
+for r, _, fs in os.walk(os.path.join(ROOT, 'art', 'war3_raw', 'tft')):
+    for f in fs:
+        if not re.search(r'\.(wav|mp3)$', f, re.I): continue
+        p = os.path.join(r, f); k = os.path.relpath(p, os.path.join(ROOT, 'art', 'war3_raw', 'tft')).replace(os.sep, '/').lower()
+        if k not in FILES: FILES[k] = 'tft/' + os.path.relpath(p, os.path.join(ROOT, 'art', 'war3_raw', 'tft')).replace(os.sep, '/')
+LOCAL = {n for n in FILES.values() if os.path.exists(os.path.join(ROOT, 'art', 'war3_raw', n))}
 BYDIR = defaultdict(list)
 for k in FILES: BYDIR[os.path.dirname(k)].append(k)
 for v in BYDIR.values(): v.sort()
@@ -206,7 +213,9 @@ def main():
     for k in sorted(used):
         dst = os.path.join(OUT, FILES[k].split('/', 1)[1])
         os.makedirs(os.path.dirname(dst), exist_ok=True)
-        with Z.open(FILES[k]) as fi, open(dst, 'wb') as fo: shutil.copyfileobj(fi, fo)
+        if FILES[k] in LOCAL: shutil.copyfile(os.path.join(ROOT, 'art', 'war3_raw', FILES[k]), dst)
+        else:
+            with Z.open(FILES[k]) as fi, open(dst, 'wb') as fo: shutil.copyfileobj(fi, fo)
         size += os.path.getsize(dst)
     with open(os.path.join(ROOT, 'h5', 'assets', 'w3sounds.js'), 'w', encoding='utf-8') as fp:
         fp.write('// 自动生成：tools/war3_sounds.py —— 原版音效登记（文件在 assets/sounds/，不入库）\n')

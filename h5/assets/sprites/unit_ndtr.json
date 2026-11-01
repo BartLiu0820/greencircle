@@ -1,6 +1,6 @@
 {
  "key": "unit:ndtr",
- "src": "sprites/unit_ndtr.png",
+ "src": "sprites/w3_monster_Units_Creeps_HeroTinker_HeroTinker.png",
  "frameW": 128,
  "frameH": 128,
  "cols": 8,
@@ -26,5 +26,8 @@
    "fps": 12,
    "loop": false
   }
- }
+ },
+ "modelScale": 0.6,
+ "aliasOf": "model:monster:Units/Creeps/HeroTinker/HeroTinker",
+ "war3": true
 }

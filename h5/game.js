@@ -924,7 +924,7 @@ const alliesNear = (x, y, r) => G.towers.filter(o => o.cat !== 'aura' && dist2(x
 const anyEnemy = (x, y, r) => G.monsters.some(m => !m.dead && dist2(x, y, m.x, m.y) <= r * r);
 const pctTxt = v => Math.round(v * 100) + '%';
 // 召唤物的模型：照原图单位数据（file / modelScale，tools/war3_models.py 的 EXTRA 导出）。键 → [MDX 路径, 缩放（数组 = 按等级）]；
-// null = 原图模型是 "_"（看不见的马甲：画面上不画、也点不中，只看得到它的弹道）。没登记的（原图模型不在资源包里、或对不上原图单位）还是画成带字的方块。
+// null = 原图模型是 "_"（看不见的马甲：画面上不画、也点不中，只看得到它的弹道）。没登记的（对不上原图单位的）还是画成带字的方块。
 // 召唤时按 o.look（没给时塔的召唤物用 fam、英雄的用标题）查，o.lookLv 选等级
 const LOOK = {
   // 塔的召唤物
@@ -972,6 +972,9 @@ const LOOK = {
   丁: ['units/creeps/murlocnightcrawler/murlocnightcrawler', [1.2, 1.8]],             // n058 / n07N
   大鱼: ['units/creeps/murgulshadowcaster/murgulshadowcaster', 2],                    // n05C
   骷髅弓箭手: ['units/creeps/skeletonarcher/skeletonarcher', 0.6],                    // n047 / n04B / n04A / n048
+  炎魔: ['units/creeps/lavaspawn/lavaspawn', 0.6],                                    // n03H / n03Q~n03U（按等级 0.45~0.9，取中间）
+  燃烧之箭: ['abilities/weapons/lordofflamemissile/lordofflamemissile', 0.8],         // n046 JLFZ箭
+  自爆地精: ['units/creeps/herotinkerrobot/herotinkerrobot', 0.8],                   // n06O
   雷霆: null, 战霆: null, 怒霆: null,                                                  // n063~n065 SHT
   h063: ['units/creeps/reddragon/reddragon', 0.5], h064: ['units/creeps/bronzedragon/bronzedragon', 0.5],   // 驯龙的龙
   h065: ['units/creeps/greendragon/greendragon', 0.5], h066: ['units/creeps/blackdragon/blackdragon', 0.5],
@@ -6349,7 +6352,7 @@ function endlessWave() {
   if (E.score >= 15000) { E.iy++; E.mg++; }
   E.unit = pick(D.endless);
   G.sc = G.curUnit = E.unit;
-  const opt = { noWaveHp: true, noElite: true, hpMul: 1 + 0.25 * (E.rhla + E.iy), speedPlus: 5 * E.mg, ...(E.unit === 'noga' ? { mdx: 'units/nightelf/wisp/wisp.mdx', scale: 1.2 } : {}) };
+  const opt = { noWaveHp: true, noElite: true, hpMul: 1 + 0.25 * (E.rhla + E.iy), speedPlus: 5 * E.mg };
   G.spawners = G.spawners.filter(s => s.word !== '无尽');
   G.spawners.push({ word: '无尽', every: 0.6, left: RULE.endlessCount, next: 0.6, opt });
   msg(`【无尽关卡第 ${E.wave} 波】`);
@@ -6379,7 +6382,7 @@ function endlessEnd() {
 }
 
 // ---------------------------------------------------------------- 兔子（成就商店）
-// 原图 nshe：中立单位，模型是复活节兔子（放大 3 倍），刷在外环外四块区域里的随机一点，小地图闪烁，60 秒后"咕~"一声消失
+// 原图 nshe：中立单位，模型是复活节兔子（EasterRabbit，放大 3 倍），刷在外环外四块区域里的随机一点，小地图闪烁，60 秒后"咕~"一声消失
 const RABBIT_TALK = ['跑圈啦! 跑圈啦!跑圈啦!', '咦，人呢？找不到我！啦啦啦！', '别过来，你们都别过来！我就只是想逛逛圈圈而已！',
   '这些宠物一点都比不上我，我是说速度！1，2，3虚浮！', '主塔后面不补塔，一看就是个麻瓜！', '我真希望能永远在大家身边！T。T'];
 // 兔子卖的东西（原图 nshe 的物品栏，analysis/data/shops.json）。药水原图是买下后对塔使用：知识 / 重修药水只能对英雄用，单人只有一个英雄塔，买下直接用在英雄塔上；
@@ -6412,7 +6415,7 @@ const RABBIT_SHOP = [
 function spawnRabbit(by, talk) {
   const [a, b, c, d] = W3MAP.rects[pick(['y', 'z', 'BB', 'BC'])];      // 原图 qR：外环外的左、右、上、下四块区域等概率选一块，区域内随机一点
   const x = rnd(a, c), y = rnd(b, d);
-  G.rabbit = { isRabbit: true, id: G.nextId++, x, y, hx: x, hy: y, t0: G.t, until: G.t + RULE.rabbitLife, face: rnd(0, TAU), next: G.t + 1 };
+  G.rabbit = { isRabbit: true, mdx: 'units/critters/easterrabbit/easterrabbit.mdx', scale: 3, id: G.nextId++, x, y, hx: x, hy: y, t0: G.t, until: G.t + RULE.rabbitLife, face: rnd(0, TAU), next: G.t + 1 };
   SFX.ui('hint');
   msg(by ? `${by}召唤了一次兔子，大家快找呀！` : `兔子：${talk || pick(RABBIT_TALK)}`);
   msg(`兔子出现了（小地图上闪烁的粉点），${RULE.rabbitLife} 秒内让守卫者走到它旁边，用当局成就买道具`);
@@ -7072,9 +7075,8 @@ function wander(m, dt, ordered) {
 // 每人一只（Fj）。宠物跟着守卫者走（原图每 2 秒对守卫者身边 100 的一点下攻击移动令，离开 1000 就瞬移过去，守卫者闪烁时跟着闪），
 // 攻击射程内的敌人，攻击力每波提升（宠物攻击科技 = 波数）。技能等级：普通天赋 +1，糖果升级（Kq 最多 4）每次 +1。
 // 宠物商人：浣熊 / 小猪 / 小牛 8 点当局成就；其余原图要平台的"宠物赞助"，这里同样 8 点当局成就。
-// 原图浣熊模型（units\critters\Raccoon）不在资源包里，用蜥蜴代替
 const PETS = {
-  n037: { name: '浣熊', item: 'I01Z', mdx: 'units/critters/skink/skink.mdx', scale: 1, dmg: 29, cd: 0.6, range: 300, speed: 100, wave: 9, skill: 'bash', fx: { gq: 2, lx: 2 }, boost: '天神塔每级攻击上限 400 → 480、图腾随机伤害下限 +6%' },
+  n037: { name: '浣熊', item: 'I01Z', mdx: 'units/critters/raccoon/raccoon.mdx', scale: 1, dmg: 29, cd: 0.6, range: 300, speed: 100, wave: 9, skill: 'bash', fx: { gq: 2, lx: 2 }, boost: '天神塔每级攻击上限 400 → 480、图腾随机伤害下限 +6%' },
   n03G: { name: '小猪', item: 'I024', mdx: 'units/critters/pig/pig.mdx', scale: 1, dmg: 202, cd: 1.4, range: 300, speed: 150, wave: 5, skill: 'drums' },
   n05P: { name: '小牛', item: 'I02B', mdx: 'units/creeps/mammoth/mammoth.mdx', scale: 0.4, dmg: 120, cd: 0.6, range: 120, speed: 180, wave: 21, skill: 'lust', splash: 150, fx: { g3: 0.03, go: 1 }, boost: '神牛杀敌累计属性更快、渔人大鱼上限 +1' },
   n038: { name: '海龟', item: 'I020', mdx: 'units/creeps/seaturtle/seaturtle.mdx', scale: 0.25, dmg: 65, cd: 0.3, range: 300, speed: 100, wave: 9, skill: 'frost', fx: { gs: 2 }, boost: '风行塔疯狂箭的 FX箭多活 2 秒' },
@@ -8081,7 +8083,7 @@ function drawWild(w) {
   else { ctx.fillStyle = '#ff9ad5'; ctx.beginPath(); ctx.arc(x, y, r * 0.7, 0, 7); ctx.fill(); }
   onTop(() => label(`野生${w.name}`, w.x, w.y + 120, '#ff9ad5', 11));
 }
-// 兔子：原版复活节兔子模型不在资源包里，程序画一只白兔子（蹦跳 + 地上一圈粉色光，方便找到）
+// 兔子：原版复活节兔子模型 + 地上一圈粉色光（方便找到）；没有 3D 时程序画一只白兔子
 function drawRabbit(r) {
   if (!onScr(r.x, r.y)) return;
   const K = kAt(r.y);
@@ -8092,6 +8094,8 @@ function drawRabbit(r) {
   if (r === G.selected) selRing(x, y, k * 1.2, '#ffd257'); else if (r === HOV) selRing(x, y, k * 1.2, '#ffd257', 0.45);
   ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = `rgba(255,120,200,${0.55 * pulse})`; ctx.lineWidth = 2.5 * DPR;
   ctx.beginPath(); ctx.ellipse(x, y, k * (2 + pulse * 0.6), k * (2 + pulse * 0.6) * qAt(r.y, 0.5), 0, 0, 7); ctx.stroke(); ctx.restore();
+  const m3 = metaOf(r);                                                                     // 原版复活节兔子模型（放大 3 倍）；画不了时退回下面的程序绘制
+  if (m3 && model3d(r, m3, r.x, r.y, r.face, pickAnim(r, m3), 1, blink ? 0.45 : 1)) { shadow(r.x, r.y, k * 1.6); onTop(() => label(`兔子 ${Math.ceil(left)}秒`, r.x, r.y + 48 * 3.4, '#ff9ad5', 12)); return; }
   ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(x, y, k * (1.1 - hop * 0.3), k * 0.45, 0, 0, 7); ctx.fill();
   ctx.save(); ctx.globalAlpha = blink ? 0.45 : 1; ctx.translate(x, y - lift); ctx.scale(dir, 1);
   ctx.strokeStyle = 'rgba(80,60,70,.55)'; ctx.lineWidth = 1 * DPR;

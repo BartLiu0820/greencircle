@@ -386,6 +386,47 @@ window.SPRITE_SHEETS = {
   "aliasOf": "model:hero:Units/Critters/ChaosSpaceOrc/ChaosSpaceOrc_glow",
   "war3": true
  },
+ "glow:hero:火魂": {
+  "key": "glow:hero:火魂",
+  "src": "sprites/w3_hero_Units_Creeps_HeroFlameLord_HeroFlameLord_glow.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 4.62,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "glow": true,
+  "aliasOf": "model:hero:Units/Creeps/HeroFlameLord/HeroFlameLord_glow",
+  "war3": true
+ },
  "glow:hero:电法": {
   "key": "glow:hero:电法",
   "src": "sprites/w3_hero_Units_NightElf_MalFurion_MalFurion_glow.webp",
@@ -958,6 +999,142 @@ window.SPRITE_SHEETS = {
   "aliasOf": "model:tower:Units/Undead/SkeletonMage/SkeletonMage_glow",
   "war3": true
  },
+ "glow:tower:炎魔塔": {
+  "key": "glow:tower:炎魔塔",
+  "src": "sprites/w3_tower_Units_Creeps_LavaSpawn_LavaSpawn_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 1.5384615384615383,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.3,
+  "glow": true,
+  "aliasOf": "model:tower:Units/Creeps/LavaSpawn/LavaSpawn_glow",
+  "war3": true
+ },
+ "glow:tower:炎魔塔:2": {
+  "key": "glow:tower:炎魔塔:2",
+  "src": "sprites/w3_tower_Units_Creeps_LavaSpawn_LavaSpawn_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 1.6923076923076923,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.3,
+  "glow": true,
+  "aliasOf": "model:tower:Units/Creeps/LavaSpawn/LavaSpawn_glow",
+  "war3": true
+ },
+ "glow:tower:炎魔塔:3": {
+  "key": "glow:tower:炎魔塔:3",
+  "src": "sprites/w3_tower_Units_Creeps_LavaSpawn_LavaSpawn_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 1.846153846153846,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.3,
+  "glow": true,
+  "aliasOf": "model:tower:Units/Creeps/LavaSpawn/LavaSpawn_glow",
+  "war3": true
+ },
+ "glow:tower:炎魔塔:4": {
+  "key": "glow:tower:炎魔塔:4",
+  "src": "sprites/w3_tower_Units_Creeps_LavaSpawn_LavaSpawn_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.3,
+  "glow": true,
+  "aliasOf": "model:tower:Units/Creeps/LavaSpawn/LavaSpawn_glow",
+  "war3": true
+ },
  "glow:tower:破坏塔": {
   "key": "glow:tower:破坏塔",
   "src": "sprites/w3_tower_Buildings_Other_ElvenGuardMagicTower_ElvenGuardMagicTower_glow.webp",
@@ -1064,6 +1241,33 @@ window.SPRITE_SHEETS = {
   "modelScale": 0.6,
   "glow": true,
   "aliasOf": "model:tower:Buildings/Other/ElvenGuardMagicTower/ElvenGuardMagicTower_glow",
+  "war3": true
+ },
+ "glow:tower:神力塔": {
+  "key": "glow:tower:神力塔",
+  "src": "sprites/w3_tower_Abilities_Weapons_LavaSpawnMissile_LavaSpawnBirthMissile_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.62
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   }
+  },
+  "modelScale": 2.0,
+  "glow": true,
+  "aliasOf": "model:tower:Abilities/Weapons/LavaSpawnMissile/LavaSpawnBirthMissile_glow",
   "war3": true
  },
  "glow:tower:神圣塔": {
@@ -1913,6 +2117,33 @@ window.SPRITE_SHEETS = {
   "aliasOf": "model:monster:Units/Creeps/NetherDragon/NetherDragon_glow",
   "war3": true
  },
+ "glow:unit:noga": {
+  "key": "glow:unit:noga",
+  "src": "sprites/w3_monster_SharedModels_EntangleWisp_glow.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 1,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 1,
+    "fps": 8,
+    "loop": true
+   }
+  },
+  "modelScale": 1.2,
+  "glow": true,
+  "aliasOf": "model:monster:SharedModels/EntangleWisp_glow",
+  "war3": true
+ },
  "glow:unit:nogn": {
   "key": "glow:unit:nogn",
   "src": "sprites/w3_monster_Units_NightElf_HeroKeeperoftheGroveGhost_HeroKeeperoftheGroveGhost_glow.webp",
@@ -2370,6 +2601,46 @@ window.SPRITE_SHEETS = {
   },
   "modelScale": 1.2,
   "aliasOf": "model:hero:Units/Human/WarWagon/WarWagon",
+  "war3": true
+ },
+ "hero:坦克:皮肤": {
+  "key": "hero:坦克:皮肤",
+  "src": "sprites/w3_hero_Units_Creeps_HeroTinker_HeroTinker.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 7.5,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 0.95,
+  "aliasOf": "model:hero:Units/Creeps/HeroTinker/HeroTinker",
   "war3": true
  },
  "hero:大巫师": {
@@ -2841,6 +3112,32 @@ window.SPRITE_SHEETS = {
   "aliasOf": "model:hero:Units/Critters/ChaosSpaceOrc/ChaosSpaceOrc",
   "war3": true
  },
+ "hero:枪神:皮肤": {
+  "key": "hero:枪神:皮肤",
+  "src": "sprites/w3_hero_Units_Other_Orccar_Orccar.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 6.0,
+    "loop": true
+   }
+  },
+  "modelScale": 0.85,
+  "aliasOf": "model:hero:Units/Other/Orccar/Orccar",
+  "war3": true
+ },
  "hero:水魔": {
   "key": "hero:水魔",
   "src": "sprites/w3_hero_Units_Creeps_BansheeGhost_BansheeGhost.webp",
@@ -2949,10 +3246,10 @@ window.SPRITE_SHEETS = {
  },
  "hero:火魂": {
   "key": "hero:火魂",
-  "src": "sprites/hero_火魂.webp",
+  "src": "sprites/w3_hero_Units_Creeps_HeroFlameLord_HeroFlameLord.webp",
   "frameW": 192,
   "frameH": 192,
-  "cols": 8,
+  "cols": 10,
   "rows": 24,
   "anchor": [
    0.5,
@@ -2964,8 +3261,8 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 8,
-    "frames": 6,
-    "fps": 8,
+    "frames": 10,
+    "fps": 4.62,
     "loop": true
    },
    "attack": {
@@ -2982,7 +3279,41 @@ window.SPRITE_SHEETS = {
     "fps": 12,
     "loop": false
    }
-  }
+  },
+  "modelScale": 1.0,
+  "aliasOf": "model:hero:Units/Creeps/HeroFlameLord/HeroFlameLord",
+  "war3": true,
+  "tint": [
+   1.0,
+   1.0,
+   0.0
+  ]
+ },
+ "hero:炼金": {
+  "key": "hero:炼金",
+  "src": "sprites/w3_hero_Units_Creeps_HEROGoblinALCHEMIST_HeroGoblinAlchemist.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 8.1,
+    "loop": true
+   }
+  },
+  "modelScale": 1.1,
+  "aliasOf": "model:hero:Units/Creeps/HEROGoblinALCHEMIST/HeroGoblinAlchemist",
+  "war3": true
  },
  "hero:狂牛": {
   "key": "hero:狂牛",
@@ -4776,7 +5107,7 @@ window.SPRITE_SHEETS = {
  },
  "tower:地精塔": {
   "key": "tower:地精塔",
-  "src": "sprites/tower_地精塔.webp",
+  "src": "sprites/w3_tower_Units_Creeps_HeroTinkerRobot_HeroTinkerRobot.webp",
   "frameW": 160,
   "frameH": 160,
   "cols": 6,
@@ -4791,7 +5122,7 @@ window.SPRITE_SHEETS = {
    "idle": {
     "row": 0,
     "dirs": 1,
-    "frames": 6,
+    "frames": 1,
     "fps": 8,
     "loop": true
    },
@@ -4803,9 +5134,143 @@ window.SPRITE_SHEETS = {
     "loop": false
    }
   },
+  "modelScale": 1.2,
+  "aliasOf": "model:tower:Units/Creeps/HeroTinkerRobot/HeroTinkerRobot",
+  "war3": true,
+  "tint": [
+   0.0,
+   1.0,
+   1.0
+  ],
   "vis": [
-   226,
-   230
+   62,
+   94
+  ]
+ },
+ "tower:地精塔:2": {
+  "key": "tower:地精塔:2",
+  "src": "sprites/w3_tower_Units_Creeps_HeroTinkerRobot_HeroTinkerRobot.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 6,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 1,
+    "fps": 8,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.2,
+  "aliasOf": "model:tower:Units/Creeps/HeroTinkerRobot/HeroTinkerRobot",
+  "war3": true,
+  "tint": [
+   1.0,
+   0.0,
+   1.0
+  ],
+  "vis": [
+   62,
+   94
+  ]
+ },
+ "tower:地精塔:3": {
+  "key": "tower:地精塔:3",
+  "src": "sprites/w3_tower_Units_Creeps_HeroTinkerRobot_HeroTinkerRobot.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 6,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 1,
+    "fps": 8,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.2,
+  "aliasOf": "model:tower:Units/Creeps/HeroTinkerRobot/HeroTinkerRobot",
+  "war3": true,
+  "tint": [
+   1.0,
+   0.0,
+   1.0
+  ],
+  "vis": [
+   62,
+   94
+  ]
+ },
+ "tower:地精塔:4": {
+  "key": "tower:地精塔:4",
+  "src": "sprites/w3_tower_Units_Creeps_HeroTinkerRobot_HeroTinkerRobot.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 6,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 1,
+    "fps": 8,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.2,
+  "aliasOf": "model:tower:Units/Creeps/HeroTinkerRobot/HeroTinkerRobot",
+  "war3": true,
+  "tint": [
+   1.0,
+   1.0,
+   0.0
+  ],
+  "vis": [
+   62,
+   94
   ]
  },
  "tower:天将塔": {
@@ -7546,6 +8011,169 @@ window.SPRITE_SHEETS = {
    116
   ]
  },
+ "tower:炎魔塔": {
+  "key": "tower:炎魔塔",
+  "src": "sprites/w3_tower_Units_Creeps_LavaSpawn_LavaSpawn.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 1.5384615384615383,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.3,
+  "aliasOf": "model:tower:Units/Creeps/LavaSpawn/LavaSpawn",
+  "war3": true,
+  "vis": [
+   91,
+   120
+  ]
+ },
+ "tower:炎魔塔:2": {
+  "key": "tower:炎魔塔:2",
+  "src": "sprites/w3_tower_Units_Creeps_LavaSpawn_LavaSpawn.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 1.6923076923076923,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.3,
+  "aliasOf": "model:tower:Units/Creeps/LavaSpawn/LavaSpawn",
+  "war3": true,
+  "tint": [
+   0.706,
+   0.392,
+   1.0
+  ],
+  "vis": [
+   100,
+   132
+  ]
+ },
+ "tower:炎魔塔:3": {
+  "key": "tower:炎魔塔:3",
+  "src": "sprites/w3_tower_Units_Creeps_LavaSpawn_LavaSpawn.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 1.846153846153846,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.3,
+  "aliasOf": "model:tower:Units/Creeps/LavaSpawn/LavaSpawn",
+  "war3": true,
+  "tint": [
+   1.0,
+   0.471,
+   0.0
+  ],
+  "vis": [
+   109,
+   144
+  ]
+ },
+ "tower:炎魔塔:4": {
+  "key": "tower:炎魔塔:4",
+  "src": "sprites/w3_tower_Units_Creeps_LavaSpawn_LavaSpawn.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.3,
+  "aliasOf": "model:tower:Units/Creeps/LavaSpawn/LavaSpawn",
+  "war3": true,
+  "tint": [
+   0.196,
+   1.0,
+   1.0
+  ],
+  "vis": [
+   118,
+   156
+  ]
+ },
  "tower:燃烧塔": {
   "key": "tower:燃烧塔",
   "src": "sprites/w3_tower_Units_Orc_Catapult_Catapult.webp",
@@ -8247,6 +8875,36 @@ window.SPRITE_SHEETS = {
   "vis": [
    80,
    176
+  ]
+ },
+ "tower:神力塔": {
+  "key": "tower:神力塔",
+  "src": "sprites/w3_tower_Abilities_Weapons_LavaSpawnMissile_LavaSpawnBirthMissile.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   }
+  },
+  "modelScale": 2.0,
+  "aliasOf": "model:tower:Abilities/Weapons/LavaSpawnMissile/LavaSpawnBirthMissile",
+  "war3": true,
+  "vis": [
+   104,
+   138
   ]
  },
  "tower:神圣塔": {
@@ -13524,11 +14182,11 @@ window.SPRITE_SHEETS = {
  },
  "unit:n08V": {
   "key": "unit:n08V",
-  "src": "sprites/unit_n08V.webp",
-  "frameW": 192,
-  "frameH": 192,
-  "cols": 8,
-  "rows": 16,
+  "src": "sprites/w3_monster_Units_Creeps_HeroTinkerRobot_HeroTinkerRobot.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 6,
+  "rows": 8,
   "anchor": [
    0.5,
    0.7
@@ -13536,21 +14194,17 @@ window.SPRITE_SHEETS = {
   "unitsPerPixel": 2.0,
   "pitch": 50,
   "actions": {
-   "walk": {
-    "row": 0,
-    "dirs": 8,
-    "frames": 8,
-    "fps": 12,
-    "loop": true
-   },
    "death": {
-    "row": 8,
+    "row": 0,
     "dirs": 8,
     "frames": 6,
     "fps": 12,
     "loop": false
    }
-  }
+  },
+  "modelScale": 1.5,
+  "aliasOf": "model:monster:Units/Creeps/HeroTinkerRobot/HeroTinkerRobot",
+  "war3": true
  },
  "unit:n090": {
   "key": "unit:n090",
@@ -14530,33 +15184,29 @@ window.SPRITE_SHEETS = {
  },
  "unit:ncg3": {
   "key": "unit:ncg3",
-  "src": "sprites/unit_ncg3.webp",
+  "src": "sprites/w3_monster_Units_Creeps_HeroTinkerRobot_HeroTinkerRobot.webp",
   "frameW": 128,
   "frameH": 128,
-  "cols": 8,
-  "rows": 16,
+  "cols": 6,
+  "rows": 8,
   "anchor": [
    0.5,
    0.7
   ],
-  "unitsPerPixel": 2.0,
+  "unitsPerPixel": 1.3333333333333333,
   "pitch": 50,
   "actions": {
-   "walk": {
-    "row": 0,
-    "dirs": 8,
-    "frames": 8,
-    "fps": 12,
-    "loop": true
-   },
    "death": {
-    "row": 8,
+    "row": 0,
     "dirs": 8,
     "frames": 6,
     "fps": 12,
     "loop": false
    }
-  }
+  },
+  "modelScale": 1.5,
+  "aliasOf": "model:monster:Units/Creeps/HeroTinkerRobot/HeroTinkerRobot",
+  "war3": true
  },
  "unit:nchg": {
   "key": "unit:nchg",
@@ -15382,7 +16032,7 @@ window.SPRITE_SHEETS = {
  },
  "unit:ndtr": {
   "key": "unit:ndtr",
-  "src": "sprites/unit_ndtr.webp",
+  "src": "sprites/w3_monster_Units_Creeps_HeroTinker_HeroTinker.webp",
   "frameW": 128,
   "frameH": 128,
   "cols": 8,
@@ -15408,7 +16058,10 @@ window.SPRITE_SHEETS = {
     "fps": 12,
     "loop": false
    }
-  }
+  },
+  "modelScale": 0.6,
+  "aliasOf": "model:monster:Units/Creeps/HeroTinker/HeroTinker",
+  "war3": true
  },
  "unit:ndtw": {
   "key": "unit:ndtw",
@@ -15706,11 +16359,11 @@ window.SPRITE_SHEETS = {
  },
  "unit:nerw": {
   "key": "unit:nerw",
-  "src": "sprites/unit_nerw.webp",
-  "frameW": 192,
-  "frameH": 192,
+  "src": "sprites/w3_monster_Units_Other_DwarfCar_DwarfCar.webp",
+  "frameW": 128,
+  "frameH": 128,
   "cols": 8,
-  "rows": 16,
+  "rows": 8,
   "anchor": [
    0.5,
    0.7
@@ -15724,15 +16377,11 @@ window.SPRITE_SHEETS = {
     "frames": 8,
     "fps": 12,
     "loop": true
-   },
-   "death": {
-    "row": 8,
-    "dirs": 8,
-    "frames": 6,
-    "fps": 12,
-    "loop": false
    }
-  }
+  },
+  "modelScale": 0.9,
+  "aliasOf": "model:monster:Units/Other/DwarfCar/DwarfCar",
+  "war3": true
  },
  "unit:nfel": {
   "key": "unit:nfel",
@@ -15840,14 +16489,14 @@ window.SPRITE_SHEETS = {
  },
  "unit:nfod": {
   "key": "unit:nfod",
-  "src": "sprites/unit_nfod.webp",
-  "frameW": 192,
-  "frameH": 192,
+  "src": "sprites/w3_monster_Units_Other_DiabloCar_DiabloCar.webp",
+  "frameW": 128,
+  "frameH": 128,
   "cols": 8,
-  "rows": 16,
+  "rows": 8,
   "anchor": [
    0.5,
-   0.82
+   0.7
   ],
   "unitsPerPixel": 2.0,
   "pitch": 50,
@@ -15858,26 +16507,22 @@ window.SPRITE_SHEETS = {
     "frames": 8,
     "fps": 12,
     "loop": true
-   },
-   "death": {
-    "row": 8,
-    "dirs": 8,
-    "frames": 6,
-    "fps": 12,
-    "loop": false
    }
-  }
+  },
+  "modelScale": 0.85,
+  "aliasOf": "model:monster:Units/Other/DiabloCar/DiabloCar",
+  "war3": true
  },
  "unit:nfor": {
   "key": "unit:nfor",
-  "src": "sprites/unit_nfor.webp",
-  "frameW": 160,
-  "frameH": 160,
+  "src": "sprites/w3_monster_Units_Other_Orccar_Orccar.webp",
+  "frameW": 128,
+  "frameH": 128,
   "cols": 8,
-  "rows": 16,
+  "rows": 8,
   "anchor": [
    0.5,
-   0.7
+   0.62
   ],
   "unitsPerPixel": 2.0,
   "pitch": 50,
@@ -15888,23 +16533,19 @@ window.SPRITE_SHEETS = {
     "frames": 8,
     "fps": 12,
     "loop": true
-   },
-   "death": {
-    "row": 8,
-    "dirs": 8,
-    "frames": 6,
-    "fps": 12,
-    "loop": false
    }
-  }
+  },
+  "modelScale": 0.8,
+  "aliasOf": "model:monster:Units/Other/Orccar/Orccar",
+  "war3": true
  },
  "unit:nfot": {
   "key": "unit:nfot",
-  "src": "sprites/unit_nfot.webp",
-  "frameW": 384,
-  "frameH": 384,
+  "src": "sprites/w3_monster_Units_Other_UndeadCar_UndeadCar.webp",
+  "frameW": 160,
+  "frameH": 160,
   "cols": 8,
-  "rows": 16,
+  "rows": 8,
   "anchor": [
    0.5,
    0.7
@@ -15918,15 +16559,11 @@ window.SPRITE_SHEETS = {
     "frames": 8,
     "fps": 12,
     "loop": true
-   },
-   "death": {
-    "row": 8,
-    "dirs": 8,
-    "frames": 6,
-    "fps": 12,
-    "loop": false
    }
-  }
+  },
+  "modelScale": 1.0,
+  "aliasOf": "model:monster:Units/Other/UndeadCar/UndeadCar",
+  "war3": true
  },
  "unit:nfov": {
   "key": "unit:nfov",
@@ -17030,6 +17667,37 @@ window.SPRITE_SHEETS = {
    0.235,
    1.0,
    0.0
+  ]
+ },
+ "unit:noga": {
+  "key": "unit:noga",
+  "src": "sprites/w3_monster_SharedModels_EntangleWisp.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 1,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 1,
+    "fps": 8,
+    "loop": true
+   }
+  },
+  "modelScale": 1.2,
+  "aliasOf": "model:monster:SharedModels/EntangleWisp",
+  "war3": true,
+  "tint": [
+   0.588,
+   1.0,
+   0.588
   ]
  },
  "unit:nogn": {
@@ -20227,6 +20895,145 @@ window.SPRITE_SHEETS = {
   },
   "modelScale": 1.1
  },
+ "model:hero:Units/Creeps/HEROGoblinALCHEMIST/HeroGoblinAlchemist": {
+  "key": "model:hero:Units/Creeps/HEROGoblinALCHEMIST/HeroGoblinAlchemist",
+  "src": "sprites/w3_hero_Units_Creeps_HEROGoblinALCHEMIST_HeroGoblinAlchemist.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 8.1,
+    "loop": true
+   }
+  },
+  "modelScale": 1.1
+ },
+ "model:hero:Units/Creeps/HeroFlameLord/HeroFlameLord": {
+  "key": "model:hero:Units/Creeps/HeroFlameLord/HeroFlameLord",
+  "src": "sprites/w3_hero_Units_Creeps_HeroFlameLord_HeroFlameLord.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 4.62,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0
+ },
+ "model:hero:Units/Creeps/HeroFlameLord/HeroFlameLord_glow": {
+  "key": "model:hero:Units/Creeps/HeroFlameLord/HeroFlameLord_glow",
+  "src": "sprites/w3_hero_Units_Creeps_HeroFlameLord_HeroFlameLord_glow.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 4.62,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "glow": true
+ },
+ "model:hero:Units/Creeps/HeroTinker/HeroTinker": {
+  "key": "model:hero:Units/Creeps/HeroTinker/HeroTinker",
+  "src": "sprites/w3_hero_Units_Creeps_HeroTinker_HeroTinker.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 24,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 7.5,
+    "loop": true
+   },
+   "attack": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 14,
+    "loop": false
+   },
+   "spell": {
+    "row": 16,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 0.95
+ },
  "model:hero:Units/Creeps/KoboldGeomancer/KoboldGeomancer": {
   "key": "model:hero:Units/Creeps/KoboldGeomancer/KoboldGeomancer",
   "src": "sprites/w3_hero_Units_Creeps_KoboldGeomancer_KoboldGeomancer.webp",
@@ -21926,6 +22733,30 @@ window.SPRITE_SHEETS = {
   "modelScale": 1.8,
   "glow": true
  },
+ "model:hero:Units/Other/Orccar/Orccar": {
+  "key": "model:hero:Units/Other/Orccar/Orccar",
+  "src": "sprites/w3_hero_Units_Other_Orccar_Orccar.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 10,
+    "fps": 6.0,
+    "loop": true
+   }
+  },
+  "modelScale": 0.85
+ },
  "model:hero:Units/Undead/Abomination/Abomination": {
   "key": "model:hero:Units/Undead/Abomination/Abomination",
   "src": "sprites/w3_hero_Units_Undead_Abomination_Abomination.webp",
@@ -22328,6 +23159,55 @@ window.SPRITE_SHEETS = {
    }
   },
   "modelScale": 0.5,
+  "glow": true
+ },
+ "model:monster:SharedModels/EntangleWisp": {
+  "key": "model:monster:SharedModels/EntangleWisp",
+  "src": "sprites/w3_monster_SharedModels_EntangleWisp.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 1,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 1,
+    "fps": 8,
+    "loop": true
+   }
+  },
+  "modelScale": 1.2
+ },
+ "model:monster:SharedModels/EntangleWisp_glow": {
+  "key": "model:monster:SharedModels/EntangleWisp_glow",
+  "src": "sprites/w3_monster_SharedModels_EntangleWisp_glow.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 1,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 1,
+    "fps": 8,
+    "loop": true
+   }
+  },
+  "modelScale": 1.2,
   "glow": true
  },
  "model:monster:Units/Creeps/Archnathid/Archnathid": {
@@ -23028,6 +23908,61 @@ window.SPRITE_SHEETS = {
    }
   },
   "modelScale": 1.75
+ },
+ "model:monster:Units/Creeps/HeroTinkerRobot/HeroTinkerRobot": {
+  "key": "model:monster:Units/Creeps/HeroTinkerRobot/HeroTinkerRobot",
+  "src": "sprites/w3_monster_Units_Creeps_HeroTinkerRobot_HeroTinkerRobot.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 6,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "death": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.5
+ },
+ "model:monster:Units/Creeps/HeroTinker/HeroTinker": {
+  "key": "model:monster:Units/Creeps/HeroTinker/HeroTinker",
+  "src": "sprites/w3_monster_Units_Creeps_HeroTinker_HeroTinker.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 8,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "walk": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": true
+   },
+   "death": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 0.6
  },
  "model:monster:Units/Creeps/HumanBattleship/HumanBattleship": {
   "key": "model:monster:Units/Creeps/HumanBattleship/HumanBattleship",
@@ -26273,6 +27208,30 @@ window.SPRITE_SHEETS = {
   },
   "modelScale": 1.5
  },
+ "model:monster:Units/Other/DiabloCar/DiabloCar": {
+  "key": "model:monster:Units/Other/DiabloCar/DiabloCar",
+  "src": "sprites/w3_monster_Units_Other_DiabloCar_DiabloCar.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 8,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "walk": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": true
+   }
+  },
+  "modelScale": 0.85
+ },
  "model:monster:Units/Other/DranaiWhite/DranaiWhite": {
   "key": "model:monster:Units/Other/DranaiWhite/DranaiWhite",
   "src": "sprites/w3_monster_Units_Other_DranaiWhite_DranaiWhite.webp",
@@ -26334,6 +27293,30 @@ window.SPRITE_SHEETS = {
    }
   },
   "modelScale": 0.8
+ },
+ "model:monster:Units/Other/DwarfCar/DwarfCar": {
+  "key": "model:monster:Units/Other/DwarfCar/DwarfCar",
+  "src": "sprites/w3_monster_Units_Other_DwarfCar_DwarfCar.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 8,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "walk": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": true
+   }
+  },
+  "modelScale": 0.9
  },
  "model:monster:Units/Other/HeroArchMageGhost/HeroArchMageGhost": {
   "key": "model:monster:Units/Other/HeroArchMageGhost/HeroArchMageGhost",
@@ -26397,6 +27380,54 @@ window.SPRITE_SHEETS = {
   },
   "modelScale": 0.7,
   "glow": true
+ },
+ "model:monster:Units/Other/Orccar/Orccar": {
+  "key": "model:monster:Units/Other/Orccar/Orccar",
+  "src": "sprites/w3_monster_Units_Other_Orccar_Orccar.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 8,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.62
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "walk": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": true
+   }
+  },
+  "modelScale": 0.8
+ },
+ "model:monster:Units/Other/UndeadCar/UndeadCar": {
+  "key": "model:monster:Units/Other/UndeadCar/UndeadCar",
+  "src": "sprites/w3_monster_Units_Other_UndeadCar_UndeadCar.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 8,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "walk": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": true
+   }
+  },
+  "modelScale": 1.0
  },
  "model:monster:Units/Undead/Abomination/Abomination": {
   "key": "model:monster:Units/Undead/Abomination/Abomination",
@@ -27114,6 +28145,55 @@ window.SPRITE_SHEETS = {
   },
   "modelScale": 0.75
  },
+ "model:tower:Abilities/Weapons/LavaSpawnMissile/LavaSpawnBirthMissile": {
+  "key": "model:tower:Abilities/Weapons/LavaSpawnMissile/LavaSpawnBirthMissile",
+  "src": "sprites/w3_tower_Abilities_Weapons_LavaSpawnMissile_LavaSpawnBirthMissile.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   }
+  },
+  "modelScale": 2.0
+ },
+ "model:tower:Abilities/Weapons/LavaSpawnMissile/LavaSpawnBirthMissile_glow": {
+  "key": "model:tower:Abilities/Weapons/LavaSpawnMissile/LavaSpawnBirthMissile_glow",
+  "src": "sprites/w3_tower_Abilities_Weapons_LavaSpawnMissile_LavaSpawnBirthMissile_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.62
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   }
+  },
+  "modelScale": 2.0,
+  "glow": true
+ },
  "model:tower:Buildings/Human/HumanTower/HumanTower": {
   "key": "model:tower:Buildings/Human/HumanTower/HumanTower",
   "src": "sprites/w3_tower_Buildings_Human_HumanTower_HumanTower.webp",
@@ -27788,6 +28868,100 @@ window.SPRITE_SHEETS = {
    }
   },
   "modelScale": 1.2
+ },
+ "model:tower:Units/Creeps/HeroTinkerRobot/HeroTinkerRobot": {
+  "key": "model:tower:Units/Creeps/HeroTinkerRobot/HeroTinkerRobot",
+  "src": "sprites/w3_tower_Units_Creeps_HeroTinkerRobot_HeroTinkerRobot.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 6,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 1,
+    "fps": 8,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.2
+ },
+ "model:tower:Units/Creeps/LavaSpawn/LavaSpawn": {
+  "key": "model:tower:Units/Creeps/LavaSpawn/LavaSpawn",
+  "src": "sprites/w3_tower_Units_Creeps_LavaSpawn_LavaSpawn.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.3
+ },
+ "model:tower:Units/Creeps/LavaSpawn/LavaSpawn_glow": {
+  "key": "model:tower:Units/Creeps/LavaSpawn/LavaSpawn_glow",
+  "src": "sprites/w3_tower_Units_Creeps_LavaSpawn_LavaSpawn_glow.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.3,
+  "glow": true
  },
  "model:tower:Units/Creeps/OrcWarlockRed/OrcWarlockRed": {
   "key": "model:tower:Units/Creeps/OrcWarlockRed/OrcWarlockRed",
