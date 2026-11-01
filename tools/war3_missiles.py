@@ -309,21 +309,31 @@ def export(art):
 def main():
     os.makedirs(OUT, exist_ok=True)
     use = {}                                                 # 塔 / 英雄 → 投射物
+    sig = lambda u: tuple((u.get(k) or '').split(',')[0].strip().lower() for k in ('Missileart', 'Missilespeed', 'Missilearc', 'weapTp1'))
     for fam, t in D['towers'].items():
         if t['cat'] == 'aura': continue
         u = U[t['levels'][0]['id']]; use['tower:' + fam] = u
+        for i, lv in enumerate(t['levels'][1:], 2):          # 原图有些塔升级换弹道（毒塔 2 级起火球……）：和 1 级不同的等级另登记 'tower:<塔>:<等级>'
+            ul = U.get(lv['id'], {})
+            if sig(ul) != sig(u): use[f'tower:{fam}:{i}'] = ul
+        u2 = U[t['levels'][-1]['id']]                         # 第二武器（风行塔天赋打开的鹰身人箭……）：登记 'tower:<塔>:w2'
+        if len((u2.get('Missileart') or '').split(',')) > 1 and u2.get('weapTp2'): use[f'tower:{fam}:w2'] = (u2, 1)
     for n, h in D['heroes'].items(): use['hero:' + n] = U[h['id']]
     data, who = {}, {}
     for k, u in use.items():
-        art = (u.get('Missileart') or '').split(',')[0].strip()
-        spd = float((u.get('Missilespeed') or '0').split(',')[0] or 0)
-        arc = float((u.get('Missilearc') or '0').split(',')[0] or 0)
-        if not re.search(r'\w\.(mdl|mdx)$', art, re.I) or u.get('weapTp1') == 'instant' or spd >= MAX_SPEED:
-            print(f'{k}: 不用（{art or "无"}，{u.get("weapTp1")}，速度 {spd:g}）'); continue
+        u, w = u if isinstance(u, tuple) else (u, 0)
+        part = lambda f: ((u.get(f) or '0').split(',') + ['0'])[w].strip() or '0'
+        art = part('Missileart'); spd = float(part('Missilespeed')); arc = float(part('Missilearc'))
+        if not re.search(r'\w\.(mdl|mdx)$', art, re.I) or u.get(f'weapTp{w + 1}') == 'instant' or spd >= MAX_SPEED:
+            print(f'{k}: 不用（{art or "无"}，{u.get("weapTp1")}，速度 {spd:g}）')
+            if k.count(':') == 2: who[k] = None                # 这一级 / 第二武器不用原版投射物（不能沿用 1 级的）
+            continue
         if art not in data:
             d, note = export(art)
             print(f'{k}: {art} → {note}')
-            if not d: continue
+            if not d:
+                if k.count(':') == 2: who[k] = None
+                continue
             data[art] = d
         who[k] = dict(missile=data[art]['name'], speed=spd, arc=arc)
     with open(os.path.join(ROOT, 'h5', 'assets', 'w3missiles.js'), 'w', encoding='utf-8') as fp:

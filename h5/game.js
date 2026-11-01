@@ -691,7 +691,16 @@ const MUZZLE = { lightning: 175, elemOrb: 170, holyBeam: 190, cannon: 120, bould
 const missileOf = t => MISSILE[t.isHero ? 'hero:' + t.heroName : t.fam] || BY_ATK[t.isHero ? heroStats(t).atk : curLevel(t).atk] || 'arcaneDagger';
 // 原版投射物（assets/w3missiles.js）：有就用原图的模型、速度、弧度，命中效果沿用上面的风格
 const W3M = window.W3_MISSILE_OF || {};
-const w3opt = t => { const o = W3M[t.isHero ? 'hero:' + t.heroName : 'tower:' + t.fam]; return o ? { w3: o.missile, speed: o.speed, arc: o.arc } : {}; };
+// 塔按当前等级取（原图有些塔升级换弹道 / 弹速，登记成 'tower:<塔>:<等级>'，null = 这一级不用原版投射物），开了第二武器时取 'tower:<塔>:w2'
+function w3opt(t) {
+  let o;
+  if (t.isHero) o = W3M['hero:' + t.heroName];
+  else {
+    const k = 'tower:' + t.fam, kit = KITS[t.fam], w2 = kit && kit.weapon && kit.weapon(t);
+    o = w2 && (k + ':w2') in W3M ? W3M[k + ':w2'] : (k + ':' + (t.lv + 1)) in W3M ? W3M[k + ':' + (t.lv + 1)] : W3M[k];
+  }
+  return o ? { w3: o.missile, speed: o.speed, arc: o.arc } : {};
+}
 const sndKey = t => t.isHero ? 'hero:' + t.heroName : 'tower:' + t.fam;      // 音效登记（assets/w3sounds.js）的 key
 const muzzle = (t, style) => ({ x: t.x, y: t.y, z: (MUZZLE[style] || 150) + (t.isHero ? 30 : 0) });
 function shot(t, m) { t.face = Math.atan2(m.y - t.y, m.x - t.x); }

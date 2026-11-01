@@ -38,7 +38,7 @@ python3 tools/war3_sounds.py
   手机竖屏仍用简化的两行布局。
 - **商店**：地图中央的商店 `u00L`，模型是摇滚阿尔萨斯（`Doodads/Cinematic/RockinArthas`），登记成 `shop`。兔子（`nshe`）用复活节兔子模型（`Units/Critters/EasterRabbit`，放大 3 倍）实时渲染，没有 3D 时程序绘制。
 - **剑刃风暴**：原图召唤剑魂 `n05F`（1.5 倍的剑圣，带幽灵所以半透明）施放旋风斩；精灵图是剑圣模型的 `Attack Walk Stand Spin` 动作（`fx:bladestorm`）。
-- **投射物**：塔 / 英雄 1 级单位的 `Missileart`、`Missilespeed`、`Missilearc`。速度 ≥ 5000 或瞬间命中的（原图里其实是直接命中）、
+- **投射物**：塔 / 英雄 1 级单位的 `Missileart`、`Missilespeed`、`Missilearc`；塔升级后弹道 / 弹速和 1 级不同的等级另登记 `tower:<塔>:<等级>`（毒塔 2 级起火焰领主火球、4 级死亡缠绕、MAX 嗜血，混乱塔每级不同、MAX 火山熔岩，群攻 / 燃烧 / 炎魔 / 地精 / 图腾塔的弹速），天赋 / 科技打开的第二武器登记 `tower:<塔>:w2`（风行塔的鹰身人箭、五行塔的恶魔猎手刃）。速度 ≥ 5000 或瞬间命中的（原图里其实是直接命中）、
   或者没有填的，继续用程序绘制的弹道。命中效果沿用程序绘制的（能看出溅射范围）。
 
 - **地面**：原图 `war3map.w3e` 用到的地块——Lgrd 暗草地（底色）、Arck 灰绿岩石（路面）、Zvin 遗迹暗草（路两侧 1、3 格外的细纹）、
