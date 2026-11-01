@@ -1,0 +1,26 @@
+{
+ "key": "tower:弹跳塔:MAX",
+ "src": "sprites/w3_tower_Units_Human_Priest_Priest.png",
+ "frameW": 160,
+ "frameH": 160,
+ "cols": 10,
+ "rows": 1,
+ "anchor": [
+  0.5,
+  0.7
+ ],
+ "unitsPerPixel": 2.0,
+ "pitch": 50,
+ "actions": {
+  "idle": {
+   "row": 0,
+   "dirs": 1,
+   "frames": 10,
+   "fps": 6.67,
+   "loop": true
+  }
+ },
+ "modelScale": 1.6,
+ "aliasOf": "model:tower:Units/Human/Priest/Priest",
+ "war3": true
+}

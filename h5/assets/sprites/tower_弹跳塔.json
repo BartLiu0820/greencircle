@@ -9,7 +9,7 @@
   0.5,
   0.7
  ],
- "unitsPerPixel": 2.0,
+ "unitsPerPixel": 1.0,
  "pitch": 50,
  "actions": {
   "idle": {
@@ -20,7 +20,7 @@
    "loop": true
   }
  },
- "modelScale": 0.8,
+ "modelScale": 1.6,
  "aliasOf": "model:tower:Units/Human/Priest/Priest",
  "war3": true
 }

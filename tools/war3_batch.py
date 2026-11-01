@@ -29,6 +29,8 @@ BLENDER = os.environ.get('BLENDER', '/Applications/Blender.app/Contents/MacOS/Bl
 TEAM = {'monster': '0.306,0.165,0.016', 'tower': '1,0.012,0.012', 'hero': '1,0.012,0.012', 'builder': '1,0.012,0.012', 'fx': '1,0.012,0.012'}
 # 技能召唤的特效单位：登记 key → (单位 ID, 出图动作)。剑魂 n05F = 1.5 倍的剑圣，原图里施放旋风斩（剑刃风暴）
 FX_UNITS = {'fx:bladestorm': ('n05F', 'spin:8')}
+# 塔的皮肤（game.js 的 TOWER_SKIN）：弹跳之王、毁灭兽王、人马塔（疯狂骑士）
+TOWER_SKINS = {'弹跳塔': 'h06J', '兽王塔': 'n06T', '人马塔': 'n07H'}
 # 光效表（登记成 'glow:' + key）：模型里叠加发光的 geoset（旋风斩的旋风、法师手里的光球、图腾的电光……），
 # 本体图不画它们；另用 import_mdx.py --glow 黑底出一张同样排布的图，游戏里 drawSheet 用 lighter 叠在本体上。没有这种 geoset 的模型不出
 BUILDER_ID = 'uaco'
@@ -66,6 +68,8 @@ def entities():
         out.append(('tower:' + fam, 'tower', lv[0]['id']))
         out += [(f'tower:{fam}:{i + 1}', 'tower', l['id']) for i, l in enumerate(lv) if i]
         if t.get('super'): out.append((f'tower:{fam}:{len(lv) + 1}', 'tower', t['super']['id']))   # 超级深渊塔：接在深渊塔 MAX 后面
+    out.append(('tower:弹跳塔:MAX', 'tower', D['towers']['弹跳塔']['max']['id']))   # 弹跳塔 MAX（合成的，不在等级表里）
+    out += [(f'tower:{fam}:皮肤', 'tower', uid) for fam, uid in TOWER_SKINS.items()]
     out += [('hero:' + n, 'hero', h['id']) for n, h in D['heroes'].items()]
     out += [('hero:' + n + ':皮肤', 'hero', h['skin']['id']) for n, h in D['heroes'].items() if h.get('skin')]   # 皮肤 / 进化形态（game.js HERO_SKIN）
     out.append(('builder', 'builder', BUILDER_ID))

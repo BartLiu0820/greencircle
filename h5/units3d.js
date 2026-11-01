@@ -135,7 +135,7 @@ function create(canvas, sheets) {
     inst.setLocation([x, y, 0]);
     inst.setRotation([0, 0, Math.sin(face / 2), Math.cos(face / 2)]);   // 模型默认朝 +X，face 是游戏里的朝向角
     inst.setUniformScale(unitScale(meta) * (opt.scale || 1));
-    const c = meta.tint || [1, 1, 1];
+    const c = opt.tint || meta.tint || [1, 1, 1];          // opt.tint：触发器改过的顶点颜色（SetUnitVertexColor，替换单位数据的颜色）
     inst.setVertexColor([c[0], c[1], c[2], opt.alpha == null ? 1 : opt.alpha]);
     // 动作：时长和精灵图一样（帧数 / fps），游戏逻辑按这个时长算攻击、施法、倒地
     const id = md.seq[name] ?? md.seq.idle ?? 0, sq = md.model.sequences[id];

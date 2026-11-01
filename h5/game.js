@@ -468,7 +468,7 @@ function canPlace(x, y, withOrders = false) {
   return footCells(x, y).every(([cx, cy]) => cellBuildable(cx, cy) && !cellTaken(cx, cy, withOrders));
 }
 // 主塔名额（原图 ovln）：开局 1 个；主塔（除了弹跳塔、神圣塔）和所有英雄建筑都要求有它，开工时删掉 2 个（BB1 / BB7，实际只有 1 个），
-// 插英雄旗帜删 1 个（BMI）、升超级深渊删 1 个（BFZ）；回收原始指挥官 / 风行 / 将军 / 天将 / 五行 / 狂狼 / 兽王塔、英雄旗帜、
+// 插英雄旗帜删 1 个（BMI）、升超级深渊删 1 个（BFZ）；回收原始指挥官 / 风行 / 将军 / 天将 / 五行 / 狂狼 / 兽王塔、人马塔（疯狂骑士）、英雄旗帜、
 // 超级深渊和用轮回卷轴回收英雄时还 1 个（qG / BKh），其余的靠 BcC：每 5 秒，玩家没有名额、也没有任何生命 80000 的单位（主塔、英雄、旗帜、超级深渊）时补 1 个。
 // 所以英雄和主塔共用一个名额：建了英雄就不能建主塔，反过来也一样。神圣塔原图不要求也不占名额（生命 1400），可以和主塔、英雄同时有
 const SLOT_FREE = new Set(['弹跳塔', '神圣塔']);
@@ -499,6 +499,25 @@ function newTower(fam, x, y, extra) {
   if (kit && kit.init) kit.init(t, G.mem[fam]);
   return t;
 }
+// 塔的皮肤（原图建成 / 合成时按平台"赞+7"或英雄赞助换成另一个单位）：弹跳之王 h06J（合成弹跳塔 MAX 时）、毁灭兽王 n06T（BBy）、
+// 人马塔（疯狂骑士）n07H（BEh）。只是攻击间隔 / 溅射略有不同、换模型，触发器和原塔共用；疯狂骑士回收时马上还主塔名额（qG）。
+// 条件照原图从左往右算：合成弹跳之王是"赞 or 赞助"（不看 -QXPF），其余都是"(赞 or 赞助) and 没取消"
+const TOWER_SKIN = {
+  弹跳塔: { z: 2400, id: 'h06J', name: '弹跳之王', cd: 0.54 },
+  兽王塔: { z: 2200, id: 'n06T', name: '毁灭兽王', cd: 1.1, splash: 130 },
+  人马塔: { z: 1500, id: 'n07H', name: '人马塔（疯狂骑士）', cd: 1.3 },
+};
+const zan = () => G.player ? profileOf(G.player).likes || 0 : 0;      // 平台"赞+7"：玩家档案里被赞的次数
+function towerSkin(t, loose) {
+  const s = TOWER_SKIN[t.fam]; if (!s) return t;
+  const on = zan() >= s.z || !!G.sponsor;
+  if (!(loose ? on : on && !G.kk)) return t;
+  t.levels = t.levels.map(l => ({ ...l, name: s.name, cd: s.cd, ...(s.splash ? { splash: s.splash } : {}) }));
+  t.skin = s;
+  if (SHEETS['tower:' + t.fam + ':皮肤']) t.sheet = 'tower:' + t.fam + ':皮肤';
+  msg(`使用皮肤：${s.name}　输入 -QXPF 以后不再自动使用`, 6);
+  return t;
+}
 function buildTower(fam, x, y) {
   if (fam === 'hero') return buildHero(x, y);
   if (fam === 'ancient') return G.hero && plantAncient(G.hero, x, y);       // 古树：种召唤古树
@@ -509,6 +528,7 @@ function buildTower(fam, x, y) {
   if (foodUsed() + (lv0.food || 0) > G.foodCap) return msg('人口不足（12 木材可买 1 人口）');
   G.gold -= lv0.gold;
   const t = newTower(fam, x, y);
+  if (fam === '兽王塔' || fam === '人马塔') towerSkin(t);
   G.towers.push(t);
   if (usesSlot(fam)) takeSlot(2);                // BB1：开工时删 2 个主塔名额
   if (t.cat === 'god') G.godLock.add(fam);
@@ -538,7 +558,7 @@ function upgradeTower(t, branchKey) {
 function sellTower(t) {
   if (t.banner) { G.towers = G.towers.filter(x => x !== t); G.ovln++; if (G.selected === t) G.selected = G.builder; msg('回收了英雄旗帜，主塔名额还回来了'); uiDirty(); return; }
   abyssSellHO(t);                         // 原图 BC9（回收时被回收的塔还在）
-  if (SLOT_BACK.has(t.fam) || (t.fam === '深渊塔' && t.super)) G.ovln++;   // qG：这几种回收时马上还主塔名额（还有人马塔的疯狂骑士，这里没有），其余等 BcC
+  if (SLOT_BACK.has(t.fam) || (t.fam === '深渊塔' && t.super) || (t.fam === '人马塔' && t.skin)) G.ovln++;   // qG：这几种（还有人马塔的疯狂骑士）回收时马上还主塔名额，其余等 BcC
   if (t.fam === '深渊塔') G.abyss.de[pidOf(t)] = 0;
   G.gold += t.spent;                      // ConstructionRefundRate = UpgradeRefundRate = 1.0
   const kit = KITS[t.fam];
@@ -992,6 +1012,8 @@ const LOOK = {
   地狱刺: null,                                                                        // h06C
   图腾遣返: null,                                                                      // h06M
   猛犸元神: ['units/creeps/magnataurblue/magnataurblue', 1.3],                        // n07D
+  熊猫元神: ['units/creeps/pandarenbrewmaster/pandarenbrewmaster', 1.4],              // n06S（伏魔）
+  熊猫元神皮肤: ['units/creeps/firepandarenbrewmaster/firepandarenbrewmaster', 1.4],  // n07A（赞 ≥ 500 或赞助）
   路刺: ['abilities/spells/orc/spikebarrier/spikebarrier', 1],                        // h076
   小虫: ['units/creeps/nerubian/nerubian', 0.3],                                      // h077
   腐尸甲虫: ['units/undead/scarab/scarab', 1.3],                                      // ucs3
@@ -2342,7 +2364,7 @@ const KITS = {
       G.gold -= BOUNCE.value;
       for (const o of G.towers.filter(o => o.fam === '弹跳塔' && !o.bmax && o.lv === 0)) sellTower(o);
       msg('弹跳天赋：花费 58000 金币，直接建成弹跳塔 MAX');
-      return bounceMax(t.x, t.y, 0, b.bolt);
+      return bounceMax(t.x, t.y, 0, b.bolt, false);
     },
     attack(t, target) {
       if (!t.bmax || !cdReady(t, 'bolt')) return;
@@ -3034,10 +3056,12 @@ function evoCmd(t, small, to) {
     msg(`${t.fam}进化成了${to}`);
   }, { why });
 }
-// 弹跳塔 MAX：等级表只有一级（h021），回收返还 58000
-function bounceMax(x, y, mana, bolt) {
+// 弹跳塔 MAX：等级表只有一级（h021），回收返还 58000。合成时（BFS）皮肤条件不看 -QXPF（loose），弹跳天赋快建（BFU）要看
+function bounceMax(x, y, mana, bolt, loose = true) {
   const d = D.towers.弹跳塔.max;
   const t = newTower('弹跳塔', x, y, { levels: [d], spent: BOUNCE.value, food: d.food, bmax: true, bolt, talent: G.bounce.talent });
+  if (SHEETS['tower:弹跳塔:MAX']) t.sheet = 'tower:弹跳塔:MAX';     // MAX 是 1.6 倍的牧师（1 级 0.8 倍）
+  towerSkin(t, loose);
   t.mana = mana;
   G.towers.push(t);
   FXS.nova(x, y, 300, '#c8b8ff', 0.6); SFX.ui('upgrade');
@@ -4234,7 +4258,8 @@ Object.assign(HERO_DEF, {
       if (fam.has('大地') && fam.has('火焰') && fam.has('风暴')) {
         if (Math.random() < 0.5) { if (!f.nh) { f.nh = true; msg('伏魔获得疯狂伏魔令'); } }
         else if (!f.panda) {
-          f.panda = hsum(h, h.x, h.y, 0, { cd: 0.75, range: 300, atk: 'hero', splash: 300 }, { label: '熊', title: '熊猫元神', kind: 'panda', mobile: { speed: 450, leash: 2000 },
+          const sk = !!G.sponsor || zan() >= 500;                       // 赞助或"赞+7" ≥ 500：换成 n07A（火焰熊猫，攻击间隔 0.65）
+          f.panda = hsum(h, h.x, h.y, 0, { cd: sk ? 0.65 : 0.75, range: 300, atk: 'hero', splash: 300 }, { label: '熊', title: '熊猫元神', look: sk ? '熊猫元神皮肤' : '熊猫元神', kind: 'panda', mobile: { speed: 450, leash: 2000 },
             stats: () => ({ dmg: 2 + 700 * fmTech(h).atk, as: 0.1 * fmTech(h).as }),
             onLaunch(s, tg) { if (G.towers.some(t => t.fam === '小熊猫塔（火）') && h.mana >= 1) { h.mana -= 0.2; aoeAt(h, tg.x, tg.y, 300, h.stat.agi * h.stat.agi / 12, 'hero'); } } });
           msg('熊猫元神出现了');
@@ -5352,6 +5377,12 @@ function makeHero(name, x, y, banner) {
   if (skinOn(name, banner)) {
     h.skin = hd.skin; msg(`使用英雄皮肤：${hd.skin.name}（${hd.skin.title}）　输入 -QXPF 以后不再自动使用`, 8);
     if (name === '古树' || name === '坦克') G.kx = true;     // 原图 KX（全局）：古树 / 坦克用了皮肤后，古树种出来的古树换成 h06Y（溅射 130）
+    if (HERO_SKIN_AS.has(name) && !(banner && name === '枪神')) h.asBonus += 0.08;   // 皮肤另加"增加 8% 攻击速度"（A09P）；旗帜里的枪神皮肤没加
+  }
+  if (darkOn(name, banner)) {             // 没有另一个单位的两个：涂黑（SetUnitVertexColor 0,0,0）+ 攻速
+    h.tint = [0, 0, 0]; h.asBonus += banner && name === '火魂' ? 0.2 : 0.08;   // 旗帜里的火魂是 A09I（+20%），其余 A09P（+8%）
+    if (name === '幻影') h.kz = true;     // KZ：之后每秒随机换颜色（BGU）
+    msg(`使用英雄皮肤：${hd.name}（${name === '幻影' ? '幻彩' : '暗黑'}）　输入 -QXPF 以后不再自动使用`, 8);
   }
   // 建成时随机成长值（原图 DR / DS / DT：力量 0~7，敏捷 0~剩余，智力补足 7）。每次升级英雄自带全属性 +1，再按成长值加，所以显示时各 +1，合计 10
   const r = rint(0, 7), a = rint(0, 7 - r);
@@ -5425,6 +5456,16 @@ function skinOn(name, banner) {
   if (banner && name === '电法') return Z || IU;
   return (Z || IU) && !Kk;
 }
+// 风神 / 狂牛 / 枪神的皮肤建出来时还加"增加 8% 攻击速度"（A09P）
+const HERO_SKIN_AS = new Set(['风神', '狂牛', '枪神']);
+// 幻影 / 火魂没有皮肤单位，"赞+7"到门槛时原英雄涂黑并加攻速：幻影 400（BMC / BQE）、火魂 1400（BMC / BO3）。
+// 条件照原图从左往右算：旗帜里的火魂是"(没取消 and 赞) or 赞助"，其余是"(赞 or 赞助) and 没取消"
+const HERO_DARK = { 幻影: 400, 火魂: 1400 };
+function darkOn(name, banner) {
+  if (!(name in HERO_DARK)) return false;
+  const Z = zan() >= HERO_DARK[name], IU = !!G.sponsor, Kk = !!G.kk;
+  return banner && name === '火魂' ? (!Kk && Z) || IU : (Z || IU) && !Kk;
+}
 const heroData = h => h.skin ? { ...D.heroes[h.heroName], ...h.skin, name: D.heroes[h.heroName].name } : D.heroes[h.heroName];
 const heroKey = e => 'hero:' + e.heroName + (e.skin && SHEETS['hero:' + e.heroName + ':皮肤'] ? ':皮肤' : '');
 // 攻击力 = 基础攻击 + 升级累计的 [力量/5] + 力量×5（StrAttackBonus）+ 技能 / 科技加成；攻速 = 1 + 敏捷×1%（AgiAttackSpeedBonus）+ 技能加成，封顶 +400%
@@ -5438,6 +5479,7 @@ function heroTick(h, dt) {
   h.mana = Math.min(h.maxMana(), h.mana + dt * h.stat.int * 0.01 * (def.manaRegen ? def.manaRegen(h) : 1));   // IntRegenBonus = 0.01
   const sec = Math.floor(G.t) - Math.floor(G.t - dt);                 // 原图每秒一次的计时器（BGU 等）
   for (let k = 0; k < sec; k++) { for (const key in h.xb) h.xb[key] -= 1; if (def.second) def.second(h); }
+  if (sec && h.kz) h.tint = [0, 0, 0].map(() => rint(0, 3) / 3);     // 原图 BGU（每秒）：KZ = 1 时幻影随机换颜色（精灵图按 4 档取，免得每种颜色都缓存一张）
   for (const i of h.learned) {
     const s = HERO_KITS[h.heroName][i];
     if (s.tick) s.tick(h, dt);
@@ -7406,7 +7448,7 @@ function img(key) {
   return IMG[key].complete && IMG[key].naturalWidth ? IMG[key] : null;
 }
 for (const k in AM.sprites || {}) img(k);            // 图标和头像先加载好，第一次打开面板就有图
-const spriteKey = e => e.isShop ? (e.mdx ? 'npc:' + e.shop : 'shop') : e.isRabbit ? 'rabbit' : e.isBuilder ? 'builder' : e.isHero ? heroKey(e) : e.uid ? 'unit:' + e.uid : e.fam ? 'tower:' + e.fam + ':' + (e.lv + 1) : null;
+const spriteKey = e => e.isShop ? (e.mdx ? 'npc:' + e.shop : 'shop') : e.isRabbit ? 'rabbit' : e.isBuilder ? 'builder' : e.isHero ? heroKey(e) : e.uid ? 'unit:' + e.uid : e.sheet && e.cat !== 'summon' ? e.sheet : e.fam ? 'tower:' + e.fam + ':' + (e.lv + 1) : null;
 function entityImg(e) {
   const k = spriteKey(e); if (!k) return null;
   return img(k) || (e.fam && !e.isHero && img('tower:' + e.fam));
@@ -7446,7 +7488,10 @@ function sheetOf(e) {
   if (!e) return null;
   if (e.isBuilder) return sheetByKey('builder');
   if (e.isShop) return e.mdx ? null : sheetByKey('shop');
-  if (e.isHero) return sheetByKey(heroKey(e));
+  if (e.isHero) {                                    // 英雄皮肤涂黑 / 幻彩（SetUnitVertexColor 替换单位数据的颜色，所以在原图上染）
+    const s = sheetByKey(heroKey(e));
+    return s && e.tint ? { m: s.m, im: tinted(SHEET_IMG[s.m.src], e.tint) } : s;
+  }
   if (e.sheet) return sheetByKey(e.sheet);
   if (e.uid) return sheetByKey('unit:' + e.uid);
   if (e.fam && e.cat !== 'summon') return towerSheet(e.fam, e.lv + 1);
@@ -7485,7 +7530,7 @@ const GHOST = {};                                     // 建造预览的虚影�
 function model3d(key, m, x, y, face, anim, scaleMul = 1, alpha = 1, ent = key) {
   if (!U3 || !m) return false;
   if (!((m.actions[anim[0]] || {}).dirs > 1)) face = null;       // 精灵图只有一个方向的（塔、建筑）：模型也固定朝南，不跟着攻击方向转
-  return U3.put(key, m, x, y, face ?? -Math.PI / 2, anim, G.t, { scale: scaleMul, alpha, team: ent.uid && ent.cat !== 'summon' ? 11 : 0 });
+  return U3.put(key, m, x, y, face ?? -Math.PI / 2, anim, G.t, { scale: scaleMul, alpha, team: ent.uid && ent.cat !== 'summon' ? 11 : 0, tint: ent.tint });
 }
 // 精灵图画出来的顶部再往下 30%（放血条），3D 模型按同样的框算
 function sheetTop(m, y, scaleMul = 1) {
@@ -9057,5 +9102,5 @@ newGame('rookie');
 showStart();
 requestAnimationFrame(frame);
 window.__G = () => G;   // 调试用
-window.__dbg = { get G() { return G; }, NODES, EDGES, kill, hurt, spawnMonster, FXS, buildTower, upgradeTower, learnSkill, heroLevelUp, step, canPlace, newGame, monstersAlive, towerStats, rerollBuild, orderBuild, orderMove, castSkill, spawnRabbit, buyRabbit, RABBIT_SHOP, makePet, spawnWisp, spawnWildPet, dropItem, invAdd, ITEMS, startVote, kickPlayer, giveLike, netReceive, MASTER_ITEMS, PET_ITEMS, wishBuy, petTalent, MASTER, WISHER, PETSHOP, buyItem, critterTick, sellItem, pickUp, candyWild, renderCmds, SHOP, SHOP_ITEMS, buyShop, orderFinger, KITS, towerAS, towerAtk, effArmor, applyAuras, sellTower, select, hurt, buildCmds, newTower, attack, bounceXfer, spendPoint, upSkill, wujiSacrifice, plantAncient, knWard, heroStats, HERO_KITS, HERO_DEF, heroAuraList, gateSpots, spawnAt, cap, playerLeft, startFinal, GATES, monsterAttacked, monsterDied, attackDmg, activateTalent, talentWhy, talentOf, orderTalent, TALENTS, primalMaxHit };
+window.__dbg = { get G() { return G; }, NODES, EDGES, kill, hurt, spawnMonster, FXS, buildTower, upgradeTower, learnSkill, heroLevelUp, step, canPlace, newGame, monstersAlive, towerStats, rerollBuild, orderBuild, orderMove, castSkill, spawnRabbit, buyRabbit, RABBIT_SHOP, makePet, spawnWisp, spawnWildPet, dropItem, invAdd, ITEMS, startVote, kickPlayer, giveLike, netReceive, MASTER_ITEMS, PET_ITEMS, wishBuy, petTalent, MASTER, WISHER, PETSHOP, buyItem, critterTick, sellItem, pickUp, candyWild, renderCmds, SHOP, SHOP_ITEMS, buyShop, orderFinger, KITS, towerAS, towerAtk, effArmor, applyAuras, sellTower, select, hurt, buildCmds, newTower, attack, bounceXfer, spendPoint, upSkill, wujiSacrifice, plantAncient, knWard, heroStats, HERO_KITS, HERO_DEF, heroAuraList, gateSpots, spawnAt, cap, playerLeft, startFinal, GATES, monsterAttacked, monsterDied, attackDmg, activateTalent, talentWhy, talentOf, orderTalent, TALENTS, primalMaxHit, makeHero, bounceMax, bounceMerge, towerSkin, sheetOf, spriteKey };
 })();

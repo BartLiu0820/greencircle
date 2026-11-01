@@ -741,6 +741,40 @@ window.SPRITE_SHEETS = {
   "aliasOf": "model:tower:Doodads/Cinematic/RockinArthas/RockinArthas_glow",
   "war3": true
  },
+ "glow:tower:兽王塔:皮肤": {
+  "key": "glow:tower:兽王塔:皮肤",
+  "src": "sprites/w3_tower_Units_Demon_DoomGuard_doomguard_glow.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.76
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 3.75,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.1,
+  "glow": true,
+  "aliasOf": "model:tower:Units/Demon/DoomGuard/doomguard_glow",
+  "war3": true
+ },
  "glow:tower:小熊猫塔（风）": {
   "key": "glow:tower:小熊猫塔（风）",
   "src": "sprites/w3_tower_Units_Creeps_StormPandarenBrewmaster_StormPandarenBrewmaster_glow.webp",
@@ -4227,6 +4261,43 @@ window.SPRITE_SHEETS = {
    198
   ]
  },
+ "tower:人马塔:皮肤": {
+  "key": "tower:人马塔:皮肤",
+  "src": "sprites/w3_tower_Units_Demon_ChaosWarlord_ChaosWarlord.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.6,
+  "aliasOf": "model:tower:Units/Demon/ChaosWarlord/ChaosWarlord",
+  "war3": true,
+  "vis": [
+   186,
+   204
+  ]
+ },
  "tower:兽人塔": {
   "key": "tower:兽人塔",
   "src": "sprites/w3_tower_Units_Orc_Grunt_grunt.webp",
@@ -4304,6 +4375,43 @@ window.SPRITE_SHEETS = {
   "vis": [
    162,
    174
+  ]
+ },
+ "tower:兽王塔:皮肤": {
+  "key": "tower:兽王塔:皮肤",
+  "src": "sprites/w3_tower_Units_Demon_DoomGuard_doomguard.webp",
+  "frameW": 240,
+  "frameH": 240,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 3.75,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.1,
+  "aliasOf": "model:tower:Units/Demon/DoomGuard/doomguard",
+  "war3": true,
+  "vis": [
+   202,
+   240
   ]
  },
  "tower:冰封塔": {
@@ -6318,6 +6426,36 @@ window.SPRITE_SHEETS = {
    0.5,
    0.7
   ],
+  "unitsPerPixel": 1.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   }
+  },
+  "modelScale": 1.6,
+  "aliasOf": "model:tower:Units/Human/Priest/Priest",
+  "war3": true,
+  "vis": [
+   64,
+   71
+  ]
+ },
+ "tower:弹跳塔:MAX": {
+  "key": "tower:弹跳塔:MAX",
+  "src": "sprites/w3_tower_Units_Human_Priest_Priest.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
   "unitsPerPixel": 2.0,
   "pitch": 50,
   "actions": {
@@ -6329,12 +6467,42 @@ window.SPRITE_SHEETS = {
     "loop": true
    }
   },
-  "modelScale": 0.8,
+  "modelScale": 1.6,
   "aliasOf": "model:tower:Units/Human/Priest/Priest",
   "war3": true,
   "vis": [
-   66,
-   70
+   128,
+   142
+  ]
+ },
+ "tower:弹跳塔:皮肤": {
+  "key": "tower:弹跳塔:皮肤",
+  "src": "sprites/w3_tower_Units_Human_Priest_Priest_V1.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   }
+  },
+  "modelScale": 2.0,
+  "aliasOf": "model:tower:Units/Human/Priest/Priest_V1",
+  "war3": true,
+  "vis": [
+   162,
+   180
   ]
  },
  "tower:恐惧塔": {
@@ -29150,6 +29318,100 @@ window.SPRITE_SHEETS = {
   },
   "modelScale": 1.0
  },
+ "model:tower:Units/Demon/ChaosWarlord/ChaosWarlord": {
+  "key": "model:tower:Units/Demon/ChaosWarlord/ChaosWarlord",
+  "src": "sprites/w3_tower_Units_Demon_ChaosWarlord_ChaosWarlord.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.6
+ },
+ "model:tower:Units/Demon/DoomGuard/doomguard": {
+  "key": "model:tower:Units/Demon/DoomGuard/doomguard",
+  "src": "sprites/w3_tower_Units_Demon_DoomGuard_doomguard.webp",
+  "frameW": 240,
+  "frameH": 240,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 3.75,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.1
+ },
+ "model:tower:Units/Demon/DoomGuard/doomguard_glow": {
+  "key": "model:tower:Units/Demon/DoomGuard/doomguard_glow",
+  "src": "sprites/w3_tower_Units_Demon_DoomGuard_doomguard_glow.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 10,
+  "rows": 2,
+  "anchor": [
+   0.5,
+   0.76
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 3.75,
+    "loop": true
+   },
+   "attack": {
+    "row": 1,
+    "dirs": 1,
+    "frames": 6,
+    "fps": 14,
+    "loop": false
+   }
+  },
+  "modelScale": 1.1,
+  "glow": true
+ },
  "model:tower:Units/Demon/HeroChaosBladeMaster/HeroChaosBladeMaster": {
   "key": "model:tower:Units/Demon/HeroChaosBladeMaster/HeroChaosBladeMaster",
   "src": "sprites/w3_tower_Units_Demon_HeroChaosBladeMaster_HeroChaosBladeMaster.webp",
@@ -29359,7 +29621,31 @@ window.SPRITE_SHEETS = {
     "loop": true
    }
   },
-  "modelScale": 0.8
+  "modelScale": 1.6
+ },
+ "model:tower:Units/Human/Priest/Priest_V1": {
+  "key": "model:tower:Units/Human/Priest/Priest_V1",
+  "src": "sprites/w3_tower_Units_Human_Priest_Priest_V1.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 10,
+  "rows": 1,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "idle": {
+    "row": 0,
+    "dirs": 1,
+    "frames": 10,
+    "fps": 6.67,
+    "loop": true
+   }
+  },
+  "modelScale": 2.0
  },
  "model:tower:Units/Human/Rifleman/Rifleman": {
   "key": "model:tower:Units/Human/Rifleman/Rifleman",

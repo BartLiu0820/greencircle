@@ -145,7 +145,7 @@ model:tower:Units/Undead/SkeletonMage/SkeletonMage	ok	高 1.51 m | ppm 40 | 缺�
 model:tower:Buildings/NightElf/ChimaeraRoost/ChimaeraRoost	ok	高 2.68 m | ppm 40 | 缺贴图 0 | 动作 idle,death | 光效 无
 model:tower:Buildings/NightElf/AncientOfWonder/AncientOfWonder	ok	高 1.91 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death | 光效 有
 model:tower:Buildings/Orc/WatchTower/WatchTower	ok	高 3.89 m | ppm 24 | 缺贴图 0 | 动作 idle,death | 光效 无
-model:tower:Units/Human/Priest/Priest	ok	高 1.18 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,death | 光效 无
+model:tower:Units/Human/Priest/Priest	ok	高 2.36 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,death | 光效 无
 model:hero:Units/Orc/HeroBladeMaster/HeroBladeMaster	ok	高 2.49 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell,spin | 光效 无（出图的动作里看不见）
 model:hero:Units/Critters/ChaosSpaceOrc/ChaosSpaceOrc	ok	高 1.85 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 有
 model:hero:Units/Human/Jaina/Jaina	ok	高 2.20 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无
@@ -271,3 +271,6 @@ model:hero:Units/Creeps/HeroFlameLord/HeroFlameLord	ok	高 2.09 m | ppm 40 | 缺
 model:hero:Units/Creeps/HEROGoblinALCHEMIST/HeroGoblinAlchemist	ok	高 2.97 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,death | 光效 无
 model:hero:Units/Other/Orccar/Orccar	ok	高 1.55 m | ppm 40 | 缺贴图 0 | 动作 idle,walk | 光效 无
 model:hero:Units/Creeps/HeroTinker/HeroTinker	ok	高 1.80 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无
+model:tower:Units/Human/Priest/Priest_V1	ok	高 2.94 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,death | 光效 无
+model:tower:Units/Demon/DoomGuard/doomguard	ok	高 2.76 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 有
+model:tower:Units/Demon/ChaosWarlord/ChaosWarlord	ok	高 2.81 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无
