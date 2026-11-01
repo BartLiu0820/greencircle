@@ -1,0 +1,33 @@
+{
+ "key": "unit:ngzd",
+ "src": "sprites/w3_monster_Units_Creeps_RevenantOfTheWaves_RevenantOfTheWaves.png",
+ "frameW": 304,
+ "frameH": 304,
+ "cols": 8,
+ "rows": 16,
+ "anchor": [
+  0.5,
+  0.7
+ ],
+ "unitsPerPixel": 2.4,
+ "pitch": 50,
+ "actions": {
+  "walk": {
+   "row": 0,
+   "dirs": 8,
+   "frames": 8,
+   "fps": 12,
+   "loop": true
+  },
+  "death": {
+   "row": 8,
+   "dirs": 8,
+   "frames": 6,
+   "fps": 12,
+   "loop": false
+  }
+ },
+ "modelScale": 1.0,
+ "aliasOf": "model:monster:Units/Creeps/RevenantOfTheWaves/RevenantOfTheWaves",
+ "war3": true
+}

@@ -1,0 +1,31 @@
+{
+ "key": "unit:ndrp",
+ "src": "sprites/w3_monster_Doodads_Ruins_Terrain_RuinsWall45_RuinsWall454.png",
+ "frameW": 128,
+ "frameH": 128,
+ "cols": 6,
+ "rows": 8,
+ "anchor": [
+  0.5,
+  0.7
+ ],
+ "unitsPerPixel": 2.0,
+ "pitch": 50,
+ "actions": {
+  "death": {
+   "row": 0,
+   "dirs": 8,
+   "frames": 6,
+   "fps": 12,
+   "loop": false
+  }
+ },
+ "modelScale": 0.2,
+ "aliasOf": "model:monster:Doodads/Ruins/Terrain/RuinsWall45/RuinsWall454",
+ "war3": true,
+ "tint": [
+  0.647,
+  0.647,
+  1.0
+ ]
+}

@@ -1,0 +1,38 @@
+{
+ "key": "unit:nsc3",
+ "src": "sprites/w3_monster_Units_Other_DalaranReject_DalaranReject.png",
+ "frameW": 160,
+ "frameH": 160,
+ "cols": 8,
+ "rows": 16,
+ "anchor": [
+  0.5,
+  0.7
+ ],
+ "unitsPerPixel": 1.0666666666666667,
+ "pitch": 50,
+ "actions": {
+  "walk": {
+   "row": 0,
+   "dirs": 8,
+   "frames": 8,
+   "fps": 12,
+   "loop": true
+  },
+  "death": {
+   "row": 8,
+   "dirs": 8,
+   "frames": 6,
+   "fps": 12,
+   "loop": false
+  }
+ },
+ "modelScale": 1.5,
+ "aliasOf": "model:monster:Units/Other/DalaranReject/DalaranReject",
+ "war3": true,
+ "tint": [
+  0.0,
+  0.0,
+  1.0
+ ]
+}

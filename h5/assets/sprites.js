@@ -11128,6 +11128,39 @@ window.SPRITE_SHEETS = {
    1.0
   ]
  },
+ "unit:edtm": {
+  "key": "unit:edtm",
+  "src": "sprites/w3_monster_Units_NightElf_OwlScout_OwlScout.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 8,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 1.0,
+  "pitch": 50,
+  "actions": {
+   "walk": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": true
+   },
+   "death": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "aliasOf": "model:monster:Units/NightElf/OwlScout/OwlScout",
+  "war3": true
+ },
  "unit:ehip": {
   "key": "unit:ehip",
   "src": "sprites/w3_monster_Units_NightElf_Ent_Ent.webp",
@@ -11326,6 +11359,39 @@ window.SPRITE_SHEETS = {
   "aliasOf": "model:monster:Units/NightElf/Vengeance/Vengeance",
   "war3": true
  },
+ "unit:h06I": {
+  "key": "unit:h06I",
+  "src": "sprites/w3_monster_Units_Critters_BloodElfPeasant_BloodElfPeasant.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 8,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "walk": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": true
+   },
+   "death": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.3,
+  "aliasOf": "model:monster:Units/Critters/BloodElfPeasant/BloodElfPeasant",
+  "war3": true
+ },
  "unit:h06V": {
   "key": "unit:h06V",
   "src": "sprites/w3_monster_Units_Creeps_MurlocMutant_MurlocMutant_V1.webp",
@@ -11357,6 +11423,39 @@ window.SPRITE_SHEETS = {
   },
   "modelScale": 1.0,
   "aliasOf": "model:monster:Units/Creeps/MurlocMutant/MurlocMutant_V1",
+  "war3": true
+ },
+ "unit:h06W": {
+  "key": "unit:h06W",
+  "src": "sprites/w3_monster_Units_Creeps_MurlocMutant_MurlocMutant.webp",
+  "frameW": 304,
+  "frameH": 304,
+  "cols": 8,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "walk": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": true
+   },
+   "death": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 2.0,
+  "aliasOf": "model:monster:Units/Creeps/MurlocMutant/MurlocMutant",
   "war3": true
  },
  "unit:h07B": {
@@ -11551,6 +11650,39 @@ window.SPRITE_SHEETS = {
    0.7
   ],
   "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "walk": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": true
+   },
+   "death": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.5,
+  "aliasOf": "model:monster:Units/Critters/Skink/Skink",
+  "war3": true
+ },
+ "unit:h084": {
+  "key": "unit:h084",
+  "src": "sprites/w3_monster_Units_Critters_Skink_Skink.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 8,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 4.0,
   "pitch": 50,
   "actions": {
    "walk": {
@@ -12357,6 +12489,39 @@ window.SPRITE_SHEETS = {
   "aliasOf": "model:monster:Units/Creeps/RevenantOfTheWaves/RevenantOfTheWaves",
   "war3": true
  },
+ "unit:n07F": {
+  "key": "unit:n07F",
+  "src": "sprites/w3_monster_Units_Creeps_Owlbear_Owlbear.webp",
+  "frameW": 304,
+  "frameH": 304,
+  "cols": 8,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.142857142857143,
+  "pitch": 50,
+  "actions": {
+   "walk": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": true
+   },
+   "death": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.4,
+  "aliasOf": "model:monster:Units/Creeps/Owlbear/Owlbear",
+  "war3": true
+ },
  "unit:n07I": {
   "key": "unit:n07I",
   "src": "sprites/w3_monster_Units_Creeps_IceTroll_IceTroll.webp",
@@ -12935,6 +13100,37 @@ window.SPRITE_SHEETS = {
    0.0
   ]
  },
+ "unit:n089": {
+  "key": "unit:n089",
+  "src": "sprites/w3_monster_Abilities_Weapons_BatTrollMissile_BatTrollMissile.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 6,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "death": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 2.0,
+  "aliasOf": "model:monster:Abilities/Weapons/BatTrollMissile/BatTrollMissile",
+  "war3": true,
+  "tint": [
+   0.647,
+   0.647,
+   1.0
+  ]
+ },
  "unit:n08H": {
   "key": "unit:n08H",
   "src": "sprites/w3_monster_Units_Demon_Demoness_Demoness.webp",
@@ -12967,6 +13163,44 @@ window.SPRITE_SHEETS = {
   "modelScale": 1.0,
   "aliasOf": "model:monster:Units/Demon/Demoness/Demoness",
   "war3": true
+ },
+ "unit:n08K": {
+  "key": "unit:n08K",
+  "src": "sprites/w3_monster_Units_Creeps_Medivh_Medivh.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 8,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 1.4,
+  "pitch": 50,
+  "actions": {
+   "walk": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": true
+   },
+   "death": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "aliasOf": "model:monster:Units/Creeps/Medivh/Medivh",
+  "war3": true,
+  "tint": [
+   0.784,
+   0.392,
+   0.784
+  ]
  },
  "unit:n08L": {
   "key": "unit:n08L",
@@ -13075,6 +13309,32 @@ window.SPRITE_SHEETS = {
   },
   "modelScale": 1.3,
   "aliasOf": "model:monster:Units/Demon/FelgaurdBlue/FelgaurdBlue",
+  "war3": true
+ },
+ "unit:n08O": {
+  "key": "unit:n08O",
+  "src": "sprites/w3_monster_Abilities_Spells_Human_FlameStrike_FlameStrikeDamageTarget.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 1,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "death": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 1,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "aliasOf": "model:monster:Abilities/Spells/Human/FlameStrike/FlameStrikeDamageTarget",
   "war3": true
  },
  "unit:n08P": {
@@ -13616,6 +13876,44 @@ window.SPRITE_SHEETS = {
  },
  "unit:n09K": {
   "key": "unit:n09K",
+  "src": "sprites/w3_monster_Units_Demon_Infernal_Infernal.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 8,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 0.6666666666666666,
+  "pitch": 50,
+  "actions": {
+   "walk": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": true
+   },
+   "death": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.5,
+  "aliasOf": "model:monster:Units/Demon/Infernal/Infernal",
+  "war3": true,
+  "tint": [
+   1.0,
+   0.0,
+   0.0
+  ]
+ },
+ "unit:n09L": {
+  "key": "unit:n09L",
   "src": "sprites/w3_monster_Units_Demon_Infernal_Infernal.webp",
   "frameW": 192,
   "frameH": 192,
@@ -14795,6 +15093,44 @@ window.SPRITE_SHEETS = {
    0.0
   ]
  },
+ "unit:ndrm": {
+  "key": "unit:ndrm",
+  "src": "sprites/w3_monster_Units_Human_BloodElfSpellThief_BloodElfSpellThief.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 8,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.62
+  ],
+  "unitsPerPixel": 1.0,
+  "pitch": 50,
+  "actions": {
+   "walk": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": true
+   },
+   "death": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "aliasOf": "model:monster:Units/Human/BloodElfSpellThief/BloodElfSpellThief",
+  "war3": true,
+  "tint": [
+   1.0,
+   1.0,
+   0.549
+  ]
+ },
  "unit:ndrn": {
   "key": "unit:ndrn",
   "src": "sprites/w3_monster_Units_Human_Kael_Kael.webp",
@@ -14833,6 +15169,37 @@ window.SPRITE_SHEETS = {
    0.0
   ]
  },
+ "unit:ndrp": {
+  "key": "unit:ndrp",
+  "src": "sprites/w3_monster_Doodads_Ruins_Terrain_RuinsWall45_RuinsWall454.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 6,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "death": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 0.2,
+  "aliasOf": "model:monster:Doodads/Ruins/Terrain/RuinsWall45/RuinsWall454",
+  "war3": true,
+  "tint": [
+   0.647,
+   0.647,
+   1.0
+  ]
+ },
  "unit:ndrt": {
   "key": "unit:ndrt",
   "src": "sprites/w3_monster_Units_Creeps_LordGarithos_LordGarithos.webp",
@@ -14864,6 +15231,44 @@ window.SPRITE_SHEETS = {
   },
   "modelScale": 0.8,
   "aliasOf": "model:monster:Units/Creeps/LordGarithos/LordGarithos",
+  "war3": true,
+  "tint": [
+   1.0,
+   1.0,
+   0.0
+  ]
+ },
+ "unit:ndrw": {
+  "key": "unit:ndrw",
+  "src": "sprites/w3_monster_Units_Creeps_RockGolem_RockGolem.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 8,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.54
+  ],
+  "unitsPerPixel": 4.333333333333334,
+  "pitch": 50,
+  "actions": {
+   "walk": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": true
+   },
+   "death": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 0.6,
+  "aliasOf": "model:monster:Units/Creeps/RockGolem/RockGolem",
   "war3": true,
   "tint": [
    1.0,
@@ -14908,6 +15313,39 @@ window.SPRITE_SHEETS = {
    1.0,
    0.588
   ]
+ },
+ "unit:ndtb": {
+  "key": "unit:ndtb",
+  "src": "sprites/w3_monster_Units_Undead_Skeleton_Skeleton.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 8,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 1.7333333333333334,
+  "pitch": 50,
+  "actions": {
+   "walk": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": true
+   },
+   "death": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.5,
+  "aliasOf": "model:monster:Units/Undead/Skeleton/Skeleton",
+  "war3": true
  },
  "unit:ndth": {
   "key": "unit:ndth",
@@ -15188,6 +15626,44 @@ window.SPRITE_SHEETS = {
    0.667,
    1.0,
    0.235
+  ]
+ },
+ "unit:nepl": {
+  "key": "unit:nepl",
+  "src": "sprites/w3_monster_Units_Creeps_CorruptedEnt_CorruptedEnt.webp",
+  "frameW": 192,
+  "frameH": 192,
+  "cols": 8,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.62
+  ],
+  "unitsPerPixel": 0.64,
+  "pitch": 50,
+  "actions": {
+   "walk": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": true
+   },
+   "death": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.25,
+  "aliasOf": "model:monster:Units/Creeps/CorruptedEnt/CorruptedEnt",
+  "war3": true,
+  "tint": [
+   0.588,
+   0.627,
+   1.0
   ]
  },
  "unit:ners": {
@@ -15615,6 +16091,39 @@ window.SPRITE_SHEETS = {
   "aliasOf": "model:monster:Units/Creeps/IronGolem/IronGolem",
   "war3": true
  },
+ "unit:ngir": {
+  "key": "unit:ngir",
+  "src": "sprites/w3_monster_Units_Creeps_IronGolem_IronGolem.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 8,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.62
+  ],
+  "unitsPerPixel": 0.8,
+  "pitch": 50,
+  "actions": {
+   "walk": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": true
+   },
+   "death": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "aliasOf": "model:monster:Units/Creeps/IronGolem/IronGolem",
+  "war3": true
+ },
  "unit:nglm": {
   "key": "unit:nglm",
   "src": "sprites/w3_monster_Units_Undead_KelthuzadGhost_KelthuzadGhost.webp",
@@ -15767,6 +16276,39 @@ window.SPRITE_SHEETS = {
    1.0
   ]
  },
+ "unit:ngza": {
+  "key": "unit:ngza",
+  "src": "sprites/w3_monster_Units_Undead_FrostWyrm_FrostWyrm.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 8,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.54
+  ],
+  "unitsPerPixel": 2.857142857142857,
+  "pitch": 50,
+  "actions": {
+   "walk": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": true
+   },
+   "death": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 0.7,
+  "aliasOf": "model:monster:Units/Undead/FrostWyrm/FrostWyrm",
+  "war3": true
+ },
  "unit:ngzc": {
   "key": "unit:ngzc",
   "src": "sprites/w3_monster_Units_Creeps_Owlbear_Owlbear.webp",
@@ -15800,6 +16342,77 @@ window.SPRITE_SHEETS = {
   "aliasOf": "model:monster:Units/Creeps/Owlbear/Owlbear",
   "war3": true
  },
+ "unit:ngzd": {
+  "key": "unit:ngzd",
+  "src": "sprites/w3_monster_Units_Creeps_RevenantOfTheWaves_RevenantOfTheWaves.webp",
+  "frameW": 304,
+  "frameH": 304,
+  "cols": 8,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.4,
+  "pitch": 50,
+  "actions": {
+   "walk": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": true
+   },
+   "death": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "aliasOf": "model:monster:Units/Creeps/RevenantOfTheWaves/RevenantOfTheWaves",
+  "war3": true
+ },
+ "unit:nhrh": {
+  "key": "unit:nhrh",
+  "src": "sprites/w3_monster_Units_Creeps_Mammoth_Mammoth.webp",
+  "frameW": 304,
+  "frameH": 304,
+  "cols": 8,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "walk": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": true
+   },
+   "death": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.2,
+  "aliasOf": "model:monster:Units/Creeps/Mammoth/Mammoth",
+  "war3": true,
+  "tint": [
+   0.392,
+   0.784,
+   1.0
+  ]
+ },
  "unit:nhrq": {
   "key": "unit:nhrq",
   "src": "sprites/w3_monster_Units_Creeps_MammothBlack_MammothBlack.webp",
@@ -15832,6 +16445,44 @@ window.SPRITE_SHEETS = {
   "modelScale": 1.35,
   "aliasOf": "model:monster:Units/Creeps/MammothBlack/MammothBlack",
   "war3": true
+ },
+ "unit:nhyd": {
+  "key": "unit:nhyd",
+  "src": "sprites/w3_monster_Units_Creeps_Hydra_Hydra.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 8,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 4.0,
+  "pitch": 50,
+  "actions": {
+   "walk": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": true
+   },
+   "death": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 0.3,
+  "aliasOf": "model:monster:Units/Creeps/Hydra/Hydra",
+  "war3": true,
+  "tint": [
+   1.0,
+   0.588,
+   1.0
+  ]
  },
  "unit:nhyh": {
   "key": "unit:nhyh",
@@ -16457,6 +17108,37 @@ window.SPRITE_SHEETS = {
    0.0
   ]
  },
+ "unit:nowe": {
+  "key": "unit:nowe",
+  "src": "sprites/w3_monster_Abilities_Spells_Undead_DeathCoil_DeathCoilMissile.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 6,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "death": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.2,
+  "aliasOf": "model:monster:Abilities/Spells/Undead/DeathCoil/DeathCoilMissile",
+  "war3": true,
+  "tint": [
+   1.0,
+   0.627,
+   0.627
+  ]
+ },
  "unit:nplb": {
   "key": "unit:nplb",
   "src": "sprites/w3_monster_Units_Naga_NagaSummoner_NagaSummoner.webp",
@@ -16651,6 +17333,44 @@ window.SPRITE_SHEETS = {
    1.0,
    1.0,
    0.588
+  ]
+ },
+ "unit:nsc3": {
+  "key": "unit:nsc3",
+  "src": "sprites/w3_monster_Units_Other_DalaranReject_DalaranReject.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 8,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 1.0666666666666667,
+  "pitch": 50,
+  "actions": {
+   "walk": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": true
+   },
+   "death": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.5,
+  "aliasOf": "model:monster:Units/Other/DalaranReject/DalaranReject",
+  "war3": true,
+  "tint": [
+   0.0,
+   0.0,
+   1.0
   ]
  },
  "unit:nscb": {
@@ -18262,6 +18982,32 @@ window.SPRITE_SHEETS = {
   "aliasOf": "model:monster:Units/Orc/SpiritWalker/SpiritWalker",
   "war3": true
  },
+ "unit:osw3": {
+  "key": "unit:osw3",
+  "src": "sprites/w3_monster_Objects_InventoryItems_UndeadCaptureFlag_UndeadCaptureFlag.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 6,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "death": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 0.9,
+  "aliasOf": "model:monster:Objects/InventoryItems/UndeadCaptureFlag/UndeadCaptureFlag",
+  "war3": true
+ },
  "unit:otau": {
   "key": "unit:otau",
   "src": "sprites/w3_monster_Units_Orc_Tauren_Tauren.webp",
@@ -18392,6 +19138,32 @@ window.SPRITE_SHEETS = {
   },
   "modelScale": 1.0,
   "aliasOf": "model:monster:Units/Undead/Shade/Shade",
+  "war3": true
+ },
+ "unit:u002": {
+  "key": "unit:u002",
+  "src": "sprites/w3_monster_Abilities_Spells_Items_OrbCorruption_OrbCorruptionMissile.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 6,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "death": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0,
+  "aliasOf": "model:monster:Abilities/Spells/Items/OrbCorruption/OrbCorruptionMissile",
   "war3": true
  },
  "unit:u003": {
@@ -18568,6 +19340,44 @@ window.SPRITE_SHEETS = {
   "modelScale": 1.5,
   "aliasOf": "model:monster:Units/Undead/Skeleton/Skeleton",
   "war3": true
+ },
+ "unit:u008": {
+  "key": "unit:u008",
+  "src": "sprites/w3_monster_Units_Undead_Scarab_Scarab.webp",
+  "frameW": 160,
+  "frameH": 160,
+  "cols": 8,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.46
+  ],
+  "unitsPerPixel": 0.5,
+  "pitch": 50,
+  "actions": {
+   "walk": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": true
+   },
+   "death": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 2.0,
+  "aliasOf": "model:monster:Units/Undead/Scarab/Scarab",
+  "war3": true,
+  "tint": [
+   0.667,
+   0.667,
+   1.0
+  ]
  },
  "unit:u00K": {
   "key": "unit:u00K",
@@ -18837,6 +19647,44 @@ window.SPRITE_SHEETS = {
   "modelScale": 1.0,
   "aliasOf": "model:monster:Units/Undead/Ghoul/Ghoul",
   "war3": true
+ },
+ "unit:uktg": {
+  "key": "unit:uktg",
+  "src": "sprites/w3_monster_Units_Creeps_Zombie_Zombie.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 8,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "walk": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": true
+   },
+   "death": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.3,
+  "aliasOf": "model:monster:Units/Creeps/Zombie/Zombie",
+  "war3": true,
+  "tint": [
+   0.0,
+   0.0,
+   1.0
+  ]
  },
  "unit:umtw": {
   "key": "unit:umtw",
@@ -21186,6 +22034,54 @@ window.SPRITE_SHEETS = {
   "modelScale": 1.0,
   "glow": true
  },
+ "model:monster:Abilities/Spells/Human/FlameStrike/FlameStrikeDamageTarget": {
+  "key": "model:monster:Abilities/Spells/Human/FlameStrike/FlameStrikeDamageTarget",
+  "src": "sprites/w3_monster_Abilities_Spells_Human_FlameStrike_FlameStrikeDamageTarget.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 1,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "death": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 1,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0
+ },
+ "model:monster:Abilities/Spells/Items/OrbCorruption/OrbCorruptionMissile": {
+  "key": "model:monster:Abilities/Spells/Items/OrbCorruption/OrbCorruptionMissile",
+  "src": "sprites/w3_monster_Abilities_Spells_Items_OrbCorruption_OrbCorruptionMissile.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 6,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "death": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.0
+ },
  "model:monster:Abilities/Spells/NightElf/Rejuvenation/RejuvenationTarget": {
   "key": "model:monster:Abilities/Spells/NightElf/Rejuvenation/RejuvenationTarget",
   "src": "sprites/w3_monster_Abilities_Spells_NightElf_Rejuvenation_RejuvenationTarget.webp",
@@ -21213,6 +22109,54 @@ window.SPRITE_SHEETS = {
  "model:monster:Abilities/Spells/Other/StrongDrink/BrewmasterMissile": {
   "key": "model:monster:Abilities/Spells/Other/StrongDrink/BrewmasterMissile",
   "src": "sprites/w3_monster_Abilities_Spells_Other_StrongDrink_BrewmasterMissile.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 6,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "death": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 2.0
+ },
+ "model:monster:Abilities/Spells/Undead/DeathCoil/DeathCoilMissile": {
+  "key": "model:monster:Abilities/Spells/Undead/DeathCoil/DeathCoilMissile",
+  "src": "sprites/w3_monster_Abilities_Spells_Undead_DeathCoil_DeathCoilMissile.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 6,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "death": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.2
+ },
+ "model:monster:Abilities/Weapons/BatTrollMissile/BatTrollMissile": {
+  "key": "model:monster:Abilities/Weapons/BatTrollMissile/BatTrollMissile",
+  "src": "sprites/w3_monster_Abilities_Weapons_BatTrollMissile_BatTrollMissile.webp",
   "frameW": 128,
   "frameH": 128,
   "cols": 6,
@@ -21281,6 +22225,54 @@ window.SPRITE_SHEETS = {
    },
    "death": {
     "row": 8,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 0.9
+ },
+ "model:monster:Doodads/Ruins/Terrain/RuinsWall45/RuinsWall454": {
+  "key": "model:monster:Doodads/Ruins/Terrain/RuinsWall45/RuinsWall454",
+  "src": "sprites/w3_monster_Doodads_Ruins_Terrain_RuinsWall45_RuinsWall454.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 6,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "death": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 0.2
+ },
+ "model:monster:Objects/InventoryItems/UndeadCaptureFlag/UndeadCaptureFlag": {
+  "key": "model:monster:Objects/InventoryItems/UndeadCaptureFlag/UndeadCaptureFlag",
+  "src": "sprites/w3_monster_Objects_InventoryItems_UndeadCaptureFlag_UndeadCaptureFlag.webp",
+  "frameW": 128,
+  "frameH": 128,
+  "cols": 6,
+  "rows": 8,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "death": {
+    "row": 0,
     "dirs": 8,
     "frames": 6,
     "fps": 12,
@@ -22371,6 +23363,37 @@ window.SPRITE_SHEETS = {
   },
   "modelScale": 1.35
  },
+ "model:monster:Units/Creeps/Mammoth/Mammoth": {
+  "key": "model:monster:Units/Creeps/Mammoth/Mammoth",
+  "src": "sprites/w3_monster_Units_Creeps_Mammoth_Mammoth.webp",
+  "frameW": 304,
+  "frameH": 304,
+  "cols": 8,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "walk": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": true
+   },
+   "death": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 1.2
+ },
  "model:monster:Units/Creeps/Medivh/Medivh": {
   "key": "model:monster:Units/Creeps/Medivh/Medivh",
   "src": "sprites/w3_monster_Units_Creeps_Medivh_Medivh.webp",
@@ -22432,6 +23455,37 @@ window.SPRITE_SHEETS = {
    }
   },
   "modelScale": 1.55
+ },
+ "model:monster:Units/Creeps/MurlocMutant/MurlocMutant": {
+  "key": "model:monster:Units/Creeps/MurlocMutant/MurlocMutant",
+  "src": "sprites/w3_monster_Units_Creeps_MurlocMutant_MurlocMutant.webp",
+  "frameW": 304,
+  "frameH": 304,
+  "cols": 8,
+  "rows": 16,
+  "anchor": [
+   0.5,
+   0.7
+  ],
+  "unitsPerPixel": 2.0,
+  "pitch": 50,
+  "actions": {
+   "walk": {
+    "row": 0,
+    "dirs": 8,
+    "frames": 8,
+    "fps": 12,
+    "loop": true
+   },
+   "death": {
+    "row": 8,
+    "dirs": 8,
+    "frames": 6,
+    "fps": 12,
+    "loop": false
+   }
+  },
+  "modelScale": 2.0
  },
  "model:monster:Units/Creeps/MurlocMutant/MurlocMutant_V1": {
   "key": "model:monster:Units/Creeps/MurlocMutant/MurlocMutant_V1",

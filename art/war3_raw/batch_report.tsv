@@ -249,3 +249,11 @@ model:hero:Units/Creeps/FirePandarenBrewmaster/FirePandarenBrewmaster	ok	高 2.1
 model:hero:Units/Creeps/MagnataurBlue/MagnataurBlue	ok	高 2.34 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无
 model:hero:Units/Other/HeroArchMageGhost/HeroArchMageGhost	ok	高 2.00 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 有
 model:hero:Units/Creeps/OgreLord/OgreLord	ok	高 2.68 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death | 光效 无
+model:monster:Doodads/Ruins/Terrain/RuinsWall45/RuinsWall454	ok	高 0.36 m | ppm 40 | 缺贴图 0 | 动作 idle,death | 光效 无
+model:monster:Abilities/Weapons/BatTrollMissile/BatTrollMissile	ok	高 0.59 m | ppm 40 | 缺贴图 0 | 动作 idle,death | 光效 无（出图的动作里看不见）
+model:monster:Units/Creeps/MurlocMutant/MurlocMutant	ok	高 2.17 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death | 光效 无
+model:monster:Abilities/Spells/Items/OrbCorruption/OrbCorruptionMissile	ok	高 2.00 m | ppm 40 | 缺贴图 0 | 动作 idle,death | 光效 无
+model:monster:Units/Creeps/Mammoth/Mammoth	ok	高 2.45 m | ppm 40 | 缺贴图 0 | 动作 idle,walk,attack,death,spell | 光效 无
+model:monster:Abilities/Spells/Undead/DeathCoil/DeathCoilMissile	ok	高 0.99 m | ppm 40 | 缺贴图 0 | 动作 death | 光效 无（出图的动作里看不见）
+model:monster:Abilities/Spells/Human/FlameStrike/FlameStrikeDamageTarget	ok	高 2.00 m | ppm 40 | 缺贴图 0 | 动作 idle,death | 光效 无
+model:monster:Objects/InventoryItems/UndeadCaptureFlag/UndeadCaptureFlag	ok	高 2.01 m | ppm 40 | 缺贴图 0 | 动作 idle,death | 光效 无

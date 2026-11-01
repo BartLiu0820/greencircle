@@ -5866,21 +5866,62 @@ function routeTo(from, to) {
   while (q.length) { const r = q.shift(), n = r[r.length - 1]; if (n === to) return r.slice(1); for (const x of ADJ[n] || []) if (!seen.has(x)) { seen.add(x); q.push(r.concat(x)); } }
   return [];
 }
-// 死亡触发器（BbE / BbO / BbQ）
+// 让怪物沿路网走到节点 j，再接着走环（原图对怪物下"移动到某区域中心"的命令）
+function walkToNode(s, j) {
+  const base = s.path.length ? s.path[s.path.length - 1] : s.target;
+  if (!ADJ[base] || base === j) return;
+  const r = routeTo(base, j);
+  if (!s.path.length && r[0] === s.cur) { [s.cur, s.target] = [s.target, s.cur]; s.prev = null; r.shift(); }   // 要往回走：在这段路上直接掉头
+  s.path = s.path.concat(r);
+}
+// 原图 C5[1~3]：多 / 中 / 少出怪器这一波已经出了几只（出完归零）
+const c5 = w => { const s = G.spawners.find(s => s.word === w); return s ? SPAWNER[w].count - s.left : 0; };
+// 原图 Bas（电脑怪物死亡时）：按怪物种类留下单位。"口"= 凶手那个玩家的出怪口（Uk[凶手玩家]，这个口没开时随机一个开着的口），其余留在死亡处。
+// 带 C5 条件的只在这一波出怪器的前段（出了 2 只以后、出完之前）生效；and / or 照 JASS 同级从左往右算，
+// 所以"邪恶的苦工 or 大苦工 and 3/10"是两种苦工都 3/10，"犀牛 or 强壮的犀牛 and …"是两种犀牛都要后面全部条件。
+// [死亡单位, 留下单位, 概率, 存活秒数, 在口, 条件, 个数]
+const BAS = [
+  [['hspt'], 'ndrm', 1 / 2, 20, true],                                                           // 魔法破坏者 → 魔法破坏者的小弟
+  [['ncpn', 'n08T'], 'ndrp', 3 / 10, 40],                                                        // 苦工 → 苦工的砖头
+  [['u007'], 'u008', 1, 20],                                                                       // 强壮的骷髅战士 → 腐尸甲虫（原图 3/3）
+  [['u005'], 'n089', 1 / 2, 20],                                                                   // 蝙蝠骑士 → 巨魔的燃烧瓶
+  [['h083'], 'h084', 1 / 4, 0, true, () => c5('少') <= 13 && c5('少') > 1 && G.wave >= 5],        // 迅捷的小蜥蜴 → 笨重的大蜥蜴
+  [['nanw'], 'nsc3', 1, 40, false, null, 3],                                                       // 暗黑使者 → 3 个寄生魔虫（40 秒）
+  [['nanw'], 'nsc3', 1, 0, false, () => !MODES[G.mode].waveGold],                                  // 不是新人随机时再多 1 个，原图这个没设存活时间（一直在）
+  [['ndrj', 'n06Y'], 'ndtr', 1, 40, false, null, 10],                                             // 直升机 / 大游艇 → 10 个维修工
+  [['ngrk'], 'ndrw', 1 / 15, 10, false, () => c5('少') <= 12 && c5('少') > 1],                    // 泥潭傀儡 → 泥潭石巨人
+  [['u003'], 'u003', 1 / 5, 10, false, () => c5('少') <= 12 && G.wave === 22 && c5('少') > 1],    // 浅滩怪物 → 浅滩怪物
+  [['ehpr'], 'e000', 1 / 30, 0, true, () => c5('多') <= 45 && c5('多') > 1 && G.wave === 36],     // 角鹰兽骑士 → 红色角鹰兽
+  [['h06V'], 'h06W', 1 / 30, 0, true, () => c5('少') <= 12 && c5('少') > 1 && G.wave === 3],      // 小鱼人 → 大鱼人
+  [['ngzc'], 'n07F', 1 / 15, 0, true, () => c5('中') <= 24 && c5('中') > 1 && G.wave === 42],     // 人形鸟 → 人形鸟巨兽
+  [['ndth'], 'ndtb', 1 / 8, 0, true, () => c5('多') <= 50 && c5('多') > 1 && G.wave === 1],       // 民兵 → 骷髅监工
+  [['n08Q'], 'n08Q', 1 / 2, 0, true, () => c5('多') <= 50 && c5('多') > 1 && G.wave === 1],       // 强壮的强盗 → 强壮的强盗
+  [['uban'], 'u002', 1 / 8, 10, true, () => c5('多') <= 50 && c5('多') > 1 && G.wave === 21],     // 女妖 → 女妖之灵
+  [['o004'], 'otau', 1 / 5, 0, true, () => c5('多') <= 50 && c5('多') > 1 && G.wave === 15],      // 两种牛头人互相变
+  [['otau'], 'o004', 1 / 5, 0, true, () => c5('多') <= 50 && c5('多') > 1 && G.wave === 15],
+  [['nzom'], 'uktg', 3 / 10, 10],                                                                  // 僵尸 → 复活的僵尸
+  [['nsgh'], 'ngzd', 3 / 10, 15],                                                                  // 死亡幽魂 → 地狱幽灵
+  [['owar'], 'ngza', 1 / 2, 0, true, () => c5('中') <= 24 && c5('中') > 1 && G.wave === 44],      // 冰龙 → 冰霜巨龙
+  [['otbr'], 'o006', 1 / 20, 0, true, () => c5('多') <= 50 && c5('多') > 1 && G.wave === 17],     // 霜冻之狼 → 恐怖的霜狼
+  [['nhrq', 'n092'], 'nhrh', 1 / 5, 20, true, () => c5('少') <= 12 && c5('少') > 1 && G.wave === 23],   // 犀牛 → 犀牛精英
+  [['hgyr'], 'h06I', 2 / 5, 30, true],                                                             // 血精灵工人 → 血精灵工人
+  [['nalb'], 'nowe', 1, 15],                                                                       // 灵魂飞龙 → 巫妖之灵
+  [['n08N'], 'n08O', 1 / 2, 15],                                                                   // 坚硬的守卫 → 守卫之魂
+  [['nhyh'], 'nhyd', 1, 10],                                                                       // 小九头怪蛇 → 九头怪蛇
+  [['n09K'], 'n09L', 1, 10],                                                                       // 地狱火 → 地狱火
+];
+// 原图 BCN：地精爆破工 / 堕落树人 / 埃瑞达男巫·法师死了，在原地放马甲施放"野兽"（AOsf A06G 1~3 级）：3 个地精撕裂者 / 5 个灾祸树人 5 秒、1 个坟墓 15 秒
+const BCN = { ngbl: ['ngir', 3, 5], nenc: ['nepl', 5, 5], ners: ['osw3', 1, 15], n07X: ['osw3', 1, 15] };
+// 原图 Bbm：魔导师死了变成猫头鹰（3 秒），猫头鹰死了变成大魔导师（6 秒），都走向地图上随机一点
+const BBM = { nbdo: ['edtm', 3], e005: ['n08K', 6] };
+// 死亡触发器（BbE / BbO / BbQ / Bas / BCN / Bbm）
 const SKELETON_MAGE = ['n071', 'n070', 'n074', 'n073', 'n072', 'n075', 'n076'];
 function monsterDied(m, src) {
   const u = m.uid;
   if (u === 'nsko') { const s = spawnBeside('nsoc', m, { boss: true }); if (s) s.speed = 0; }   // 大骷髅 → 复活了并等死的骷髅（不动）
   if (u === 'nsoc') {                                                                            // → 再次复活后疯狂的骷髅：走到凶手那个口的外环路口（L / Y / j / O / R / V / f / b），再接着走环
-    const s = spawnBeside('nslm', m, { boss: true }), j = src ? GATES[pidOf(src)][2] : null;
-    if (s && j) {
-      const base = s.path.length ? s.path[s.path.length - 1] : s.target;
-      if (ADJ[base] && base !== j) {
-        const r = routeTo(base, j);
-        if (!s.path.length && r[0] === s.cur) { [s.cur, s.target] = [s.target, s.cur]; s.prev = null; r.shift(); }   // 要往回走：在这段路上直接掉头
-        s.path = s.path.concat(r);
-      }
-    }
+    const s = spawnBeside('nslm', m, { boss: true });
+    if (s && src) walkToNode(s, GATES[pidOf(src)][2]);
   }
   const k = SKELETON_MAGE.indexOf(u);                                                            // 骷髅法师在自己的出怪口一次次复活，后面三次各 1/2
   if (k >= 0 && k < SKELETON_MAGE.length - 1 && (k < 3 || rint(1, 2) === 1)) spawnAtGate(SKELETON_MAGE[k + 1], m.gate || 0, { boss: true });
@@ -5889,6 +5930,20 @@ function monsterDied(m, src) {
   if (u === 'n08L') spawnBeside('n08M', m, { life: 15 });                                        // 坚硬的森林蜘蛛 → 小蜘蛛
   if (u === 'o009') spawnBeside('o00A', m, { life: 15 });                                        // 邪恶的狼骑士 → 小恶狼
   if (u === 'hmtt' || u === 'h07B') for (let i = rint(1, 5); i > 0; i--) { const s = spawnBeside('nsc2', m); if (s) s.speed = 0; }   // 蒸汽机车 → 1~5 个坦克子弹
+  const kp = pidOf(src);
+  for (const [from, id, p, life, atGate, cond, n = 1] of BAS) {
+    if (!from.includes(u) || Math.random() >= p || (cond && !cond())) continue;
+    for (let i = 0; i < n; i++) atGate ? spawnAtGate(id, kp, { life }) : spawnBeside(id, m, { life });
+  }
+  if (u === 'nfov') {                                                                            // 领主 → 狂暴守卫：走到凶手那个口的拐点（K / X / i / N / Q / U / e / a），10 秒
+    const s = spawnBeside('nfgu', m, { life: 10 });
+    if (s && src) walkToNode(s, GATES[kp][1]);
+  }
+  if (BCN[u]) { const [id, n, life] = BCN[u]; for (let i = 0; i < n; i++) spawnBeside(id, m, { life }); FXS.ring(m.x, m.y, 120, '#c8a0ff', 0.4, 3); }
+  if (BBM[u]) {
+    const [id, life] = BBM[u], s = spawnBeside(id, m, { life }), [x0, y0, x1, y1] = CAM_LIM;
+    if (s) Object.assign(s, { escort: true, tx: rnd(x0, x1), ty: rnd(y0, y1) });
+  }
 }
 // 最终 BOSS 波的狗头人（原图 yw 等：每条龙进场时带牧师 / 医师 / 巫师 / 护卫各一只，记在 V0~V4）。怪物是电脑玩家的单位，没有 AI，技能都靠触发器下令：
 //   y7（每 2 秒）：四只各走到龙身边 400 的随机点（围着龙转），1/15 一起瞬移到龙身边；龙死了以后还往尸体那里走
