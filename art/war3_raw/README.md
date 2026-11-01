@@ -9,6 +9,9 @@
 unzip -q -o war3-assets.zip -d art/war3_raw -x '__MACOSX/*' '*/Sound/*' '*/UI/Glues/*' '*.wav'
 # 1b. 补充包（war3-assets.zip 里缺的原版文件，见下面"补充包"）：只补新文件，不覆盖已有的
 unzip -q -n war3-missing-originals.zip -d art/war3_raw/tft -x manifest.json README.txt 'MPQ路径清单.txt'
+unzip -q -n war3-missing-skill-icons.zip -d art/war3_raw/tft -x README.txt
+# 1c. 原图地图自己导入的图标 btnJSFB（技能 A01H）：从 .w3x 里取出来
+python3 -c "import sys,os;sys.path.insert(0,'tools');import mpq;p='art/war3_raw/tft/ReplaceableTextures/CommandButtons/btnJSFB.blp';os.makedirs(os.path.dirname(p),exist_ok=True);open(p,'wb').write(mpq.MPQ('000綠色循環圈外傳8.6.6.w3x').read(chr(92).join(['ReplaceableTextures','CommandButtons','btnJSFB.blp'])))"
 # 2. 怪物 / 塔 / 英雄 / 守卫者的精灵表（约 40 分钟，JOBS=6 个 Blender 并行），结果在 batch_report.tsv
 python3 tools/war3_batch.py
 # 3. 信息面板里会动的头像（*_Portrait.mdx，用模型自带的镜头）→ h5/assets/w3portraits.js、h5/assets/portraits/
@@ -59,7 +62,7 @@ python3 tools/war3_sounds.py
 包里的说明和校验和存在 `art/war3_raw/supplement_2026-11/`。补上的有：复活节兔子、浣熊、精灵（EntangleWisp）、炎魔（LavaSpawn）、火焰领主（火魂）、
 地精炼金术士（炼金）、地精修补匠（维修工、坦克皮肤）、修补匠机器人（地精塔、地精头头、人工地精、自爆地精）、4 辆车（第 40 波坦克、枪神皮肤）、
 神力塔的 LavaSpawnBirthMissile；投射物 TinkerRocket / LavaSpawnMissile / LordofFlameMissile / VolcanoMissile / FireLordDeathExplode / BottleImpact；
-对应的图标、头像模型和音效（`tools/war3_sounds.py` 会读 `art/war3_raw/tft/` 里的 wav）；死亡溅血等粒子模型 Gutz1 / Bones1 / Feather / NEBirth。
+对应的图标、头像模型和音效；`war3-missing-skill-icons.zip` 再补了焚烧、工程学升级、艾露恩的祝福、点金术 4 个技能图标（含被动 / 禁用态，风神、坦克、大法师、幻影、神幻、炼金用）（`tools/war3_sounds.py` 会读 `art/war3_raw/tft/` 里的 wav）；死亡溅血等粒子模型 Gutz1 / Bones1 / Feather / NEBirth。
 
 光环塔原图用的是光环特效模型，游戏里继续程序绘制。
 
