@@ -923,10 +923,92 @@ function giveBuff(t, k, v, dur) { if (!t.buff) return; const b = t.buff[k], on =
 const alliesNear = (x, y, r) => G.towers.filter(o => o.cat !== 'aura' && dist2(x, y, o.x, o.y) <= (r + FOOT_HALF) ** 2);
 const anyEnemy = (x, y, r) => G.monsters.some(m => !m.dead && dist2(x, y, m.x, m.y) <= r * r);
 const pctTxt = v => Math.round(v * 100) + '%';
+// 召唤物的模型：照原图单位数据（file / modelScale，tools/war3_models.py 的 EXTRA 导出）。键 → [MDX 路径, 缩放（数组 = 按等级）]；
+// null = 原图模型是 "_"（看不见的马甲：画面上不画、也点不中，只看得到它的弹道）。没登记的（原图模型不在资源包里、或对不上原图单位）还是画成带字的方块。
+// 召唤时按 o.look（没给时塔的召唤物用 fam、英雄的用标题）查，o.lookLv 选等级
+const LOOK = {
+  // 塔的召唤物
+  冰雹: null,                                                                          // hgry / h048 / h04B / h04C 狮鹫骑士
+  树魔猎手: ['abilities/weapons/shadowhuntermissile/shadowhuntermissile', [0.8, 0.85, 1, 1.05, 1.05, 1.05, 1.2]],   // nftt / n018 / n012 / n013 / n02M / n02N / n017（原图就是个投射物）
+  FX箭: null,                                                                          // n03Z
+  卒: ['units/human/militia/militia', [0.8, 0.85, 0.9, 0.95, 1.05]],                  // nskm / n025~n028
+  炮: null,                                                                            // nvdl / n021~n024 小型虚无行者
+  車: ['units/creeps/humandestroyership/humandestroyership', [0.6, 0.6, 0.6, 0.8]],   // h04G / h04I / h04J / h04L
+  車MAX: ['units/creeps/humanbattleship/humanbattleship', 0.85],                      // h04K
+  士: ['units/human/thecaptain/thecaptain', 1],                                       // nskf
+  天兵: ['units/human/footman/footman', [0.75, 0.85, 0.95, 1.05, 1.25]],             // n05S / n05R / n05T / n05U / n05V
+  巨炮: null,                                                                          // n05W / n05Z / n060~n062 小型虚无行者
+  雷车: ['units/human/warwagon/warwagon', 0.9],                                       // n05Y
+  疯象: ['units/creeps/magnataur/magnataur', 1],                                      // n05X 玛格娜托撕裂者
+  小狼崽: ['abilities/spells/orc/commandaura/commandaura', 1],                        // n06B
+  疯狂之狼: ['units/orc/spiritwolf/spiritwolf', 1.8],                                 // nmsh
+  熊猫大哥: ['units/creeps/pandarenbrewmaster/pandarenbrewmaster', 1.2],              // n054
+  熊猫小弟: ['units/creeps/pandarenbrewmaster/pandarenbrewmaster', 0.6],              // n068
+  水五行: null,                                                                        // h051~h058
+  英雄旗帜: ['objects/inventoryitems/battlestandard/battlestandard', 0.7],            // n02Y
+  // 英雄的召唤物 / 马甲
+  冰龙: null,                                                                          // h04X
+  究极闪冰: null,                                                                      // n04Z 爆冰 / h038 冰冻
+  火凤凰: ['units/human/phoenix/phoenix', [1, 0.4]],                                  // n04U（最高档）/ n04V~n04Y
+  时空战士: ['units/critters/marine/marine', 1],                                      // n04N
+  水元素: ['units/human/waterelemental/waterelemental', 0.85],                        // h04T~h04Y（按等级 0.5~1.1，取中间）
+  噬水魂: null,                                                                        // n02U 水魂MJ
+  云电: ['abilities/spells/human/cloudoffog/cloudoffog', 0.1],                        // n02K 闪电2
+  闪电链: ['abilities/spells/orc/lightningshield/lightningshieldtarget', 1],          // n02I 闪电1
+  狂风肆虐: null,                                                                      // nbrg 土匪
+  狂牛祭坛守卫: ['units/orc/tauren/tauren', 0.6],                                     // n066
+  寒冰之箭: null,                                                                      // n050
+  神之箭魂: ['units/creeps/bansheeranger/bansheeranger', 2.2],                        // n051
+  神之箭魂皮肤: ['units/nightelf/spiritofvengeance/spiritofvengeance', 1.9],          // n07G
+  小型冲锋枪: ['abilities/weapons/gyrocopter/gyrocopterimpact', 1],                   // h07G
+  龙鹰骑士: null,                                                                      // h08Y（古树的生灵）
+  幻影: ['units/nightelf/herowarden/herowarden', 0.8],                                // n055
+  '幻影（远程）': ['units/creeps/assassin/assassin', 1],                             // n08Y
+  古树: ['buildings/nightelf/ancientoflore/ancientoflore', 0.8],                      // h06R
+  古树皮肤: ['buildings/demon/corruptedancientofwar/corruptedancientofwar', 0.65],    // h06Y
+  甲: ['units/creeps/murlocmutant/murlocmutant', [1.2, 1.8]],                         // n059 / n07O（Plus）
+  乙: ['units/creeps/murloc/murloc', [1.2, 1.8]],                                     // n056 / n07P
+  丙: ['units/creeps/murlocflesheater/murlocflesheater', [1.2, 1.8]],                 // n057 / n07Q
+  丁: ['units/creeps/murlocnightcrawler/murlocnightcrawler', [1.2, 1.8]],             // n058 / n07N
+  大鱼: ['units/creeps/murgulshadowcaster/murgulshadowcaster', 2],                    // n05C
+  骷髅弓箭手: ['units/creeps/skeletonarcher/skeletonarcher', 0.6],                    // n047 / n04B / n04A / n048
+  雷霆: null, 战霆: null, 怒霆: null,                                                  // n063~n065 SHT
+  h063: ['units/creeps/reddragon/reddragon', 0.5], h064: ['units/creeps/bronzedragon/bronzedragon', 0.5],   // 驯龙的龙
+  h065: ['units/creeps/greendragon/greendragon', 0.5], h066: ['units/creeps/blackdragon/blackdragon', 0.5],
+  h067: ['units/creeps/azuredragon/azuredragon', 0.5], h068: ['units/creeps/bronzedragon/bronzedragon', 1.3],
+  h069: ['units/creeps/hydra/hydra', 0.5], h07I: ['units/undead/frostwyrm/frostwyrm', 1.7],
+  地狱刺: null,                                                                        // h06C
+  图腾遣返: null,                                                                      // h06M
+  猛犸元神: ['units/creeps/magnataurblue/magnataurblue', 1.3],                        // n07D
+  路刺: ['abilities/spells/orc/spikebarrier/spikebarrier', 1],                        // h076
+  小虫: ['units/creeps/nerubian/nerubian', 0.3],                                      // h077
+  腐尸甲虫: ['units/undead/scarab/scarab', 1.3],                                      // ucs3
+  // 大法师的印记：四个角 h07O / h07Q / h07R / h07S、中间 h07T（哪种印记对哪个符文编号没核对）
+  '印:fire': ['doodads/cinematic/glowingrunes/glowingrunes4', 2], '印:bolt': ['doodads/cinematic/glowingrunes/glowingrunes5', 2],
+  '印:ice': ['doodads/cinematic/glowingrunes/glowingrunes2', 2], '印:dark': ['doodads/cinematic/glowingrunes/glowingrunes7', 2],
+  '印:mid': ['doodads/cinematic/glowingrunes/glowingrunes1', 2],
+  h08C: ['units/creeps/icetroll/icetroll', 0.8], h08D: ['units/creeps/darktrollshadowpriest/darktrollshadowpriest', 0.8],   // 巨魔召唤师的巨魔
+  h08E: ['units/creeps/icetrollshadowpriest/icetrollshadowpriest', 0.8], h08F: ['units/creeps/foresttrollshadowpriest/foresttrollshadowpriest', 0.8],
+  h08G: ['units/creeps/foresttrolltrapper/foresttrolltrapper', 0.8], h08H: ['units/creeps/darktroll/darktroll', 0.8],
+  h08I: ['units/orc/headhunter/headhunter_v1', 0.8], h08J: ['units/creeps/darktrolltrapper/darktrolltrapper', 0.8],
+  小地狱火: ['units/demon/infernal/infernal', 0.6],                                   // h08Q
+  灵魂地狱火: ['units/demon/infernal/infernal', 0.6],                                 // h08P
+  大灵魂地狱火: ['units/demon/infernal/infernal', 1.2],                               // h08R
+  '巨人（召唤的）': ['units/creeps/ogre/ogre', 1.2],                                 // h09A
+  巨人分身: null,                                                                      // n09D
+};
+const unitSheet = uid => SHEETS['unit:' + uid] ? 'unit:' + uid : undefined;   // 抓来 / 驯化的怪物：用它自己的模型
+function lookOf(key, lv = 1) {
+  if (!(key in LOOK)) return undefined;
+  const v = LOOK[key]; if (!v) return null;
+  return { mdx: v[0] + '.mdx', scale: Array.isArray(v[1]) ? v[1][clamp(lv, 1, v[1].length) - 1] : v[1] };
+}
 // 召唤物（冰雹狮鹫）：放进 G.towers，用普通塔的攻击逻辑；伤害和击杀算在召唤它的塔上
 function summon(owner, o) {
   const s = { id: G.nextId++, cat: 'summon', owner, lv: 0, cdLeft: 0, food: 0, spent: 0, kills: 0, dealt: 0, attacks: 0, buff: {}, cds: {},
     buffAS: 0, buffDmg: 0, eliteAS: 0, eliteWeak: 0, ...o };
+  const lk = lookOf(o.look ?? (o.fam === '召唤' ? o.title : o.fam), o.lookLv);
+  if (lk === null) s.hide = true; else if (lk && !s.mdx && !s.sheet) Object.assign(s, lk);
   G.towers.push(s);
   return s;
 }
@@ -1429,7 +1511,7 @@ const KITS = {
       if (B >= 2 && cdReady(t, 'bat')) {
         setCd(t, 'bat', 6);
         const [dmg, cd] = SWEEP.bat[B - 1];
-        summon(t, { fam: '树魔猎手', title: `树魔猎手${B >= 8 ? 'MAX' : B - 1}`, label: '镖', x: t.x + rnd(-60, 60), y: t.y + rnd(-60, 60), until: G.t + (B === 9 ? 7 : 4),
+        summon(t, { fam: '树魔猎手', title: `树魔猎手${B >= 8 ? 'MAX' : B - 1}`, label: '镖', lookLv: B >= 8 ? 7 : B - 1, x: t.x + rnd(-60, 60), y: t.y + rnd(-60, 60), until: G.t + (B === 9 ? 7 : 4),
           levels: [{ name: '树魔猎手', dmg, cd, range: 700, atk: 'pierce', targets: 1, abils: [] }],
           onHit: (s, m) => { if (m.cannonUntil > G.t) hurt(m, dmg, 'chaos', s); } });     // 打中炮晕的敌人：额外 100% 混乱伤害（原图 z5）
       }
@@ -1566,7 +1648,7 @@ const KITS = {
       setCd(t, nm, GEN.cd[i][L - 1]);
       const x = t.x, y = t.y, enemy = r => pick(inRange(x, y, r)) || null;
       if (i === 0) {                         // 卒：900 范围随机一个敌人的位置召唤一个卒（12 秒，不动）
-        const m = enemy(900); if (m) summon(t, { fam: '卒', title: '卒', label: '卒', x: m.x, y: m.y, until: G.t + 12,
+        const m = enemy(900); if (m) summon(t, { fam: '卒', title: '卒', label: '卒', lookLv: L, x: m.x, y: m.y, until: G.t + 12,
           levels: [{ name: '卒', dmg: GEN.pawn.dmg[L - 1], cd: GEN.pawn.cd[L - 1], range: 500, atk: 'normal', targets: 1, abils: [{ code: 'AIcb', B: GEN.pawn.armor[L - 1], dur: 8 }] }] });
       }
       if (i === 1) summon(t, { fam: '炮', title: '炮（小型虚无行者）', label: '炮', x: x + rnd(-80, 80), y: y + rnd(-80, 80), until: G.t + GEN.cannon.dur[L - 1],
@@ -1581,7 +1663,7 @@ const KITS = {
       }
       if (i === 3) {                         // 車：3 秒，火箭弹打 600 范围所有敌人，追踪弹每隔一段时间打一个敌人
         const c = GEN.chariot;
-        summon(t, { fam: '車', title: '車（空中战舰）', label: '車', x: x + rnd(-80, 80), y: y + rnd(-80, 80), until: G.t + 3,
+        summon(t, { fam: '車', title: '車（空中战舰）', label: '車', look: L >= 5 ? '車MAX' : '車', lookLv: L, x: x + rnd(-80, 80), y: y + rnd(-80, 80), until: G.t + 3,
           levels: [{ name: '車', dmg: c.dmg[L - 1], cd: c.cd[L - 1], range: 800, atk: 'chaos', targets: 1, multi: 100, multiR: 600, abils: [] }],
           tick(s) { if (G.t < (s.trackAt || 0)) return; const m = pick(inRange(s.x, s.y, c.trackR[L - 1])); if (!m) return;
             s.trackAt = G.t + c.trackCd[L - 1]; hurt(m, c.track[L - 1], 'magic', s, { ignoreArmor: true }); FXS.beam(s.x, s.y, 200, m.x, m.y, 40, '#ff8a3c', 1, 0.15); } });
@@ -1654,7 +1736,7 @@ const KITS = {
       const k = KITS.天将塔, x = t.x, y = t.y;
       if (i === 0) {                         // 卒：900 范围随机一个敌人的位置召唤天兵
         const m = pick(inRange(x, y, 900)), c = TJ.soldier;
-        if (m) k.sum(t, { fam: '天兵', title: '天兵', label: '兵', x: m.x, y: m.y, until: G.t + 12, mobile: { speed: 522, leash: 2000 },
+        if (m) k.sum(t, { fam: '天兵', title: '天兵', label: '兵', lookLv: L, x: m.x, y: m.y, until: G.t + 12, mobile: { speed: 522, leash: 2000 },
           levels: [{ name: '天兵', dmg: c.dmg[L - 1], cd: c.cd[L - 1], range: 200, atk: 'normal', targets: 1, splash: 120, abils: [] }] }, c.dmg[L - 1], c.cd[L - 1]);
       }
       if (i === 1) k.sum(t, { fam: '巨炮', title: '巨炮（小型虚无行者）', label: '炮', x: x + rnd(-80, 80), y: y + rnd(-80, 80), until: G.t + 6,
@@ -1929,7 +2011,7 @@ const KITS = {
       if (rint(P.tech, 42) === 40) { dmg += 15000; msg('该随从拥有 2 级加攻天赋'); } else if (rint(P.tech, 24) === 20) { dmg += 8000; msg('该随从拥有 1 级加攻天赋'); }
       m.dead = true; G.monsters = G.monsters.filter(o => o !== m);
       const slot = free[0], train = !!u.train;
-      const s = summon(t, { fam: '随从', title: `${m.name}（${sk}）`, label: '随', x: m.x, y: m.y, skill: sk, ul: 1, slot, mobile: { speed: m.speed || 300, leash: 2000 }, unarmed: !a0,
+      const s = summon(t, { fam: '随从', title: `${m.name}（${sk}）`, label: '随', sheet: unitSheet(m.uid), x: m.x, y: m.y, skill: sk, ul: 1, slot, mobile: { speed: m.speed || 300, leash: 2000 }, unarmed: !a0,
         levels: [{ name: m.name, dmg: a.dmg, cd: a.cd, range: a.range, atk: a.type === 'siege' ? 'normal' : a.type, targets: 1, splash: a.splash || 0,
           abils: sk === '致命一击' ? [{ code: 'AOcr', A: 25, B: 10 }] : [] }],
         stats: () => ({ dmg: a.dmg + (train ? BEAST.trainAtk * (G.beast.tech - 1) : 0) + dmg, cd: a.cd, as }),
@@ -2807,7 +2889,7 @@ const KITS = {
       beastUnlock();
       const a0 = beastAtk(m.uid), a = a0 || BEAST_NOATK, el = !!m.elite;
       m.dead = true; G.monsters = G.monsters.filter(o => o !== m);
-      G.god.prey = summon(t, { fam: '猎物', title: `${m.name}（捕获）`, label: '猎', x: m.x, y: m.y, until: G.t + GOD.preyLife, speed: m.speed || 300, wt: 0, unarmed: !a0,
+      G.god.prey = summon(t, { fam: '猎物', title: `${m.name}（捕获）`, label: '猎', sheet: unitSheet(m.uid), x: m.x, y: m.y, until: G.t + GOD.preyLife, speed: m.speed || 300, wt: 0, unarmed: !a0,
         levels: [{ name: m.name, dmg: a.dmg, cd: a.cd, range: a.range, atk: a.type === 'siege' ? 'normal' : a.type, targets: 1, splash: a.splash || 0, abils: [] }],
         stats: () => ({ dmg: a.dmg + (u.train ? BEAST.trainAtk * (G.beast.tech - 1) : 0) + (el ? 4000 : 0), cd: a.cd, as: el ? 0.4 : 0 }),
         tick: (s, dt) => KITS.猎人塔.preyMove(t, s, dt) });
@@ -3133,7 +3215,7 @@ const HERO_KITS = {
         for (const m of inRange(h.x, h.y, 1000)) { hurt(m, HH.stomp[lv - 1], 'magic', h); stun(m, 6); }
         FXS.nova(h.x, h.y, 1000, '#ff8a3c', 0.6);
         const [dmg, cd, sp] = t5(h.stat.int, [[50000, 0.2, 350], [30000, 0.4, 300], [20000, 0.45, 250], [15000, 0.5, 200], [10000, 0.55, 200]]);
-        hsum(h, h.x, h.y - 120, 6, { dmg, cd, range: 1000, atk: 'pierce', multi: 88, multiR: 1000, splash: sp }, { label: '凤', title: '火凤凰', kind: 'phoenix' });
+        hsum(h, h.x, h.y - 120, 6, { dmg, cd, range: 1000, atk: 'pierce', multi: 88, multiR: 1000, splash: sp }, { label: '凤', title: '火凤凰', kind: 'phoenix', lookLv: dmg === 50000 ? 1 : 2 });
       } },
   ],
   // ---------------------------------------------------------------- 战神（BNz 猛力击 / BN2 狂战士 / BN5 圣战士 / BOJ 狙击枪 / BOC 分身术）
@@ -3411,7 +3493,7 @@ Object.assign(HERO_KITS, {
     { canLearn: h => h.level < 30 ? '需要英雄 30 级' : ![0, 1, 2].every(i => learned(h, i)) ? '需要先学会寒冰之箭、燃烧之箭、邪恶之箭' : null,
       init(h) { h.sk.ga = 1; }, cdKey: 'soul', cd: () => 12, onLaunch(h) {
         if (!cdOk(h, 'soul', 12)) return;
-        hsum(h, h.x - 150, h.y, 4, { cd: 0.19, range: 1000, atk: 'hero', multi: 5, multiR: 1000 }, { label: '魂', title: '神之箭魂', kind: 'soul',
+        hsum(h, h.x - 150, h.y, 4, { cd: 0.19, range: 1000, atk: 'hero', multi: 5, multiR: 1000 }, { label: '魂', title: '神之箭魂', kind: 'soul', look: h.skin ? '神之箭魂皮肤' : '神之箭魂',
           stats: () => ({ dmg: 12000 + 1000 * h.sk.r01b }), aura: [{ kind: 'slow', r: 900, v: 0.8 }, { kind: 'armor', r: 1200, v: 120 }] });
       } },
   ],
@@ -3620,7 +3702,7 @@ function plantAncient(h, x, y) {
   if (foodUsed() + 1 > G.foodCap) return msg('人口不足');
   G.gold -= 500;
   const k = n + 1;
-  hsum(h, x, y, 0, { cd: 1.6, range: 900, atk: 'hero', splash: G.kx ? 130 : 120 }, { label: '树', title: `古树（召唤的）${k}`, kind: 'tree', idx: k, solid: true, food: 1, spent: 500,
+  hsum(h, x, y, 0, { cd: 1.6, range: 900, atk: 'hero', splash: G.kx ? 130 : 120 }, { label: '树', title: `古树（召唤的）${k}`, look: h.skin ? '古树皮肤' : '古树', kind: 'tree', idx: k, solid: true, food: 1, spent: 500,
     stats: () => ({ dmg: 20 + 100 * gsTech(h).atk, as: 0.1 * gsTech(h).as }), onLaunch(s) { gsTreeAttack(h, s); } });
   FXS.nova(x, y, 200, '#9fffb0', 0.5); SFX.ui('construct', { x, y });
 }
@@ -3680,7 +3762,7 @@ const HERO_DEF = {
       YL.fish.forEach((f, i) => {
         if (!h.sk.fl[i] || countSum(h, 'fishN' + i) || countSum(h, 'fishP' + i) > 1) return;
         const plus = h.sk.evo, [dmg, cd, range, atk, n, jump, aura] = plus ? f.p : f.n;
-        hsum(h, tg.x + rnd(-80, 80), tg.y + rnd(-80, 80), plus ? 12 : 8, { range, atk, bounce: n, jump }, { label: '甲乙丙丁'[i], title: f.name + (plus ? '（Plus）' : ''), kind: (plus ? 'fishP' : 'fishN') + i,
+        hsum(h, tg.x + rnd(-80, 80), tg.y + rnd(-80, 80), plus ? 12 : 8, { range, atk, bounce: n, jump }, { label: '甲乙丙丁'[i], title: f.name + (plus ? '（Plus）' : ''), look: '甲乙丙丁'[i], lookLv: plus ? 2 : 1, kind: (plus ? 'fishP' : 'fishN') + i,
           stats: () => ({ dmg: dmg + 200 * h.sk.r00c, cd: cd / (1 + 0.15 * Math.min(50, Math.floor(h.stat.agi / 10))) }), aura });
       });
       const chance = h.sk.fl.reduce((s, v) => s + v, 0);
@@ -3914,7 +3996,7 @@ function fmFollower(h, o) {
   const skill = o.skill, talent = o.talent || { dmg: 0, as: 0 };
   const s = hsum(h, o.x, o.y, 0, { cd: o.cd, range: o.range, atk: o.atk, splash: o.splash || 0,
     abils: skill === '致命一击' ? [{ code: 'AOcr', A: 25, B: 10 }] : [] },
-    { label: o.label, title: `${o.title}（${skill}）`, kind: 'follower', family: o.family, ud: 1, skill, mobile: { speed: o.speed || 300, leash: 2000 }, unarmed: o.unarmed,
+    { label: o.label, title: `${o.title}（${skill}）`, sheet: o.sheet, kind: 'follower', family: o.family, ud: 1, skill, mobile: { speed: o.speed || 300, leash: 2000 }, unarmed: o.unarmed,
       stats: () => { const t = o.tech ? fmTech(h) : { atk: 0, as: 0 }; return { dmg: o.dmg + 700 * t.atk + talent.dmg, as: 0.1 * t.as + talent.as }; },
       onHit(f, m) {
         if (skill === '腐蚀') debuffM(m, 'fear', 200, 5);
@@ -3948,7 +4030,7 @@ function fmTame(h, m) {
   if (Math.random() < 0.1) dmg += 8000; else if (Math.random() < 1 / 30) dmg += 15000;
   if (sk === '加强天赋') { dmg += 15000; as += 1.5; }
   m.dead = true; G.monsters = G.monsters.filter(o => o !== m);
-  fmFollower(h, { x: m.x, y: m.y, label: '随', title: m.name, skill: sk, dmg: a.dmg, cd: a.cd, range: a.range, atk: a.type === 'siege' ? 'normal' : a.type, splash: a.splash, speed: m.speed, talent: { dmg, as }, unarmed: !a0 });
+  fmFollower(h, { x: m.x, y: m.y, label: '随', title: m.name, sheet: unitSheet(m.uid), skill: sk, dmg: a.dmg, cd: a.cd, range: a.range, atk: a.type === 'siege' ? 'normal' : a.type, splash: a.splash, speed: m.speed, talent: { dmg, as }, unarmed: !a0 });
   if (!a0) msg('这种怪没有训兽科技打开攻击，不会攻击');
   FXS.ring(m.x, m.y, 160, '#ffd257', 0.6, 4);
 }
@@ -3992,7 +4074,7 @@ function xlDragon(h, uid, life) {
     h068: { dmg: 10000, cd: 0.55, range: 900, atk: 'hero', splash: 180, label: '神', title: '神力巨龙' } }[uid];
   const o = big || { dmg: 220, cd: uid === 'h064' ? 0.6 : 0.5, range: 800, atk: XL_DRAGON[uid], splash: 100, label: '龙', title: '龙' };
   hsum(h, h.x + rnd(-80, 80), h.y + rnd(-80, 80), life, { cd: o.cd, range: o.range, atk: o.atk, splash: o.splash || 0 },
-    { label: o.label, title: o.title, kind: 'dragon', mobile: { speed: 400, leash: 1800 }, stats: () => ({ dmg: o.dmg + 120 * h.sk.r012 }) });   // 龙族 R012：+120 / 级
+    { label: o.label, title: o.title, kind: 'dragon', look: uid, mobile: { speed: 400, leash: 1800 }, stats: () => ({ dmg: o.dmg + 120 * h.sk.r012 }) });   // 龙族 R012：+120 / 级
 }
 // 放一个拷贝来的技能：效果 + 召唤绑定的龙；30 级时有几种技能组合会换成特殊的龙（BUE）
 function xlCast(h, k, tg) {
@@ -4502,7 +4584,7 @@ const DF_MARK = {
   dark: { label: '暗', title: '暗黑之印', cd: 0.15, r: 200, atk: 'chaos', dmg: h => (h.stat.str + h.stat.agi + h.stat.int) * h.level * (learned(h, 4) ? tiers(h.stat.str, [401, 201], [6, 3, 1]) : tiers(h.stat.str, [401, 201], [2, 1, 1 / 3])) },
 };
 function dfMark(h, key, x, y, title, dmgFn, r, atk, cd, opt = {}) {
-  return hsum(h, x, y, 0, { cd, range: Math.min(r, 350) }, { label: DF_MARK[key] ? DF_MARK[key].label : '印', title, kind: 'dfmark', silent: true, ...opt,
+  return hsum(h, x, y, 0, { cd, range: Math.min(r, 350) }, { label: DF_MARK[key] ? DF_MARK[key].label : '印', title, kind: 'dfmark', look: '印:' + (DF_MARK[key] ? key : 'mid'), silent: true, ...opt,
     onLaunch(s) { aoeAt(h, s.x, s.y, r, dmgFn(), atk, { ignoreArmor: !!opt.ignore }); } });
 }
 function dfMids(h) {   // 重新生成中间印记（BWs）
@@ -4650,7 +4732,7 @@ function jmSummon(h, x, y) {
   const r = rint(1, 6), uid = r === 1 ? 'h08E' : r === 2 ? 'h08D' : r === 3 ? 'h08F' : r === 5 ? 'h08H' : r === 6 ? 'h08C' : rint(1, 6) === 4 ? 'h08I' : rint(1, 3) === 2 ? 'h08J' : 'h08G';
   const [c, atk, cd, range, dmg, splash] = JM_TROLL[uid];
   const T = h.sk.jm.tech[jmCls(uid)], k = JM_TECH[jmCls(uid)];
-  hsum(h, gx, gy, 0, { dmg, cd, range, atk, splash }, { label: c, title: `巨魔（${c}）`, kind: 'troll', uid, solid: true, onLaunch(t, tg) { jmTrollHit(h, t, tg); },
+  hsum(h, gx, gy, 0, { dmg, cd, range, atk, splash }, { label: c, title: `巨魔（${c}）`, kind: 'troll', uid, look: uid, solid: true, onLaunch(t, tg) { jmTrollHit(h, t, tg); },
     stats: () => ({ dmg: dmg + T.atk * k.atk, as: T.as * k.as }) });
   FXS.ring(gx, gy, 160, '#9fffb0', 0.5, 4);
 }
@@ -4724,7 +4806,7 @@ function dyhMinion(h, x, y) {
   if (dist2(h.x, h.y, x, y) > 1000 * 1000) return msg('需要在英雄 1000 范围以内');
   const extra = pick(DYH_EXTRA), L2 = Math.random() < 0.25;
   const t = hsum(h, x, y, 0, { cd: 1.2, range: 700, atk: 'normal', splash: 250, abils: extra === '致命' ? [{ code: 'AOcr', A: L2 ? 10 : 5, B: 10 }] : [] },
-    { label: '火', title: `小地狱火（${extra}）`, kind: 'dyh', dyh: rint(0, 3), extra, n: 0, base: 80,
+    { label: '火', title: `小地狱火（${extra}）`, look: '小地狱火', kind: 'dyh', dyh: rint(0, 3), extra, n: 0, base: 80,
       stats: t2 => ({ dmg: (t2.base + 300 * s.str) * (1 + (extra === '神力' ? (L2 ? 1 : 0.6) : 0)), as: (extra === '嗜血' ? (L2 ? 0.7 : 0.4) : 0) + 0.1 * s.agi }),
       onLaunch(t2, tg) { dyhAttack(h, t2, tg); },
       onHit(t2, m) { if (extra === '重击' && Math.random() < (L2 ? 0.25 : 0.2)) { hurt(m, L2 ? 6000 : 2000, 'normal', t2); stun(m, 4); } } });
@@ -7293,6 +7375,7 @@ function sheetOf(e) {
   if (e.isBuilder) return sheetByKey('builder');
   if (e.isShop) return e.mdx ? null : sheetByKey('shop');
   if (e.isHero) return sheetByKey(heroKey(e));
+  if (e.sheet) return sheetByKey(e.sheet);
   if (e.uid) return sheetByKey('unit:' + e.uid);
   if (e.fam && e.cat !== 'summon') return towerSheet(e.fam, e.lv + 1);
   return null;
@@ -7300,7 +7383,8 @@ function sheetOf(e) {
 // 实体对应的精灵表登记（不管图片加载没有）：3D 模型按它找 MDX、算缩放和动作时长
 function metaOf(e) {
   if (!e) return null;
-  if (e.mdx) return w3meta(e.mdx, e.scale);          // 宠物、小精灵、商人：直接按 MDX 画
+  if (e.mdx) return w3meta(e.mdx, e.scale);          // 宠物、小精灵、商人、召唤物：直接按 MDX 画
+  if (e.sheet) return SHEETS[e.sheet];
   if (e.isBuilder) return SHEETS.builder;
   if (e.isShop) return SHEETS.shop;
   if (e.isHero) return SHEETS[heroKey(e)];
@@ -7329,7 +7413,7 @@ const GHOST = {};                                     // 建造预览的虚影�
 function model3d(key, m, x, y, face, anim, scaleMul = 1, alpha = 1, ent = key) {
   if (!U3 || !m) return false;
   if (!((m.actions[anim[0]] || {}).dirs > 1)) face = null;       // 精灵图只有一个方向的（塔、建筑）：模型也固定朝南，不跟着攻击方向转
-  return U3.put(key, m, x, y, face ?? -Math.PI / 2, anim, G.t, { scale: scaleMul, alpha, team: ent.uid ? 11 : 0 });
+  return U3.put(key, m, x, y, face ?? -Math.PI / 2, anim, G.t, { scale: scaleMul, alpha, team: ent.uid && ent.cat !== 'summon' ? 11 : 0 });
 }
 // 精灵图画出来的顶部再往下 30%（放血条），3D 模型按同样的框算
 function sheetTop(m, y, scaleMul = 1) {

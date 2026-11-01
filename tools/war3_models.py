@@ -26,6 +26,14 @@ EXTRA += ['units/critters/villagerman1/villagerman1.mdx', 'units/critters/villag
           'units/critters/packhorse/packhorse.mdx', 'units/critters/frog/frog.mdx', 'units/critters/flyingsheep/flyingsheep.mdx',
           'abilities/spells/other/tinkerrocket/tinkerrocketmissile.mdx',
           'units/demon/heropitlord/heropitlord.mdx', 'units/undead/herodeathknight/herodeathknight.mdx', 'units/creeps/revenant/revenant.mdx']   # 超级深渊塔的深渊领主 / 霸主 / 魔主
+GAME_JS = os.path.join(ROOT, 'h5', 'game.js')
+
+
+def look_models():
+    """召唤物的模型：game.js 里 LOOK 表（const LOOK = { … };）登记的 MDX 路径"""
+    src = open(GAME_JS, encoding='utf-8').read()
+    i = src.index('const LOOK = {'); block = src[i:src.index('\n};', i)]
+    return sorted({p + '.mdx' for p in re.findall(r"\['((?:units|abilities|buildings|doodads|objects)/[a-z0-9_/]+)'", block)})
 
 
 def norm(p):
@@ -76,7 +84,7 @@ def main():
     src = open(SHEETS_JS, encoding='utf-8').read()
     sheets = json.loads(src[src.index('{'):src.rindex('}') + 1])
     models = sorted({':'.join(m['aliasOf'].split(':')[2:]) + '.mdx' for m in sheets.values() if m.get('war3') and m.get('aliasOf') and not m.get('glow')})
-    todo = [norm(m) for m in models] + EXTRA
+    todo = [norm(m) for m in models] + EXTRA + look_models()
     from war3_terrain import TREES                     # 树墙：模型的贴图是可替换贴图（编号 31 / 32 / 36），MDX 里没写路径，单独拷
     for mdl, tex, vs in TREES.values():
         todo += [norm(mdl.split('/', 1)[1] + f'{v}.mdx') for v in vs] + [norm(tex.split('/', 1)[1] + '.blp')]
