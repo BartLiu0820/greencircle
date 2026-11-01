@@ -1,0 +1,24 @@
+{
+ "files": {
+  "ReplaceableTextures/CommandButtons/BTNElunesBlessing.blp": "8fe5046a26ab85bf03da7ce4f0b4e1efe1a18d2f4e8680f64706d0c484d7304e",
+  "ReplaceableTextures/CommandButtons/BTNEngineeringUpgrade.blp": "55452792d4b3922116d8cad077f9c7da8f0dfb6349ee2915a91aae0c8a5938aa",
+  "ReplaceableTextures/CommandButtons/BTNIncinerate.blp": "6d7264214b724d97e87b15629d9e9b0954ca65141f0e17bd114e5f8b37053df7",
+  "ReplaceableTextures/CommandButtons/BTNIncinerateOff.blp": "23da5972b2ffa061fa6fab526cf5a771aafc67857010baaf72752b3cf3266d33",
+  "ReplaceableTextures/CommandButtons/BTNIncinerateOn.blp": "23da5972b2ffa061fa6fab526cf5a771aafc67857010baaf72752b3cf3266d33",
+  "ReplaceableTextures/CommandButtons/BTNTransmute.blp": "2aa4c4f2ab14b4a88d2beb8ec77c287ff4ac648549de2c3c5a7227070f2df0e1",
+  "ReplaceableTextures/CommandButtons/PASBTNEngineeringUpgrade.blp": "bc9cf75705cf1e25d0928ff6c2bf8f1f5f08c8ef8b6f7cbcf4a3dced57995f03",
+  "ReplaceableTextures/CommandButtonsDisabled/DISBTNElunesBlessing.blp": "fff3c4d2b1ef8fc6aad6944ad0e1a47163bedba16eb7f5a95153be2f6e6c8577",
+  "ReplaceableTextures/CommandButtonsDisabled/DISBTNEngineeringUpgrade.blp": "69bad6022a578a153743af8a3b71f2a6e7dc1bebfb05a3bfe4a332fca1243674",
+  "ReplaceableTextures/CommandButtonsDisabled/DISBTNIncinerate.blp": "01c9443a74132646ccde3f2cb5ccec099d430547687b3ff0f97918795ddfc6c4",
+  "ReplaceableTextures/CommandButtonsDisabled/DISBTNIncinerateOff.blp": "35d6ad9123246b12093ae55032fecae58302767d2fb9a65fc0cc1933a02bb8b5",
+  "ReplaceableTextures/CommandButtonsDisabled/DISBTNIncinerateOn.blp": "35d6ad9123246b12093ae55032fecae58302767d2fb9a65fc0cc1933a02bb8b5",
+  "ReplaceableTextures/CommandButtonsDisabled/DISBTNTransmute.blp": "9069d6a9daac6b23abbdfe787a952dfc1d407b798bec16eb9fff50d9a0e67818",
+  "ReplaceableTextures/CommandButtonsDisabled/DISPASBTNElunesBlessing.blp": "0099dcd9d8b2570aaf98eeb779fe82e89205da495c2197e1bbf3f687461daf0e",
+  "ReplaceableTextures/CommandButtonsDisabled/DISPASBTNEngineeringUpgrade.blp": "69bad6022a578a153743af8a3b71f2a6e7dc1bebfb05a3bfe4a332fca1243674",
+  "ReplaceableTextures/CommandButtonsDisabled/DISPASBTNIncinerate.blp": "01c9443a74132646ccde3f2cb5ccec099d430547687b3ff0f97918795ddfc6c4",
+  "ReplaceableTextures/PassiveButtons/PASBTNElunesBlessing.blp": "2172c7e5728d639c5ac31486f9eec2fef9530bc64d50bf95b2e32864d747a713",
+  "ReplaceableTextures/PassiveButtons/PASBTNIncinerate.blp": "4bbd599baaa9f97f73bfed9a103f6452d48e18dc931f841f271afb8e8b35f359"
+ },
+ "package": "war3-missing-skill-icons_v1.zip",
+ "sha256": "c2f71e861c3568a835ffc482d2467fcc67bf4e8bdd2cf54e976838b24b2616e1"
+}

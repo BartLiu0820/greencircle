@@ -6077,7 +6077,7 @@ function startWave() {
   G.bossRule = null; G.waveHook = null; G.waveNote = ''; G.curUnit = null;
   const n = G.wave, { fn, row } = G.next;
   SFX.stinger(n);                                  // 原图每波开始放一段音乐（war3map.j 的 PlaySoundBJ）
-  if (RULE.rabbitWaves.includes(n)) later(RULE.rabbitDelay, () => spawnRabbit());     // 原图：BOSS 波中途 TriggerExecute(U0) 放出兔子
+  if (RULE.rabbitWaves.includes(n)) later(RULE.rabbitDelay, () => spawnRabbit(null, null, RULE.rabbitLife + (MODES[G.mode].waveGold ? 30 : 0)));   // 原图：BOSS 波中途 TriggerExecute(U0) 放出兔子（BLV：存活 60 + 30×JI 秒，新人随机 90 秒）
   if (!row.next) {                                 // 最后一个函数（原图第 47 波之后）：最终 BOSS 波，先倒计时 30 秒
     G.spawners = []; G.next = null;               // 原图在这里关掉三个出怪器
     G.finalCountdown = true; G.timer = 30;
@@ -6342,7 +6342,7 @@ function startEndless(thrill) {
   msg(`Perfect分数大于10，【无尽关卡】${RULE.endlessOpen - 5}秒后开启`, 10);
   gainAch('无尽我来了', 3, '所有玩家完成成就：无尽我来了（当局成就+3）');
   if (thrill) gainAch('刺激', 2, '完成成就：刺激.......   当局成就+2');
-  if (!G.rabbit) spawnRabbit(null, '我真希望能永远在大家身边！T。T');
+  if (!G.rabbit) spawnRabbit(null, '我真希望能永远在大家身边！T。T', null);   // 原图这只没设存活时间，一直在场上
   later(80, () => msg('无尽关卡是不能通关的，分数决定实力', 10));
   later(120, () => {
     G.c9 = G.c9.map(v => v > 0 ? RULE.endlessCap : 0);
@@ -6421,13 +6421,19 @@ const RABBIT_SHOP = [
       const k = growthStat(h); h.stat[k] -= 6; h.points += 3; msg(`英雄重修${statCN(k)} 6 点，技能点 +3`);
     } },
 ];
-function spawnRabbit(by, talk) {
-  const [a, b, c, d] = W3MAP.rects[pick(['y', 'z', 'BB', 'BC'])];      // 原图 qR：外环外的左、右、上、下四块区域等概率选一块，区域内随机一点
-  const x = rnd(a, c), y = rnd(b, d);
-  G.rabbit = { isRabbit: true, mdx: 'units/critters/easterrabbit/easterrabbit.mdx', scale: 3, id: G.nextId++, x, y, hx: x, hy: y, t0: G.t, until: G.t + RULE.rabbitLife, face: rnd(0, TAU), next: G.t + 1 };
+// 原图每处召唤兔子都是 GetRandomLocInRect(GetPlayableMapRect())：整张可玩区域（w3i：94×94 格，四边各留 1 格，即 ±6016）里随机一点；
+// 落在树上时 WC3 会挪到最近能站的地方，这里避开树墙重抽。life：存活秒数，null = 一直在（进无尽关卡时那只没设存活时间）
+const PLAYABLE = 6016;
+function spawnRabbit(by, talk, life = RULE.rabbitLife) {
+  let x = 0, y = 0;
+  for (let k = 0; k < 30; k++) {
+    x = rnd(-PLAYABLE, PLAYABLE); y = rnd(-PLAYABLE, PLAYABLE);
+    if (!W3MAP.trees.some(t => dist2(t[1], t[2], x, y) < 160 * 160)) break;
+  }
+  G.rabbit = { isRabbit: true, mdx: 'units/critters/easterrabbit/easterrabbit.mdx', scale: 3, id: G.nextId++, x, y, hx: x, hy: y, t0: G.t, until: life == null ? Infinity : G.t + life, face: rnd(0, TAU), next: G.t + 1 };
   SFX.ui('hint');
   msg(by ? `${by}召唤了一次兔子，大家快找呀！` : `兔子：${talk || pick(RABBIT_TALK)}`);
-  msg(`兔子出现了（小地图上闪烁的粉点），${RULE.rabbitLife} 秒内让守卫者走到它旁边，用当局成就买道具`);
+  msg(`兔子出现了（小地图上闪烁的粉点），${life == null ? '这次会一直在场上' : life + ' 秒内'}，让守卫者走到它旁边，用当局成就买道具`);
   uiDirty();
 }
 function rabbitUpdate(dt) {
@@ -7713,6 +7719,7 @@ function draw() {
   if (G.rabbit) drawRabbit(G.rabbit);
   for (const z of G.zones) if (z.style === 'bladestorm') drawBladestormSpirit(z);
   ctx = octx;                                     // 往下是界面层（盖在 3D 模型上面）
+  drawGateRays(performance.now() / 1000);
   for (const f of G.fx) {
     ctx.globalAlpha = f.kind === 'corpse' ? 1 : clamp(f.life * 4, 0, 1);
     if (f.kind === 'line') { ctx.strokeStyle = f.color; ctx.lineWidth = (f.w || 1.5) * DPR; ctx.beginPath(); ctx.moveTo(sx(f.x1, f.y1), sy(f.y1)); ctx.lineTo(sx(f.x2, f.y2), sy(f.y2)); ctx.stroke(); }
@@ -8092,6 +8099,45 @@ function drawWild(w) {
   else { ctx.fillStyle = '#ff9ad5'; ctx.beginPath(); ctx.arc(x, y, r * 0.7, 0, 7); ctx.fill(); }
   onTop(() => label(`野生${w.name}`, w.x, w.y + 120, '#ff9ad5', 11));
 }
+// 出怪口的天气"光芒"（原图 ov：8 个出怪口区域 I / p / m / o / r / q / n / u 都 AddWeatherEffect(…, 'LRaa')，和开了几个口无关）。
+// 贴图是原版 RaysOfLight（terrain/RaysOfLight.png，tools/war3_terrain.py --weather）；原版的天气参数表 Weather.slk 不在资源包里，
+// 粒子的数量、斜度、长短和淡入淡出按原版画面估的：每个区域同时 4 道从斜上方照下来的大光柱，叠加发光，几秒钟淡入淡出
+const RAY_RECTS = ['I', 'p', 'm', 'o', 'r', 'q', 'n', 'u'];
+const RAY_IMG = new Image(); RAY_IMG.src = 'assets/terrain/RaysOfLight.png';
+const RAYS = { list: [], tint: null };
+// 原版是叠加混合；界面层是透明画布，直接叠加会被冲淡，改成"亮度当不透明度"（按贴图最亮处归一）、染成暖白后普通混合（同 fx.js 的 addSafe）
+function rayTex() {
+  if (RAYS.tint || !RAY_IMG.complete || !RAY_IMG.naturalWidth) return RAYS.tint;
+  const c = document.createElement('canvas'); c.width = RAY_IMG.naturalWidth; c.height = RAY_IMG.naturalHeight;
+  const g = c.getContext('2d'); g.drawImage(RAY_IMG, 0, 0);
+  try {
+    const d = g.getImageData(0, 0, c.width, c.height), px = d.data; let top = 1;
+    for (let i = 0; i < px.length; i += 4) top = Math.max(top, Math.max(px[i], px[i + 1], px[i + 2]) * px[i + 3] / 255);
+    for (let i = 0; i < px.length; i += 4) { const v = Math.max(px[i], px[i + 1], px[i + 2]) * px[i + 3] / 255 / top; px[i] = 255; px[i + 1] = 244; px[i + 2] = 200; px[i + 3] = v * 255; }
+    g.putImageData(d, 0, 0);
+  } catch (_) { /* file:// 下读不了像素，用原图 */ }
+  return (RAYS.tint = c);
+}
+function newRay(k, now) {
+  const [a, b, c, d] = W3MAP.rects[k], life = rnd(5, 9);
+  return { k, x: rnd(a, c), y: rnd(b, d), t0: now - (RAYS.list.length < RAY_RECTS.length * 4 ? rnd(0, life) : 0), life, h: rnd(1600, 2300), w: rnd(240, 380), peak: rnd(0.4, 0.65) };
+}
+function drawGateRays(now) {
+  const tex = rayTex(); if (!tex) return;
+  if (!RAYS.list.length) for (const k of RAY_RECTS) for (let i = 0; i < 4; i++) RAYS.list.push(newRay(k, now));
+  ctx.save();
+  RAYS.list.forEach((r, i) => {
+    let t = now - r.t0;
+    if (t >= r.life) { r = RAYS.list[i] = newRay(r.k, now); t = 0; }
+    if (!onScr(r.x, r.y, 1200)) return;
+    const lean = r.h * 0.22, x0 = sx(r.x, r.y), y0 = sy(r.y), x1 = sx(r.x - lean, r.y - lean * 0.3, r.h), y1 = sy(r.y - lean * 0.3, r.h);   // 光从左上方斜着照下来
+    const len = Math.hypot(x1 - x0, y1 - y0), w = r.w * kAt(r.y);
+    ctx.globalAlpha = r.peak * Math.sin(Math.PI * t / r.life);
+    ctx.setTransform(1, 0, 0, 1, x0, y0); ctx.rotate(Math.atan2(y1 - y0, x1 - x0));
+    ctx.drawImage(tex, 0, -w / 2, len, w);
+  });
+  ctx.restore();
+}
 // 兔子：原版复活节兔子模型 + 地上一圈粉色光（方便找到）；没有 3D 时程序画一只白兔子
 function drawRabbit(r) {
   if (!onScr(r.x, r.y)) return;
@@ -8104,7 +8150,7 @@ function drawRabbit(r) {
   ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = `rgba(255,120,200,${0.55 * pulse})`; ctx.lineWidth = 2.5 * DPR;
   ctx.beginPath(); ctx.ellipse(x, y, k * (2 + pulse * 0.6), k * (2 + pulse * 0.6) * qAt(r.y, 0.5), 0, 0, 7); ctx.stroke(); ctx.restore();
   const m3 = metaOf(r);                                                                     // 原版复活节兔子模型（放大 3 倍）；画不了时退回下面的程序绘制
-  if (m3 && model3d(r, m3, r.x, r.y, r.face, pickAnim(r, m3), 1, blink ? 0.45 : 1)) { shadow(r.x, r.y, k * 1.6); onTop(() => label(`兔子 ${Math.ceil(left)}秒`, r.x, r.y + 48 * 3.4, '#ff9ad5', 12)); return; }
+  if (m3 && model3d(r, m3, r.x, r.y, r.face, pickAnim(r, m3), 1, blink ? 0.45 : 1)) { shadow(r.x, r.y, k * 1.6); onTop(() => label(left === Infinity ? '兔子' : `兔子 ${Math.ceil(left)}秒`, r.x, r.y + 48 * 3.4, '#ff9ad5', 12)); return; }
   ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(x, y, k * (1.1 - hop * 0.3), k * 0.45, 0, 0, 7); ctx.fill();
   ctx.save(); ctx.globalAlpha = blink ? 0.45 : 1; ctx.translate(x, y - lift); ctx.scale(dir, 1);
   ctx.strokeStyle = 'rgba(80,60,70,.55)'; ctx.lineWidth = 1 * DPR;
@@ -8120,7 +8166,7 @@ function drawRabbit(r) {
   ctx.fillStyle = '#ff8fb8'; ctx.beginPath(); ctx.arc(k * 1.03, -k * 1.45, k * 0.07, 0, 7); ctx.fill();         // 鼻子
   ctx.fillStyle = '#ffb3cf'; ctx.beginPath(); ctx.ellipse(k * 0.3, -k * 0.12, k * 0.24, k * 0.12, 0, 0, 7); ctx.fill();   // 脚
   ctx.restore();
-  onTop(() => label(`兔子 ${Math.ceil(left)}秒`, r.x, r.y + 48 * 3.4 + lift / K, '#ff9ad5', 12));
+  onTop(() => label(left === Infinity ? '兔子' : `兔子 ${Math.ceil(left)}秒`, r.x, r.y + 48 * 3.4 + lift / K, '#ff9ad5', 12));
 }
 function drawMinimap() {
   const w = mm.width, h = mm.height, k = Math.min(w, h) / (WORLD * 2 + 300);
@@ -8254,7 +8300,7 @@ function renderInfo() {
       <div class="kv"><span>守卫者</span><b>${shopNear() ? '在旁边，可以购买' : `太远（要在 ${RULE.shopReach} 范围内）`}</b></div>`;
   } else if (e.isRabbit) {
     left = portrait(e, '兔', '#d86a9a') + bar('hp', 1, 1, '15 / 15');
-    mid = `<div class="nm">兔子</div><div class="sub">成就商店 · 剩余 ${Math.ceil(e.until - G.t)} 秒</div>
+    mid = `<div class="nm">兔子</div><div class="sub">成就商店${e.until === Infinity ? '' : ` · 剩余 ${Math.ceil(e.until - G.t)} 秒`}</div>
       <div class="kv"><span>当局成就</span><b>${G.ach}</b><span>守卫者</span><b>${rabbitNear() ? '在旁边，可以购买' : `太远（要在 ${RULE.rabbitReach} 范围内）`}</b></div>`;
   } else if (e.isBuilder) {
     left = portrait(e, '守', '#a5521a') + bar('hp', 1, 1, '400000') + bar('mp', e.mana, FOD.maxMana, `${Math.floor(e.mana)} / ${FOD.maxMana}`);
@@ -8312,7 +8358,7 @@ function renderCard(e) {
     hp = '无敌的';
   } else if (e.isRabbit) {
     name = '兔子'; sub = '成就商店 · 中立';
-    c1 = `<div class="st"><div><span>剩余时间：</span><b>${Math.ceil(e.until - G.t)} 秒</b><br><span>当局成就：</span><b style="color:#ff9ad5">${G.ach}</b></div></div>`;
+    c1 = `<div class="st"><div><span>剩余时间：</span><b>${e.until === Infinity ? '一直在' : Math.ceil(e.until - G.t) + ' 秒'}</b><br><span>当局成就：</span><b style="color:#ff9ad5">${G.ach}</b></div></div>`;
     const d = Math.round(Math.hypot(G.builder.x - e.x, G.builder.y - e.y));
     c2 = `<div class="st"><div><span>守卫者距离：</span><b>${d}</b><br>${rabbitNear() ? '<b style="color:#6fd17a">可以购买</b>' : `<b style="color:#ff8f86">要在 ${RULE.rabbitReach} 范围内</b>`}</div></div>`;
     extra = `<div class="tip">用当局成就购买道具（开局 ${RULE.startAch} 点 + 账号成就档位加成，每次 Perfect +1；英雄塔也要 ${RULE.heroAch} 点）。兔子到时间就会消失。</div>`;
@@ -8957,7 +9003,7 @@ function showHelp() {
     <p><b>宠物</b>：宠物商人卖 11 种宠物（8 当局成就，每人一只），跟着守卫者走、自动攻击，攻击每波提升；选中宠物激活普通天赋（10 木）后，对<b>小精灵</b>（外环外每 100 秒刷一只）用<b>糖果</b>（守护宗师 5 成就 5 个，地上也会掉）可以升级宠物技能。10 波 BOSS 后外环外出现野生宠物，用糖果抓（抓到的记进玩家档案，下局用宠物卷轴召唤）。</p>
     <p><b>许愿</b>：兔子的塔类之球每个 +1 许愿点，出售许愿石（BOSS 掉落）/ 梦 +5，凑齐"马上有梦" +20；在许愿商人那里花 20 许愿点把建造栏的一格换成想要的塔。</p>
     <p><b>守护宗师</b>：兔子卷轴、重置卷轴（重新随机英雄成长值）、宠物卷轴、糖果、赞（48 波后给队友点赞）、投票卷轴（投票踢人：每票 +2，超过在场人数踢出）、绑定卷轴（到达无尽关卡后把这局的主塔绑定到玩家档案）、号令卷轴（20 成就，把建造栏的主塔换成绑定的那种）。每波发金 = 杀敌排行名次 ×8 + 波数 ×2。</p>
-    <p><b>兔子</b>：每个 BOSS 波（10/20/30/40 波、最终波）开始 ${RULE.rabbitDelay} 秒后，地图随机位置出现一只兔子（小地图粉点），${RULE.rabbitLife} 秒后消失。守卫者走到它 ${RULE.rabbitReach} 范围内，选中兔子就能用<b>当局成就</b>买道具：4 种塔类之球（重新随机建造栏的某一类塔）、5 个木材、魔法药水（有魔法功勋的塔 +200，天神塔 +600）、知识药水、重修药水（属性选择那项 -6、技能点 +3，每局 1 支）。当局成就开局 ${RULE.startAch} 点（拒绝逃跑）再加账号成就档位 +0~10，每次 Perfect +${RULE.achPerPerfect}；守护宗师的<b>兔子卷轴</b>（${RULE.rabbitScrollAch} 成就）可以额外召唤一次兔子；兔子还卖天赋秘籍（5 成就 + 20 木，MAX 光环至尊天赋 / 唯一塔技能 +2 级，每局 4 个）。</p>
+    <p><b>兔子</b>：每个 BOSS 波（10/20/30/40 波、最终波）开始 ${RULE.rabbitDelay} 秒后，地图随机位置出现一只兔子（小地图粉点），${RULE.rabbitLife} 秒后消失（新人随机 ${RULE.rabbitLife + 30} 秒；进入无尽关卡时出现的那只一直在）。守卫者走到它 ${RULE.rabbitReach} 范围内，选中兔子就能用<b>当局成就</b>买道具：4 种塔类之球（重新随机建造栏的某一类塔）、5 个木材、魔法药水（有魔法功勋的塔 +200，天神塔 +600）、知识药水、重修药水（属性选择那项 -6、技能点 +3，每局 1 支）。当局成就开局 ${RULE.startAch} 点（拒绝逃跑）再加账号成就档位 +0~10，每次 Perfect +${RULE.achPerPerfect}；守护宗师的<b>兔子卷轴</b>（${RULE.rabbitScrollAch} 成就）可以额外召唤一次兔子；兔子还卖天赋秘籍（5 成就 + 20 木，MAX 光环至尊天赋 / 唯一塔技能 +2 级，每局 4 个）。</p>
     <p><b>当局成就的其他来源</b>：购买人口 8 次（人口众多）、木材换金币 100 次（我是来换金币的）、死亡之指 20 次（电电更健康）各 +2；
       同时拥有指定组合的塔（升级完成时检查）+10：高速毒塔（加速光环 MAX + 萨满 + 火速 + 毒塔 MAX）、强力群攻（攻击光环 MAX + 兽人 + 3 座群攻塔 MAX）、原始战速团队（箭塔 / 闪电塔 / 通灵塔 MAX）、
       无名（减速光环 MAX + 精灵塔 MAX + 缓速 + 重击塔 MAX）、单杀好像很不错（减防光环 MAX + 腐蚀 / 灵魂 / 混乱塔 MAX）；MAX 主塔技能练满后亲手杀敌 +10：魔幻之巅、至尊剑圣、寒冰王者、神级弹跳、激情扫射、功勋将军、人马首领、疯狂五行、天之风行。

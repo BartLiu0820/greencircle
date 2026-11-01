@@ -26,6 +26,8 @@ EXTRA += ['units/critters/villagerman1/villagerman1.mdx', 'units/critters/villag
           'units/critters/packhorse/packhorse.mdx', 'units/critters/frog/frog.mdx', 'units/critters/flyingsheep/flyingsheep.mdx',
           'abilities/spells/other/tinkerrocket/tinkerrocketmissile.mdx',
           'units/demon/heropitlord/heropitlord.mdx', 'units/undead/herodeathknight/herodeathknight.mdx', 'units/creeps/revenant/revenant.mdx']   # 超级深渊塔的深渊领主 / 霸主 / 魔主
+# 模型动画事件（EVTS）按名字请求的子模型：暗夜建筑（古树）出生时的 NEBirth
+EXTRA += ['sharedmodels/nebirth.mdx']
 GAME_JS = os.path.join(ROOT, 'h5', 'game.js')
 
 

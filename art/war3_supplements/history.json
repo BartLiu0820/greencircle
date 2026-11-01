@@ -1,0 +1,43 @@
+{
+ "note": "war3-assets.zip 之外补进来的原版资源登记。按顺序合并，后面的覆盖前面的；status: active = 参与合并，superseded = 已被新版完全包含（只留记录）。工具：tools/war3_supplements.py",
+ "base": {
+  "file": "war3-assets.zip",
+  "sha256": "523c10736975af8f4e72193307341dd678ffcb44ab93afb7b6991302b17abbd1",
+  "note": "基础包：roc/ + tft/，约 3300 个模型，缺一批 TFT 和补丁里的文件"
+ },
+ "map": "000綠色循環圈外傳8.6.6.w3x",
+ "packages": [
+  {
+   "file": "war3-missing-originals_v1.zip",
+   "received": "2026-11-01",
+   "source": "https://dramatically-priest-offering-diagnostic.trycloudflare.com/war3-missing-originals.zip",
+   "sha256": "e4e8c88533b4c5f4adefd5867f411b3ba6caf5648c2292cd5dbd2a9deb1a5349",
+   "status": "active",
+   "summary": "35 个 MDX、102 个 BLP、100 个 WAV：复活节兔子、浣熊、精灵、炎魔、火焰领主、地精炼金术士、修补匠、修补匠机器人、4 辆车、LavaSpawnBirthMissile；投射物 TinkerRocket / LavaSpawnMissile / LordofFlameMissile / VolcanoMissile / FireLordDeathExplode / BottleImpact；图标、头像模型、音效、粒子模型 Gutz1 / Bones1 / Feather / NEBirth",
+   "provider_note": "来源：完整 Warcraft III MPQ 提取库（WarRaft/war3mpq）及本地 War3.mpq / War3x.mpq；35 个 MDX 已用 war3-model 解析通过"
+  },
+  {
+   "file": "war3-missing-skill-icons_v1.zip",
+   "received": "2026-11-01",
+   "source": "https://dramatically-priest-offering-diagnostic.trycloudflare.com/war3-missing-skill-icons.zip",
+   "sha256": "c2f71e861c3568a835ffc482d2467fcc67bf4e8bdd2cf54e976838b24b2616e1",
+   "status": "superseded",
+   "superseded_by": "war3-missing-skill-icons_v2.zip",
+   "summary": "18 个 BLP：焚烧、工程学升级、艾露恩的祝福、点金术（含被动 / 禁用态）"
+  },
+  {
+   "file": "war3-missing-skill-icons_v2.zip",
+   "received": "2026-11-01",
+   "source": "https://dramatically-priest-offering-diagnostic.trycloudflare.com/war3-missing-skill-icons.zip",
+   "sha256": "0b8915ff91dffae73c036f91cd40dd07c2e6b881ee70c18ebdf240c94b21c160",
+   "status": "active",
+   "summary": "v1 的 18 个 + 酸性炸弹 BTNAcidBomb / DISBTNAcidBomb，共 20 个 BLP（同一下载地址的第二版）"
+  }
+ ],
+ "extract_from_map": [
+  "ReplaceableTextures/CommandButtons/btnJSFB.blp"
+ ],
+ "still_missing": [
+  "TerrainArt/Weather.slk（天气参数表：出怪口光芒 LRaa 的粒子参数是估的）"
+ ]
+}

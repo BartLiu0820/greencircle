@@ -1,0 +1,880 @@
+{
+ "zip": "art/war3_supplements/war3-supplement.zip",
+ "files": {
+  "Abilities/Spells/Other/AcidBomb/AlchemistAcidBurnMissileDeath1.wav": {
+   "sha256": "d9f5ac3b2e4e1fd6031ecb00e18eef6ad6fef3e9771a5a5ae875cacbd117a337",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Abilities/Spells/Other/AcidBomb/BottleImpact.mdx": {
+   "sha256": "894bbac96199e1331994fbf1afac9f0399243e6dfc6deddd15aceeb4ae84aee0",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Abilities/Spells/Other/AcidBomb/BottleMissile.mdx": {
+   "sha256": "c2a99aac582007cbbb6ad1fa7ac379cc44ab0cc5ab75446ff90ef92f362dbdcf",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Abilities/Spells/Other/Incinerate/FireLordDeathExplode.mdx": {
+   "sha256": "f5d94d5c887fed5d1d624968fe35839af69ad170b7ad3b732e6dde025a150b78",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Abilities/Spells/Other/Incinerate/Incinerate1.wav": {
+   "sha256": "3d59ee475032887c822b41913c3c9f3fb0e5b918cac3f4d42cf5b6317b2be727",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Abilities/Spells/Other/Incinerate/IncinerateBuff.mdx": {
+   "sha256": "f3d8f4897bde1898b3afe91a20a16b38c953f5443679f0c7baa71dab6d99e32e",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Abilities/Spells/Other/TinkerRocket/TinkerMissileDeath1.wav": {
+   "sha256": "0b9369a445c222532dddd74cd9b649729e7c5c289be5d1249354e657e84f3a9a",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Abilities/Spells/Other/TinkerRocket/TinkerMissileLaunch1.wav": {
+   "sha256": "b7dd78d5eab650478909ced76117f4ea05dc9327f4ce3d614e2c548c26ed6d3a",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Abilities/Spells/Other/TinkerRocket/TinkerRocketMissile.mdx": {
+   "sha256": "d171aaa48bc5ff9afaa501a10538546834c456cf6ea8c2aafe19b2003e8fd7d2",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Abilities/Spells/Other/TinkerRocket/TinkerRocketRibbon.blp": {
+   "sha256": "55ba9ac5e4a8d5245c0a713bd581de24c670d1b0e09234b50469e80753b42c95",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Abilities/Spells/Other/Volcano/Lavaball.blp": {
+   "sha256": "cab2089c39d030d40ed8ea23009f332bdbbeedf8280535b0ff06a20614004ecd",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Abilities/Spells/Other/Volcano/VolcanicRockLaunch1.wav": {
+   "sha256": "a40a34a57ae9efa6494ddae1344518ed77ee574330f1c812cf279c979fbeea97",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Abilities/Spells/Other/Volcano/Volcano.mdx": {
+   "sha256": "923997f245d520659526947f8df06f0a13eb758733cce860cb005bb7bd004f52",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Abilities/Spells/Other/Volcano/VolcanoDeath.mdx": {
+   "sha256": "42cae9ad5b62bd06ab4ca88d39a495077b8a1f7f26ab563c302e575bf719318a",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Abilities/Spells/Other/Volcano/VolcanoLoop.wav": {
+   "sha256": "75bbe301c74aea3f7fd213cb58e03a1660cb4a8312953c3ab06bd63d3bc26e0b",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Abilities/Spells/Other/Volcano/VolcanoMissile.mdx": {
+   "sha256": "9a9e0c61171d45ec8ec82e4761e351c6b90ce57fc856d8305def2e3252646635",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Abilities/Weapons/LavaSpawnMissile/LavaSpawnBirthMissile.mdx": {
+   "sha256": "1984d5ead9ca5881bd79400125eb470f86d75d7ca0597df1adf8c7a2bde2fc70",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Abilities/Weapons/LavaSpawnMissile/LavaSpawnMissile.mdx": {
+   "sha256": "ebf6cc4088be13dd62d3ed19c1b76a9dbfc892a9af987c2b751085599214aed3",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Abilities/Weapons/LavaSpawnMissile/LavaSpawnMissileBirth1.wav": {
+   "sha256": "69281500f06be405f954623a441f6d4c399c1e9b721913f0e2ec211a532ba7b4",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Abilities/Weapons/LavaSpawnMissile/LavaSpawnMissileDeath1.wav": {
+   "sha256": "5564729537b673dd5c5da4ffceb46e053708e49195f283441026e0be51b23204",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Abilities/Weapons/LordofFlameMissile/FireLordMissileDeath1.wav": {
+   "sha256": "01d6b2fe3460f3fb70a63cb8e03f1259757c12dc641dcbd8c1e025a45cb9b3d7",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Abilities/Weapons/LordofFlameMissile/LordofFlameMissile.mdx": {
+   "sha256": "9255f4d950c9e12ce06e115da41c0d4ae9bb2d94bbf16fde6f33c5ad2bbfd147",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "ReplaceableTextures/CommandButtons/BTNAcidBomb.blp": {
+   "sha256": "99d52b64e798e96cb72b11e16456a27ef98b810b9a2da390de27dc550076fc12",
+   "from": "war3-missing-skill-icons_v2.zip"
+  },
+  "ReplaceableTextures/CommandButtons/BTNClockWerkGoblin.blp": {
+   "sha256": "613a8b1fecc1341c3b9210909f414001d3a594c760e9856b6e72e5afc8f74f13",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "ReplaceableTextures/CommandButtons/BTNClusterRockets.blp": {
+   "sha256": "38db57b1898a4f9c6eb21bf689d181b0aa5eecbc21fe817174daead722229947",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "ReplaceableTextures/CommandButtons/BTNDiabloCar.blp": {
+   "sha256": "dbb01aae598052900d6d375796a89eab219be60e27c27308566c3eac9e6f812d",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "ReplaceableTextures/CommandButtons/BTNDwarfCar.blp": {
+   "sha256": "a8e8d4f98dcf875ff069790a75295e6d64f439128858c6ff3daf4fba6e6aef58",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "ReplaceableTextures/CommandButtons/BTNElunesBlessing.blp": {
+   "sha256": "8fe5046a26ab85bf03da7ce4f0b4e1efe1a18d2f4e8680f64706d0c484d7304e",
+   "from": "war3-missing-skill-icons_v2.zip"
+  },
+  "ReplaceableTextures/CommandButtons/BTNEngineeringUpgrade.blp": {
+   "sha256": "55452792d4b3922116d8cad077f9c7da8f0dfb6349ee2915a91aae0c8a5938aa",
+   "from": "war3-missing-skill-icons_v2.zip"
+  },
+  "ReplaceableTextures/CommandButtons/BTNHeroAlchemist.blp": {
+   "sha256": "95617b4272665a5562a79695edd57f9cd9ddb1f5f581bd1623ba005c8f198c30",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "ReplaceableTextures/CommandButtons/BTNHeroAvatarOfFlame.blp": {
+   "sha256": "87a441eb469ce605e4ba80eb52a7872c575be29f14eee7ce5541206d07accd5f",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "ReplaceableTextures/CommandButtons/BTNHeroTinker.blp": {
+   "sha256": "d103d8b8376f3d247ced3a5ca702189f6b69b50b5e68d80cae1886246392cc91",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "ReplaceableTextures/CommandButtons/BTNIncinerate.blp": {
+   "sha256": "6d7264214b724d97e87b15629d9e9b0954ca65141f0e17bd114e5f8b37053df7",
+   "from": "war3-missing-skill-icons_v2.zip"
+  },
+  "ReplaceableTextures/CommandButtons/BTNIncinerateOff.blp": {
+   "sha256": "23da5972b2ffa061fa6fab526cf5a771aafc67857010baaf72752b3cf3266d33",
+   "from": "war3-missing-skill-icons_v2.zip"
+  },
+  "ReplaceableTextures/CommandButtons/BTNIncinerateOn.blp": {
+   "sha256": "23da5972b2ffa061fa6fab526cf5a771aafc67857010baaf72752b3cf3266d33",
+   "from": "war3-missing-skill-icons_v2.zip"
+  },
+  "ReplaceableTextures/CommandButtons/btnJSFB.blp": {
+   "sha256": "aae35648b0967eb69c5918f03601516fcb9401fd242346f0e878b68237cb9268",
+   "from": "000綠色循環圈外傳8.6.6.w3x"
+  },
+  "ReplaceableTextures/CommandButtons/BTNLavaSpawn.blp": {
+   "sha256": "102193ac20a80a7a731be3dfaf1db7a031b5e51a83e48a44993e2d6d8f2f0ebc",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "ReplaceableTextures/CommandButtons/BTNOrcCar.blp": {
+   "sha256": "4e5a001746f5a58680850080923e3a8308efbb243d8a557a9cb1c54c36c8690f",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "ReplaceableTextures/CommandButtons/BTNRacoon.blp": {
+   "sha256": "e0b2c1639da9e409dab362fa615e62061f616ce8aa0097e36b2f69cf9c34d87a",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "ReplaceableTextures/CommandButtons/BTNSoulBurn.blp": {
+   "sha256": "6bbd2169ad409f44672ceb2ab40ba1d9fa451df9c2c416f3faefa62afd2fbe0c",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "ReplaceableTextures/CommandButtons/BTNTransmute.blp": {
+   "sha256": "2aa4c4f2ab14b4a88d2beb8ec77c287ff4ac648549de2c3c5a7227070f2df0e1",
+   "from": "war3-missing-skill-icons_v2.zip"
+  },
+  "ReplaceableTextures/CommandButtons/BTNUndeadCar.blp": {
+   "sha256": "f148f0bb7cf89fdba81676fd33ada9b32935b772357f430203183f1ace1a51ca",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "ReplaceableTextures/CommandButtons/PASBTNEngineeringUpgrade.blp": {
+   "sha256": "bc9cf75705cf1e25d0928ff6c2bf8f1f5f08c8ef8b6f7cbcf4a3dced57995f03",
+   "from": "war3-missing-skill-icons_v2.zip"
+  },
+  "ReplaceableTextures/CommandButtonsDisabled/DISBTNAcidBomb.blp": {
+   "sha256": "ed3aaf165a305476b8d2361330939181fd0a126891021ffd5cb0d3c3e4127ff7",
+   "from": "war3-missing-skill-icons_v2.zip"
+  },
+  "ReplaceableTextures/CommandButtonsDisabled/DISBTNClockWerkGoblin.blp": {
+   "sha256": "346982fe11b67e1984f5023f36ee57f3f1761de24da07faa9f9ca549ff5b609e",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "ReplaceableTextures/CommandButtonsDisabled/DISBTNClusterRockets.blp": {
+   "sha256": "9c8bd7c0e7286923c384cf63bd13cba35662da56a65a54378ae15cc52b468184",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "ReplaceableTextures/CommandButtonsDisabled/DISBTNDiabloCar.blp": {
+   "sha256": "704b4feeee8b7e9bd545099d49c22f46c38fddbb3cb1b1961de732b4a631f96a",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "ReplaceableTextures/CommandButtonsDisabled/DISBTNDwarfCar.blp": {
+   "sha256": "7b5426acbca7771d5987a7acf53327aac6beec2b544f6a86548981dac57b1ab4",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "ReplaceableTextures/CommandButtonsDisabled/DISBTNElunesBlessing.blp": {
+   "sha256": "fff3c4d2b1ef8fc6aad6944ad0e1a47163bedba16eb7f5a95153be2f6e6c8577",
+   "from": "war3-missing-skill-icons_v2.zip"
+  },
+  "ReplaceableTextures/CommandButtonsDisabled/DISBTNEngineeringUpgrade.blp": {
+   "sha256": "69bad6022a578a153743af8a3b71f2a6e7dc1bebfb05a3bfe4a332fca1243674",
+   "from": "war3-missing-skill-icons_v2.zip"
+  },
+  "ReplaceableTextures/CommandButtonsDisabled/DISBTNHeroAlchemist.blp": {
+   "sha256": "841fa3694307eb7d60ed254a74d1c9e84a94826fabdc3bfeb8c7ebbab1cd6e48",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "ReplaceableTextures/CommandButtonsDisabled/DISBTNHeroAvatarOfFlame.blp": {
+   "sha256": "e1776bf4ba64f4479c30b3fc57ccd1565953845411d0ef7e3a2e3c99c8804aa8",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "ReplaceableTextures/CommandButtonsDisabled/DISBTNHeroTinker.blp": {
+   "sha256": "bd025e7b83ef3ae707f45b5d7f839db27205b3771036cd2e921e1218d43e5f1b",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "ReplaceableTextures/CommandButtonsDisabled/DISBTNIncinerate.blp": {
+   "sha256": "01c9443a74132646ccde3f2cb5ccec099d430547687b3ff0f97918795ddfc6c4",
+   "from": "war3-missing-skill-icons_v2.zip"
+  },
+  "ReplaceableTextures/CommandButtonsDisabled/DISBTNIncinerateOff.blp": {
+   "sha256": "35d6ad9123246b12093ae55032fecae58302767d2fb9a65fc0cc1933a02bb8b5",
+   "from": "war3-missing-skill-icons_v2.zip"
+  },
+  "ReplaceableTextures/CommandButtonsDisabled/DISBTNIncinerateOn.blp": {
+   "sha256": "35d6ad9123246b12093ae55032fecae58302767d2fb9a65fc0cc1933a02bb8b5",
+   "from": "war3-missing-skill-icons_v2.zip"
+  },
+  "ReplaceableTextures/CommandButtonsDisabled/DISBTNLavaSpawn.blp": {
+   "sha256": "757519a5e736e7fa27b53b36bc9dc6edc587fc813554847b4f12f097d3aba4bb",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "ReplaceableTextures/CommandButtonsDisabled/DISBTNOrcCar.blp": {
+   "sha256": "aab3ee5fa505ed7d3e5899868d4b8018457ffa43879c6829e9009cd2b7c1ac40",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "ReplaceableTextures/CommandButtonsDisabled/DISBTNRacoon.blp": {
+   "sha256": "f367acba3ce7576031528c0ed08256e753442ea5d4aad5847476fcf0609dcd1d",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "ReplaceableTextures/CommandButtonsDisabled/DISBTNSoulBurn.blp": {
+   "sha256": "bd5834c9ef148a17be69c9cb66c0e7ad41f8e546fba7e42fc6c5675216e15603",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "ReplaceableTextures/CommandButtonsDisabled/DISBTNTransmute.blp": {
+   "sha256": "9069d6a9daac6b23abbdfe787a952dfc1d407b798bec16eb9fff50d9a0e67818",
+   "from": "war3-missing-skill-icons_v2.zip"
+  },
+  "ReplaceableTextures/CommandButtonsDisabled/DISBTNUndeadCar.blp": {
+   "sha256": "b28d8c1ac2b28f0205f66029f96e4dad4c7bc8426d143922d1a4f653a4dca75a",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "ReplaceableTextures/CommandButtonsDisabled/DISPASBTNElunesBlessing.blp": {
+   "sha256": "0099dcd9d8b2570aaf98eeb779fe82e89205da495c2197e1bbf3f687461daf0e",
+   "from": "war3-missing-skill-icons_v2.zip"
+  },
+  "ReplaceableTextures/CommandButtonsDisabled/DISPASBTNEngineeringUpgrade.blp": {
+   "sha256": "69bad6022a578a153743af8a3b71f2a6e7dc1bebfb05a3bfe4a332fca1243674",
+   "from": "war3-missing-skill-icons_v2.zip"
+  },
+  "ReplaceableTextures/CommandButtonsDisabled/DISPASBTNIncinerate.blp": {
+   "sha256": "01c9443a74132646ccde3f2cb5ccec099d430547687b3ff0f97918795ddfc6c4",
+   "from": "war3-missing-skill-icons_v2.zip"
+  },
+  "ReplaceableTextures/PassiveButtons/PASBTNElunesBlessing.blp": {
+   "sha256": "2172c7e5728d639c5ac31486f9eec2fef9530bc64d50bf95b2e32864d747a713",
+   "from": "war3-missing-skill-icons_v2.zip"
+  },
+  "ReplaceableTextures/PassiveButtons/PASBTNIncinerate.blp": {
+   "sha256": "4bbd599baaa9f97f73bfed9a103f6452d48e18dc931f841f271afb8e8b35f359",
+   "from": "war3-missing-skill-icons_v2.zip"
+  },
+  "SharedModels/Bones1.mdx": {
+   "sha256": "4e811ae48f082026f7c2a1477c1fe8d39450647282eb8b3589f26d1225fd7a30",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "SharedModels/EntangleWisp.mdx": {
+   "sha256": "2d6d987e017302a4931571aeb5513d55d30e1d717db2b081e9adae15a75b6e16",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "SharedModels/Feather1.mdx": {
+   "sha256": "2b14be3b34874afa77b68b971db611aa3f2412dda46ec78dcf724e4aaafd8dd3",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "SharedModels/Feather2.mdx": {
+   "sha256": "46f858626c683e3755b11db5a30f3a6e66dca868a3f5a48464acb96705be1b37",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "SharedModels/FeatherPurple.mdx": {
+   "sha256": "14d9dcbf6dabbb61b9ec6bf2bddf11baee28852c3f01dc38d591e44eed85500f",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "SharedModels/FeatherPurple1.mdx": {
+   "sha256": "44ea7f6f650be4ea41cf0b321e673f5a54656d883ae068fdf51e2a0f06f1f825",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "SharedModels/Gutz1.mdx": {
+   "sha256": "a5af8ff610c591477faedb3906b52a2ca038143764491a690cf8ecfb67a4af6f",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "SharedModels/NEBirth.mdx": {
+   "sha256": "39574630220969de537dd7cc92cb033a4744daad8e061eb60e0dcb994f70d330",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Textures/Ball1.blp": {
+   "sha256": "9fe3f74f7561d3d2c24079935a3d36d876d056b3a34e218d47ef03efc6986d2b",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Textures/BloodBlobs1.blp": {
+   "sha256": "19e3a27170d799f479a88318cdb0e3f2a67e8c1a0c49d1be4219af84a1a3c9ba",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Textures/CreepyNecropolis.blp": {
+   "sha256": "f06975c01ee6a427f3fb14883f176609711babcfacbcc5bbce72c7e4030393f5",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Textures/GOLDCoin.blp": {
+   "sha256": "c95c24347e29b4695afec4221cc781d6221eb4bd65fae1b6b1ba97102fc7e946",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Textures/HeroAvatarFlame.blp": {
+   "sha256": "3526ba3f2ef88ff724ff0a65a37b4d55f1bb089368d94b7d7f752d0e69d4037d",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Textures/HeroGoblinAlchemistBLUE.blp": {
+   "sha256": "be5d339c1664e657874585f5bad0bd97a10be386643e64900cd772cc8c42ccd7",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Textures/heromountainking.blp": {
+   "sha256": "b1a1791e42378ef7c3c0a66e86d4b3ee34211d0700de7fdac60e1acaff87c5d9",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Textures/HeroTinker.blp": {
+   "sha256": "c8785ca4362dcb32fae06e9d4b9519462af65c9d63b8fa3a08256eea955bda56",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Textures/SiegeEngine.blp": {
+   "sha256": "e74b40050d4a3e7530aeff952009eaa264b4f44b4ae64b4eda29387d60f5d126",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Textures/UndeadAirBarge.blp": {
+   "sha256": "4fece7f23fc27313d3af57588481725ef373f20aa6635f200f101168451f180b",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Textures/UndeadCar1.blp": {
+   "sha256": "f5bd1398831bc89d2ab547740c7bd7041b845535a559a55f36683e3797686acd",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Textures/VolcanoMed.blp": {
+   "sha256": "9148ac5d797838b6a3a8632f42bc43568cbf14ca6cfc3649bb646cbc83f1801c",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroFlameLord/Clouds8x8Grey.blp": {
+   "sha256": "773bef1c2330695c4362dc0768df756533d0ac829f46a075bbc3e5cca7966268",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroFlameLord/HeroFirelordAttack1.wav": {
+   "sha256": "d1bb42a26b5cc8d559844a8b1493bc8f41a3e9ed2c3d2c09f975e2eb180a1ae6",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroFlameLord/HeroFirelordAttack2.wav": {
+   "sha256": "e9eeede923b6c6d7cf1b43045d50c041842880ffa097e2d20e268673fea13b02",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroFlameLord/HeroFirelordDeath1.wav": {
+   "sha256": "f78f33bc5c282f993e4917c6ad7683df9a1d6731dfffa9d4cc16fe63a738bc4c",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroFlameLord/HeroFirelordPissed1.wav": {
+   "sha256": "8a61ec86b77ecd462a18dede414919422379be1f8c9020f8bfca77b0b5b75547",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroFlameLord/HeroFirelordPissed2.wav": {
+   "sha256": "a1e8750a1f98f8bbedb979a24c73b6d7373baa4a4ea8ac2a39146e3fcfd617ee",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroFlameLord/HeroFirelordPissed3.wav": {
+   "sha256": "aa3fccb23ec7cbee46a6083e7768c455b4b33e24f4a3a564c21e5e7e724b1948",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroFlameLord/HeroFirelordPissed4.wav": {
+   "sha256": "a505ab6906dfd88a33d410fad82bea5ba3a34920cd9b1a21121d46ddb9e6523a",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroFlameLord/HeroFirelordPissed5.wav": {
+   "sha256": "f38fb71f8893bc430114d00cadfb71d11816f81aa2b446fc7156a9654b3e805c",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroFlameLord/HeroFirelordPissed6.wav": {
+   "sha256": "9fc9b0bf107ff2e9895bd7b4db4d61f35b5d06ed9325eb7969307708d5a1482d",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroFlameLord/HeroFirelordPissed7.wav": {
+   "sha256": "718a277f83aa87fe73ee1d396d040b617f543c3f3595f21225bff333baeec708",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroFlameLord/HeroFirelordReady1.wav": {
+   "sha256": "4418087c6b147b3b97843e765a67e6c39f7a2d520b1b518d5c8e6d7bdace19a8",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroFlameLord/HeroFirelordSpell1.wav": {
+   "sha256": "386ef9a18dacf1bdcdaef272be23e6c782c3d9cf507e281cc36bbd44c48fdcb5",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroFlameLord/HeroFirelordWarcry1.wav": {
+   "sha256": "7b30c5d6686ac8d8b4edacede1166e0d1286449ed7028f2c0322fb1eae9c588e",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroFlameLord/HeroFirelordWhat1.wav": {
+   "sha256": "872e176de26e8eb19163866c52ebd57b93e461c9cdf5fe69e3b4ed7b0eebeca7",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroFlameLord/HeroFirelordWhat2.wav": {
+   "sha256": "7578278353f6064d978252e734bde2c33475f3c86cbf43a6550d765a4c293400",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroFlameLord/HeroFirelordWhat3.wav": {
+   "sha256": "909ae0f23650ad7c270637c02822dac963fe458b2e12ed133274789ece1dc8fc",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroFlameLord/HeroFirelordYes1.wav": {
+   "sha256": "2ea003330a5fe950ef301351cd3d038f19cda8d154ddda25db14ddd9cac357fc",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroFlameLord/HeroFirelordYes2.wav": {
+   "sha256": "258e7c73f5accfe82a5032f49c88b4d87e06348cb5984bb688aa951782e35733",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroFlameLord/HeroFirelordYes3.wav": {
+   "sha256": "f9d0ac89a072e9ffef4bd004dbec36b42db70a6fe8af154d6d16663cc2ee6c03",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroFlameLord/HeroFirelordYes4.wav": {
+   "sha256": "e88e030b353f4b4f2ea692265cc3ec14fe359eef9c2d0ee132a70fac9da07ed3",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroFlameLord/HeroFirelordYesAttack1.wav": {
+   "sha256": "40c478b8416adff22a916c29afc809a72e5e7ee1a7b643133981c6c12b41a1d8",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroFlameLord/HeroFirelordYesAttack2.wav": {
+   "sha256": "6d6fc5c63226fb813dc607ba9211537d47f43dd6545907d135f0f84bd696a5c3",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroFlameLord/HeroFirelordYesAttack3.wav": {
+   "sha256": "0d01778c6da676c34861ded111beb077a17b2c233bc70479f03bdeb83151490a",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroFlameLord/HeroFlameLord.mdx": {
+   "sha256": "d8f7f2d8a3702e17ce0fa32644db67f9c34fa7429c139bc3876da9c1eaeb506d",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroFlameLord/HeroFlameLord_Portrait.mdx": {
+   "sha256": "0077821e37334babaf9d56e9e607a6eb5c0ddf003998da66038e4053e05af769",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/AlchemistChemicalBurst1.wav": {
+   "sha256": "686408b0f6b92fe4816b6bd15c3ec1bd799aecc966ce278424a07ab708820b4b",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/AlchemistDeath.wav": {
+   "sha256": "c494dc765d07af38fd92e58de5e6223b314f9c4847f81fc2009ab34f60dad844",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/AlchemistDeathAlternate.wav": {
+   "sha256": "65857fa9653498a02f9e10b949ecb8aa776a0f03c5cd1707741cb5d9d1424358",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/AlchemistEffort1.wav": {
+   "sha256": "d99487083c0a45c877623b2fac0917da9212212d7c7e008e6726f5ef5da53977",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/AlchemistEffort2.wav": {
+   "sha256": "b07cda7bd04e68a00caa52b0e955934641fcca5c5a21fdf1b57252fcc61cb8e4",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/AlchemistMorph1.wav": {
+   "sha256": "9d7ce08a4abf9c42eba9e10fe5ee7e7e6676f8f5f05ff903882c694e6497b57e",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistPissed1.wav": {
+   "sha256": "8dd3b284ce83bfa8124580d56175a3040ca3bd5e52f1b53dce1a933b70f095c3",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistPissed2.wav": {
+   "sha256": "b680f35c1f0806376bb627cb197cd42727e02f87fac0c20cf621d60b885f80ac",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistPissed3.wav": {
+   "sha256": "364face9daa379481bfbd12bfc832d29cbbbee7779673ae38a6126510f5bf81a",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistPissed4.wav": {
+   "sha256": "bba345d0e22a4ebac74fda4994b2a9f8bae5ccd4c31b1a3f8af16c877e009d6f",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistPissed5.wav": {
+   "sha256": "a5b7fcf2f7752b47cd0c3b9e06445adcec3df7f55e4a9eb3391c733fbfc9b2f3",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistPissed6.wav": {
+   "sha256": "6d21232813f64691128730048d521aaf0a4cf7de5fc330ad1ffd7688fd989167",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistReady1.wav": {
+   "sha256": "0b463049e86d017cac4cf4d431e11aac346eb4f39755f2ca570814161e7d3c1f",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistWarcry1.wav": {
+   "sha256": "2b164e492273a2ee4f373526aa32953f975888ccbb73c57002b3a6e023e958f0",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistWhat1.wav": {
+   "sha256": "18acd1e9bc699df30f104e1e88e9af48922191966657662e818a09a67166d31d",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistWhat2.wav": {
+   "sha256": "8eb6d30c9c92b96bdc14ce105dfa6f8883b5ee99e2456136de661c1849bba4ee",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistWhat3.wav": {
+   "sha256": "50b3c8e5c457d0eb67b3facfac23e4f19e0065fa78233801d3ffba932d2f3847",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistWhat4.wav": {
+   "sha256": "737736b3564a4cb60efd7fc22871469af1f89f69cb4d11517af433ac1a6718b8",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistYes1.wav": {
+   "sha256": "01e2666d8712aa049a79e0a464e9d3a334d275346da23fece5a3c6637bc5c542",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistYes2.wav": {
+   "sha256": "8bd8edb99b0d41dc6215fee6844d0258b20df37085642a6adf92eb35bc07ccce",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistYes3.wav": {
+   "sha256": "940724d95cc11708f351812c8b08cdefbbc122d5529f71990fbc15b94b3581fe",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistYes4.wav": {
+   "sha256": "28f1cd916c44726a04a58780abaf47fd2e0d6c4ccfb3f6e20cf550af2226a2c1",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistYesAttack1.wav": {
+   "sha256": "b833ddd8834ac1b9d6a01875466beafa66f2dfb150f6daec0f38ef63d00e4753",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistYesAttack2.wav": {
+   "sha256": "5a748bd4136c8d2b1659946aff98ff89ffd8f694b2f31e1afcc948effc7b5bc8",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/HeroAlchemistYesAttack3.wav": {
+   "sha256": "8897664a3885a2d5e873a14a4a539c86d215dd0f1460cfc18e1e26779f2d4bbe",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/HeroGoblinAlchemist.mdx": {
+   "sha256": "b6d613cf7e3a079013d551c5c6872d58e8bbd2ed563040ccafe7f8592fa513f7",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/HEROGoblinALCHEMIST_Portrait.mdx": {
+   "sha256": "8f8d2076933c547b28d0bceeaccedbacf90a235594074fb9a16c6d7931197c49",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HEROGoblinALCHEMIST/HeroGoblinAlchemistPurple.blp": {
+   "sha256": "b23297308d27408d9f7602bba2dfa5d0c6da7b58b988e586f371e39fcec2fb10",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/HeroTinker.mdx": {
+   "sha256": "0db3a5ff27e2ccf04894aae4796381927e7c36a39637240da1caccbfce8ef0ef",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/HeroTinker_Portrait.mdx": {
+   "sha256": "0c0a22ed0c7ea4e087f30b31291b57da5c3d2f58eacb22623dcd89088d0852cf",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/HeroTinkerPissed1.wav": {
+   "sha256": "8445b75c2a7ea18d9a7b38eaf8986e19159f1b0f30c75ab1afbee86f77dc9e5e",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/HeroTinkerPissed2.wav": {
+   "sha256": "024b6a5831d880ee0fe61d8a99e44635e32738ad7bc5d58f96da38bc5932c834",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/HeroTinkerPissed3.wav": {
+   "sha256": "434ca90c20d4514f1be0db1ebecc334cdeaf888adde3037b31683b40be6948c1",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/HeroTinkerPissed4.wav": {
+   "sha256": "0170bc11b349c1b8cbb8f5ad231d246d18f73d5d2fe1867b07604777d129eb07",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/HeroTinkerPissed5.wav": {
+   "sha256": "b167748fad4c9ce675e2f36d13610da4d8b358ac982051323f943b2d73284601",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/HeroTinkerPissed6.wav": {
+   "sha256": "1190a2dc82fba173835af1b1dce1a2a7bd2ee0e00582a74e549b993cea75360a",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/HeroTinkerPissed7.wav": {
+   "sha256": "ca0205f084b8deff999be322f36544e0b8ffd7d046c9182ffaa66e8f059940ba",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/HeroTinkerPissed8.wav": {
+   "sha256": "9533d4bbe357b2cecaf56675d1af5843d5e7435edcab94ccd750ae9576b9e09b",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/HeroTinkerReady1.wav": {
+   "sha256": "ada7b91fe4b6fd8d1b1a3cf56efc1dc53f374b29294eb9514dd949f33f4c8f52",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/HeroTinkerTank.blp": {
+   "sha256": "77fb6c35d17a16bbf3656d67a49bc4b7020b9db3751600ee0195390cb1a9d768",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/HeroTinkerWarcry1.wav": {
+   "sha256": "82b7adfa838f70b14c6a9b5743ff5f88949ede0c1f26af28a38831013cf1dbcd",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/HeroTinkerWhat1.wav": {
+   "sha256": "9f70c725b7a3d149c40251d9e5f663d152248ebced32c438c23713752d0e3029",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/HeroTinkerWhat2.wav": {
+   "sha256": "51dd49762bd78c0e2ca9791be41c3d7abb53c7335b6b8bc5bbd19c68320bad1d",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/HeroTinkerWhat3.wav": {
+   "sha256": "cf1f83102407760f23cb6b4ef3ec5ae610ed4bde675c09a2201b7e2a3d195db9",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/HeroTinkerWhat4.wav": {
+   "sha256": "05576debbc8893c84cfbdbbc96981efe887bc4d562593cbe2e9b22222f7e7477",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/HeroTinkerYes1.wav": {
+   "sha256": "4b96a548caf0c87933a047d2d60a97b8852c9fd814a434e3f33cce35ae2082b8",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/HeroTinkerYes2.wav": {
+   "sha256": "318299e10b19d3232d51e1071316f38ba324695f33087d79d76ca729f8729c97",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/HeroTinkerYes3.wav": {
+   "sha256": "ac391c0d882c7ed063450125bc66b15abfd65ea8d1634f01e180840a71db6ff7",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/HeroTinkerYes4.wav": {
+   "sha256": "ac47c6d3b6b54a3406df2ca69d817a17e70f14ec923edd300077fc6504c44f55",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/HeroTinkerYesAttack1.wav": {
+   "sha256": "ac6a7e7d009a3e14db8bf1b1a2c2075eacc290aa1ecca22f3b6d7313222cc963",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/HeroTinkerYesAttack2.wav": {
+   "sha256": "fb53107ba8fac148424f13705f8f204f7254f27f1fa57d0b9cf947dd3fb0a5c9",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/HeroTinkerYesAttack3.wav": {
+   "sha256": "533154301765ab3456d58677b7e90dea0eca9bf1ccadfa33798721561c1e9ea5",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/HeroTinkerYesAttack4.wav": {
+   "sha256": "2e32d1b1c33c97cb21efdfd7083ae244897f5b688c074b1647a0b736349bf900",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/TinkerDeath1.wav": {
+   "sha256": "d1ff99d7a6c6d395290a1dfbffa85e3d73e095e7592d9d76692863d2077b5b55",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/TinkerDeathAlt1.wav": {
+   "sha256": "9abd10a3c6777b7de8fff1a755078871bf14c212377b433194ebbec09449db21",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/TinkerMorph1.wav": {
+   "sha256": "acf042da5348484e356667d9d311af1e6cbccf0e69c2a509ac07c01ca6175d89",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinker/TinkerMorphAlt1.wav": {
+   "sha256": "585b67f8b05723f994694ab374ec7ff5de871b830676a2d5dd3237a004900380",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinkerRobot/ClockwerkGoblinDeath1.wav": {
+   "sha256": "1475f056a0e87e567639487bc59da0ab2c7eec6d57e61a1c2cc6fcec4a26a516",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinkerRobot/ClockwerkGoblinReady1.wav": {
+   "sha256": "f6be85fc8d19579075c5a18269499c8b96e7d7f8c638ea709478d4e5ecb78923",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinkerRobot/ClockwerkGoblinWhat1.wav": {
+   "sha256": "e28f9b18b812f476bb2398c601d8a233cd0b4201e8e2a3d7eb660e09248da7b0",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinkerRobot/ClockwerkGoblinYes1.wav": {
+   "sha256": "0fd82bdf2a47e6fc9602f6ea623a7a04ffe2b64190deb1d4193ba66706c564be",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinkerRobot/ClockwerkGoblinYesAttack1.wav": {
+   "sha256": "3587e08d3e9ea314ca22cd4b8fb341b052b9f247ab002d1893b20e85b27f9240",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/HeroTinkerRobot/HeroTinkerRobot.mdx": {
+   "sha256": "4f9d3625bd4b8ca9a6ead4b13395236abe46bd9ca7d7a02d3a61a88aea63cacf",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/LavaSpawn/Dust3_A.blp": {
+   "sha256": "5dbed7668eca39e3012cddb3e5631eeaf6aa8b4caaf9fb2191f8350b3c814224",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/LavaSpawn/FireSpawnDeath1.wav": {
+   "sha256": "c6e1a34c59efab5a76ba19e0c11347898abd283b4a26f150542fbb8ed675b761",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/LavaSpawn/LavaSpawn.mdx": {
+   "sha256": "4bd6775da1769aad9f4255fe17bb0c9c702a66071a8d5fd7cc2af62db0f095cb",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/LavaSpawn/LavaSpawn_Portrait.mdx": {
+   "sha256": "ef76eef846bdfa3deef591fcc05d71e6154ee39658eeb4c788229c278b8759b8",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/LavaSpawn/LavaSpawnBirth1.wav": {
+   "sha256": "ae7ead3ba50aca6729e9bac85c1e3a174c9a19d2b250509c9a85b2e3700ed5a6",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/LavaSpawn/LavaSpawnMorph.wav": {
+   "sha256": "1d108fc2d75d7663c37dbec55c501ee4e7bca17bb78cc05f8b7909bb6a1b764a",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/LavaSpawn/LavaSpawnMorphBirth.wav": {
+   "sha256": "0438e20dc2fae5d78803e172b5be70fe94a064298e2e2ea9acae9f87ea15305a",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/LavaSpawn/LavaSpawnWhat1.wav": {
+   "sha256": "589179398a630eea6e7b75d3ed2d6ea1f28ed4cc3cf0c92b77ac3e2cc8bad7b4",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/LavaSpawn/LavaSpawnWhat2.wav": {
+   "sha256": "abbb86d18a956839efe2b38fb258186e94a3dd1f534cc84b188af3a585221ff6",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/LavaSpawn/LavaSpawnYes1.wav": {
+   "sha256": "e88caa65b07f207792716cbe62462c696698c352c868ca38b5110257c0daa5cc",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/LavaSpawn/LavaSpawnYes2.wav": {
+   "sha256": "8ef5dc1ceb14605401402d74e9ddeb76e6be1fbcafb1c4b02007b4c6759a5faf",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/LavaSpawn/LavaSpawnYesAttack1.wav": {
+   "sha256": "41b4a8e22ba578ea52424728231e6b9a29cf3937fa6daa8da9903d4a0966e9ed",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Creeps/LavaSpawn/LavaSpawnYesAttack2.wav": {
+   "sha256": "309ffce1ee7e46c3235feec277562bb37a1a021166c2f7f5ce681e90fd4ef1da",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Critters/EasterRabbit/EasterRabbit.mdx": {
+   "sha256": "d1a5c5a098fb7d0413d08233284fe7ffc4bad9e98c30bdb7b40ab74b2f3d83de",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Critters/EasterRabbit/RabbitSkin.blp": {
+   "sha256": "7c5f3ce7bda91e53616688d7d34a622c187d5991cfff47023ecdb3050798d9c2",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Critters/EasterRabbit/RabbitWhat1.wav": {
+   "sha256": "6f0d32596813918b559c5b766819fcfd15e39e95b26cb90b052be054fcb43be7",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Critters/Raccoon/Raccoon.blp": {
+   "sha256": "873156c01f23d5e71a6e55a44e05230b3d5c8c12a22e9b7334106b304b13fc5b",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Critters/Raccoon/Raccoon.mdx": {
+   "sha256": "33ddf6d2c3c8477b226ea80fad53621de055ac7b318459972f7a3977d978052f",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Critters/Raccoon/Raccoon_Portrait.mdx": {
+   "sha256": "ef7cc5b52d75b8e30894494e8b7c82d31a1c0dc52823a2ad93a6cb91faf3eacb",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Critters/Raccoon/RacoonWhat1.wav": {
+   "sha256": "576a144d08ea3ad0d0d441ac950b9a1cd2260bfbc47936f068d176fcde1653c9",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Other/DiabloCar/DiabloCar.blp": {
+   "sha256": "a76b002d12161a94d9b8318dc615edf59a606d72b2b517734e941d8bdda61e0a",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Other/DiabloCar/DiabloCar.mdx": {
+   "sha256": "81980000f59d2eccdfe680aac1d789dfaa9fb675678d6260fbdfc796ef032967",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Other/DwarfCar/DwarfCar.mdx": {
+   "sha256": "7234f6c55b583a8339c7311a74c1f05a0f78db6a2d23ef4166d2e88a7db8ed04",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Other/Orccar/Grunt.blp": {
+   "sha256": "8d10afb3b62c7f79441dca27c37554bda19e652fba1f567f5e81eaff8358c1d6",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Other/Orccar/OrcCar.blp": {
+   "sha256": "48f41e9509f29cff63caefdb68495c82f55ee71477f2d3bb9ad41a0a068157a9",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Other/Orccar/Orccar.mdx": {
+   "sha256": "7038ba0c40c12f80c2b9f51ece95aea64d32453a264ed5b2b130ad8ee126a477",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Other/UndeadCar/UndeadCar.mdx": {
+   "sha256": "cb67c4adc795ee2312063523e30f6590dc7d5703cbf57d40fa063c07d580f3f1",
+   "from": "war3-missing-originals_v1.zip"
+  },
+  "Units/Other/UndeadCar/UndeadCarB.blp": {
+   "sha256": "0b5901f68ab9456d99c99ac613fc0e1d4b49ed81717d89e3595fd138e13343a5",
+   "from": "war3-missing-originals_v1.zip"
+  }
+ },
+ "duplicate_of_base": [
+  "SharedModels/Feather1.blp",
+  "SharedModels/FeatherPurple.blp",
+  "SharedModels/NightElfBirth2.blp",
+  "SharedModels/RootsBuild.blp",
+  "SharedModels/grad2d.blp",
+  "Textures/BloodWhiteSmall.blp",
+  "Textures/Blue_Star2.blp",
+  "Textures/CloudSingle.blp",
+  "Textures/CloudSingleBlend.blp",
+  "Textures/Clouds8x8.blp",
+  "Textures/Clouds8x8Fade.blp",
+  "Textures/Demolisher.blp",
+  "Textures/Dust3.blp",
+  "Textures/Dust3x.blp",
+  "Textures/Dust5.blp",
+  "Textures/Dust5A.blp",
+  "Textures/EQ_Rock2.blp",
+  "Textures/Flame4.blp",
+  "Textures/GenericGlow1.blp",
+  "Textures/GenericGlow2_32.blp",
+  "Textures/GenericGlow64.blp",
+  "Textures/GenericGlowX.blp",
+  "Textures/Green_Glow2.blp",
+  "Textures/InfernalCannon.blp",
+  "Textures/LavaLump.blp",
+  "Textures/LavaLump2.blp",
+  "Textures/Leaf.blp",
+  "Textures/Red_Glow3.blp",
+  "Textures/RibbonBlur1.blp",
+  "Textures/RibbonNE1_blue.blp",
+  "Textures/Roman.blp",
+  "Textures/Roman1.blp",
+  "Textures/Shockwave1.blp",
+  "Textures/Shockwave10.blp",
+  "Textures/Shockwave1b.blp",
+  "Textures/ShockwaveWater1.blp",
+  "Textures/Star7b.blp",
+  "Textures/WaterBlobs1.blp",
+  "Textures/Wirlwinds.blp",
+  "Textures/Yellow_Star.blp",
+  "Textures/Zap1.blp",
+  "Textures/Zap1_Red.blp",
+  "Textures/firering1A.blp",
+  "Textures/gutz.blp",
+  "Textures/gyrocopter.blp",
+  "Textures/lensflare1A.blp",
+  "Textures/rainTail.blp",
+  "Textures/rock64.blp",
+  "Textures/star2_32.blp",
+  "Textures/star32.blp",
+  "Textures/star4_32.blp",
+  "Textures/star6.blp"
+ ],
+ "conflict_with_base": [
+  "Textures/HeroLich.blp",
+  "Textures/clouds_anim1_bw.blp"
+ ],
+ "conflict_between_packages": []
+}

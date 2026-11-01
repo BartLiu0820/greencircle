@@ -78,7 +78,18 @@ def tree(tid, mdl, tex, var, force):
     return im, dict(id=tid, ax=round(ax, 3), ay=round(ay, 3), upp=meta['unitsPerPixel'])
 
 
+def weather():
+    """出怪口的天气"光芒"（原图 AddWeatherEffect(Rect, 'LRaa')）用的贴图 ReplaceableTextures/Weather/RaysOfLight.blp → terrain/RaysOfLight.png"""
+    from PIL import Image
+    import blp
+    src = next(os.path.join(RAW, pk, 'ReplaceableTextures', 'Weather', 'RaysOfLight.blp') for pk in ('tft', 'roc')
+               if os.path.exists(os.path.join(RAW, pk, 'ReplaceableTextures', 'Weather', 'RaysOfLight.blp')))
+    Image.fromarray(blp.decode_blp(open(src, 'rb').read())).save(os.path.join(OUT, 'RaysOfLight.png'))
+    print('天气贴图', src)
+
+
 def main():
+    if '--weather' in sys.argv: return weather()        # python3 tools/war3_terrain.py --weather：只导出天气贴图
     from PIL import Image
     os.makedirs(OUT, exist_ok=True); os.makedirs(TMP, exist_ok=True)
     tex = tiles()
@@ -98,6 +109,7 @@ def main():
         fp.write('// 自动生成：tools/war3_terrain.py —— 原图的地面贴图（w3e）和树墙（doo）\n')
         fp.write('window.W3_TERRAIN = ' + json.dumps(data, ensure_ascii=False) + ';\n')
     print('图集', atlas.size)
+    weather()
 
 
 if __name__ == '__main__':
