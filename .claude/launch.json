@@ -146,6 +146,105 @@
       ],
       "port": 8841,
       "autoPort": false
+    },
+    {
+      "name": "h5-fix",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/8f2f3495-0a82-44f3-9cd8-8a93aba54bf0/scratchpad/h5srv && exec python3 -m http.server 8851"
+      ],
+      "port": 8851,
+      "autoPort": false
+    },
+    {
+      "name": "h5-endless",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/5a689440-a2fb-4765-8633-45dbd6c008f2/scratchpad/h5srv && exec python3 -m http.server 8861"
+      ],
+      "port": 8861,
+      "autoPort": false
+    },
+    {
+      "name": "h5-talent",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/7f420517-b030-47c5-8426-a897a84409df/scratchpad/h5srv && exec python3 -m http.server 8871"
+      ],
+      "port": 8871,
+      "autoPort": false
+    },
+    {
+      "name": "h5-god",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/9007830b-947c-42a7-9ce6-e702f1cd189d/scratchpad/h5srv && exec python3 -m http.server 8881"
+      ],
+      "port": 8881,
+      "autoPort": false
+    },
+    {
+      "name": "h5-align",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/3da066ef-ee2e-47b3-b9eb-3daea6abb95e/scratchpad/h5srv && exec python3 -m http.server 8891"
+      ],
+      "port": 8891,
+      "autoPort": false
+    },
+    {
+      "name": "h5-gap",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/fecb031d-6d37-4cb0-a7ce-a4b8fa94aa0d/scratchpad/h5srv/ && exec python3 -m http.server 8901"
+      ],
+      "port": 8901,
+      "autoPort": false
+    },
+    {
+      "name": "h5-skin",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/1eff3fae-6072-4048-a455-867daf29d729/scratchpad/h5srv && exec python3 -m http.server 8911"
+      ],
+      "port": 8911,
+      "autoPort": false
+    },
+    {
+      "name": "h5-query",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /private/tmp/claude-501/-Users-liuyiang--claude-spares-spare-KySoru/a7c35027-5360-4540-addc-9c7ddc50a92a/scratchpad/h5srv/ && exec python3 -m http.server 8921"
+      ],
+      "port": 8921,
+      "autoPort": false
+    },
+    {
+      "name": "h5-models",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/c071c2a2-3fe1-4b4a-bf49-a3679dd97794/scratchpad/h5srv && exec python3 -m http.server 8931"
+      ],
+      "port": 8931
+    },
+    {
+      "name": "h5-net",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /private/tmp/claude-501/-Users-liuyiang-Documents-03---------------/b469b633-a144-400b-85ba-d8262d2c3427/scratchpad/h5srv && exec python3 -m http.server 8931"
+      ],
+      "port": 8931,
+      "autoPort": false
     }
   ]
 }

@@ -143,23 +143,24 @@ function earnAch(n, why) {
 
 // ---------------------------------------------------------------- 游戏状态
 let G;
+let GLOBALCTX = false, LSHIFT = null;   // 联机：正在跑主机的全局脚本（提示要广播）；接管波次时把 later 的时间往前挪（见 MP.takeover）
 // players：参与人数（1~8）。单人是 1；以后接联机时由房间里的玩家数决定。人数决定开几个出怪口（GATES 的前 N 个）和场上怪物上限（每人 40）
-function newGame(mode, players = 1, player = null, bots = false) {     // player：开局输入的玩家名称（页面打开时背景里那局是 null，不记档案）；bots：空位放模拟队友
+function newGame(mode, players = 1, player = null, bots = false, net = null) {     // net：联机开局（见“联机对局同步”一节）； player：开局输入的玩家名称（页面打开时背景里那局是 null，不记档案）；bots：空位放模拟队友
   const np = clamp(Math.round(players), 1, MAX_PLAYERS), [sx0, sy0, sx1, sy1] = W3MAP.rects.s, bx = rnd(sx0, sx1), by = rnd(sy0, sy1);
   G = {
-    mode, players: np, gates: GATES.slice(0, np).map((g, k) => k),
+    mode, players: np, gates: GATES.slice(0, net && net.allGates ? MAX_PLAYERS : np).map((g, k) => k),
     hl: rint(1, 5), dp: Array(MAX_PLAYERS).fill(0), je: Array(MAX_PLAYERS).fill(0),     // 原图 HL（熊猫 BOSS 的光环）、Dp / JE（BOSS 被攻击触发器按玩家的冷却，每秒 +1）
     c9: Array.from({ length: MAX_PLAYERS }, (_, k) => k < np ? RULE.capPerPlayer : 0),    // 原图 C9[1..8]：在场玩家 40，空位 0；上限 M3 = 它们的和
     interval: MODES[mode].interval, hpScale: MODES[mode].hp, t: 0, phase: 'prep', timer: MODES[mode].prep || RULE.prepTime, wave: 0,
     gold: MODES[mode].gold || RULE.startGold, wood: MODES[mode].wood || RULE.startWood, foodCap: MODES[mode].food,
-    monsters: [], towers: [], fx: [], zones: [], spawners: [], timeouts: [],
+    monsters: [], towers: [], ghosts: [], fx: [], zones: [], spawners: [], timeouts: [],     // ghosts：联机时队友的塔 / 英雄 / 召唤物（只显示、给光环，不攻击）
     perfect: 0, score: 1000, kills: 0, speed: 1, paused: false,
     build: [], rerolls: 0, placing: null, selected: null, heroChoice: null,
     // 自己的英雄：建造栏的英雄和旗帜里的英雄可以各有一个（原图两条路各管各的）。G.hero 是"当前英雄"——选中的那个，没选中英雄时是先建的那个
     heroes: [], get hero() { const s = this.selected; return s && s.isHero && this.heroes.includes(s) ? s : this.heroes[0] || null; },
     // 英雄成长值（原图 DR / DS / DT，按玩家记，存的是显示值 = 变量 + 1）：开局各随机 1~10；建战神 / 水魔 / 电法 / 伏魔时、用重置卷轴时改成三项合计 7 的随机分配
     grow: { str: rint(1, 10) + 1, agi: rint(1, 10) + 1, int: rint(1, 10) + 1 },
-    bossRule: null, final: null, nextId: 1, hint: '准备阶段：选中守卫者，在出怪口附近建塔！',
+    bossRule: null, final: null, nextId: net ? net.me * 1e7 + 1 : 1, hint: '准备阶段：选中守卫者，在出怪口附近建塔！',
     // 循环圈守卫者：无敌、移速 500、全图闪烁 (CD 1 秒)。原图所有玩家的守卫者都出生在地图上方的区域 s
     builder: { isBuilder: true, x: bx, y: by, speed: 500, order: null, blinkCd: 0, mana: FOD.maxMana, fodAt: 0 },
     inv: Array(6).fill(null),
@@ -184,7 +185,8 @@ function newGame(mode, players = 1, player = null, bots = false) {     // player
     cmd: { type: rint(1, 3), lv: 1, ys: [0, 0, 0, 0, 0, 0] },   // 原始指挥官：宁静类型 Jf（开局随机）、宁静等级 Jg（天赋 2）、强化原始塔 JY / JZ / Ja / Jb / Jc / Jd   // 熊猫：熊猫践踏 Gd、家族大师 Gf、火焰强化 Gg（原图按玩家记）
     wx: { fu: 1, js: 0, lv: {}, mana: 0, fn: 0, waterWin: -1, earthWin: -1 },   // 五行（原图按玩家记）：激活次数 Fu、天赋 Js、各技能等级 Fp~Ft、魔法 Fv、火的攻击计数 Fn、水 / 土的冷却窗口 Fm / Fo   // 兽王：训兽科技 R00Z、驯化过 Iy、精训过的随从位 I8 / JB / I9（重造兽王保留）   // 人马（原图按玩家记）：爆雷 FG、雷怒 FI、雷嗜 FH、雷踏 Kz、魔法 FJ、雷霆 K0、雷霆次数 HG、天赋 HH、毁灭冷却   // 巫妖：巫妖之力 R01R、获得巫妖之力次数 MR、献祭巫系次数 NK、献祭自己次数 KC、天赋 MQ
     tjTech: 0,               // 天将的玩家科技：提升攻击 R00J / 攻速 R00K（等级相同，最高 50）
-    me: 0, roster: makeRoster(np, bots, player),         // 玩家名单（见"玩家名单"一节）：本机是 Player(0)
+    me: net ? net.me : 0, roster: net ? netRoster(net) : makeRoster(np, bots, player),         // 玩家名单（见"玩家名单"一节）：单机时本机是 Player(0)，联机时是房间里的 slot
+    mp: net ? MP.init(net) : null,
     vote: null, voteAt: 0, liked: false,                 // 投票踢人（Ea / Sq 冷却 59 秒）、本局点过赞（H5）
     items: [], wish: 0, wishDrops: 0, talentStock: 4, candyDrop: false,   // 地上的物品；许愿点（Ou）；BOSS 掉许愿石次数（Lx）；天赋秘籍库存（FQ）；兔子掉过糖果（MF）
     pet: null, petFx: { gq: 0, g3: 0, k4: 0, kx: 0, kv: 0, lx: 0, r1: 0, go: 0, hj: 0, kr: 0, gs: 0, jr: 0 },   // 宠物（Rx）和宠物给塔 / 英雄的加成（Gq、G3、K4、Kx、KV、LX、图腾 +9% 攻速 A0R0、Go、Hj、Kr）
@@ -241,7 +243,7 @@ function rerollBuild(free) {
 }
 // 神塔（H8 = 1~6：驱魔 / 树妖 / 暗牧 / 海妖 / 猎人 / 圣灵）全场唯一：随机建造时先全部关掉，抽中的那座只在全场没人有时（LR = 0）放开；
 // 任何玩家开始建造后所有人都关掉（BHm 等），回收时 LR 归零但不重新放开——要等下次随机建造。G.godLock 是本机建造栏里被关掉的神塔
-function godRefresh() { G.godLock = new Set(G.build.filter(f => D.towers[f] && D.towers[f].cat === 'god' && G.towers.some(t => t.fam === f))); }
+function godRefresh() { G.godLock = new Set(G.build.filter(f => D.towers[f] && D.towers[f].cat === 'god' && allTowers().some(t => t.fam === f))); }
 
 // ---------------------------------------------------------------- 伤害
 function armorMult(armor) {
@@ -267,18 +269,29 @@ function hurt(m, amount, atk, src, opt = {}) {
   let dmg = amount * typeMult(atk, m);
   if (!opt.ignoreArmor && !(m.ignoreArmorUntil > G.t)) dmg *= armorMult(effArmor(m));   // 灵魂锁链：目标护甲被无视
   if (opt.noKill) dmg = Math.min(dmg, Math.max(0, m.hp - 1));   // 烧不死的（炎魔塔的烈焰燃烧）
-  m.hp -= dmg;
+  if (m.proxy) MP.hit(m, dmg, src); else m.hp -= dmg;            // 别人的怪：伤害攒成批发给它的主人结算
   const owner = src && src.cat === 'summon' && src.owner && !src.owner.isHero ? src.owner : src;   // 冰雹狮鹫等召唤物的伤害算在塔上
   if (owner) owner.dealt = (owner.dealt || 0) + dmg;
-  if (m.hp <= 0) kill(m, src);
+  if (m.hp <= 0 && !m.proxy) kill(m, src);
   return dmg;
 }
 function kill(m, src) {
   if (m.dead) return;
+  if (m.proxy) return MP.hit(m, 0, src, true);        // 别人的怪：请它的主人处死
   m.dead = true; m.hp = 0;
   if (m.spirit) return spiritDied(m, src);            // 圣灵塔的圣灵：不算击杀、没有赏金和掉落
   const pl = G.roster[pidOf(src)] || me();           // 击杀算在凶手的玩家头上（原图排行榜 Cp[凶手玩家] +1，赏金也给他）
   pl.kills++;
+  const mineKill = !G.mp || pl.local;                // 联机时凶手是队友：赏金、击杀奖励、掉落在他那边结算（MP.died 广播出去）
+  if (G.mp) MP.died(m, pl.slot, src);
+  if (mineKill) killCredit(m, src, pl);
+  if (m.onDeath) m.onDeath(src);
+  monsterDied(m, src);
+  if (mineKill) { if (!m.neutral) monsterDrop(m); bossStone(m); }
+  deathFx(m);
+}
+// 凶手一方的结算：赏金、塔 / 英雄的击杀触发器、精英怪奖励
+function killCredit(m, src, pl) {
   addGold(pl, Math.round(m.bounty));
   if (pl.local) G.kills++;
   if (src) {
@@ -290,7 +303,7 @@ function kill(m, src) {
     } else if (owner.fam && G.towers.includes(owner)) towerKilled(owner, m, src);  // 塔的魔法值（功勋）；src 是实际杀死它的单位（塔或召唤物）
     achKill(src);
   }
-  if (G.endless && !m.neutral) G.endless.score += G.endless.nm + 4;   // 原图 zi：无尽里每杀一只怪 Ds + (NM + 4)
+  if (G.endless && !m.neutral) { if (G.mp && !MP.host()) MP.send({ t: 'es', n: G.endless.nm + 4 }, MP.hostSlot()); else G.endless.score += G.endless.nm + 4; }   // 原图 zi：无尽里每杀一只怪 Ds + (NM + 4)
   if (m.elite) {
     preciseKill(m, src);
     const w = rint(1, 3); G.wood += w;
@@ -303,10 +316,8 @@ function kill(m, src) {
     const bm = G.towers.find(o => o.bmax);         // 杀死精英怪 20% 概率升级弹跳塔 MAX 的灵魂重击
     if (bm && bm.bolt < BOUNCE.bolt.length && Math.random() < 0.2) { bm.bolt++; msg(`弹跳塔 MAX 灵魂重击升到 ${bm.bolt} 级`); }
   }
-  if (m.onDeath) m.onDeath(src);
-  monsterDied(m, src);
-  if (!m.neutral) monsterDrop(m);
-  bossStone(m);
+}
+function deathFx(m) {
   SFX.ent('unit:' + m.uid, 'death', { x: m.x, y: m.y });
   const a = (metaOf(m) || {}).actions?.death;       // 按登记判断，不等精灵图加载（3D 模型画尸体时精灵图可能从没请求过）
   if (a) { addFx({ kind: 'corpse', ent: { uid: m.uid, face: m.face, elite: m.elite, boss: m.boss }, x: m.x, y: m.y, t0: G.t, life: a.frames / a.fps + 1.2 }); }
@@ -335,6 +346,7 @@ function spawnMonster(id, opt = {}) {
   m.auras = monsterAuras(m);   // 原版包里没有模型的怪物，借用相近的模型（无尽的精灵用小精灵）
   if (!opt.noElite && !NO_ELITE.has(id) && Math.random() < RULE.eliteChance) makeElite(m);
   m.cr = colRadius(m);
+  if (opt.proxy) return m;                           // 联机：别人的怪的代理，由 MP 填好状态再放进场
   G.monsters.push(m);
   if (G.waveHook && G.waveHook.onSpawn) G.waveHook.onSpawn(m);
   return m;
@@ -346,10 +358,10 @@ const ELITE_AURAS = [
   { key: 'endur', name: '耐久光环', desc: ['周围怪移速 +5%', '周围怪移速 +15%', '周围怪移速 +30%'], v: [0.05, 0.15, 0.3] },
   { key: 'unholy', name: '邪恶光环', desc: ['周围怪每秒回血 4%', '周围怪每秒回血 6%', '周围怪每秒回血 8%'], v: [0.04, 0.06, 0.08] },
 ];
-function makeElite(m) {
+function makeElite(m, as) {                           // as：联机时按主人给的光环种类和等级（[key, lvl]）
   const tier = clamp(Math.floor((G.wave - 1) / 10), 0, 4);
-  const a = pick(ELITE_AURAS);
-  const lvl = Math.random() < 0.2 ? 3 : Math.random() < 1 / 3 ? 2 : 1;
+  const a = as ? ELITE_AURAS.find(e => e.key === as[0]) : pick(ELITE_AURAS);
+  const lvl = as ? as[1] : Math.random() < 0.2 ? 3 : Math.random() < 1 / 3 ? 2 : 1;
   m.maxHp += RULE.eliteHp[tier]; m.hp += RULE.eliteHp[tier]; m.armor += RULE.eliteArmor;
   m.elite = { aura: a, lvl }; m.r = 72; m.cr = colRadius(m);
 }
@@ -473,7 +485,7 @@ function cellBuildable(cx, cy) {
 }
 // 格子是否被塔（或排队中的建造命令）占了
 function cellTaken(cx, cy, withOrders) {
-  for (const t of G.towers) if ((t.cat !== 'summon' || t.solid) && !t.isHero && Math.abs(cx - t.x) < FOOT_HALF && Math.abs(cy - t.y) < FOOT_HALF) return true;
+  for (const t of allTowers()) if ((t.cat !== 'summon' || t.solid) && (!t.isHero || t.ghost) && Math.abs(cx - t.x) < FOOT_HALF && Math.abs(cy - t.y) < FOOT_HALF) return true;
   if (G.heroes.some(h => Math.abs(cx - h.home.x) < FOOT_HALF && Math.abs(cy - h.home.y) < FOOT_HALF)) return true;   // 英雄塔占的是原位置（狂牛瞬移后也一样）
   if (withOrders) for (const o of buildOrders()) if (Math.abs(cx - o.x) < FOOT_HALF && Math.abs(cy - o.y) < FOOT_HALF) return true;
   return false;
@@ -503,7 +515,8 @@ function buildBlock(fam) {
   if (f.cat === 'big' && n(t => t.cat === 'big' || t.cat === 'evo') >= 2) return '只能建造 2 个新辅助（大辅助）';
   if (f.cat === 'witch' && n(t => t.cat === 'witch') >= 1) return '只能建造 1 个巫系辅助';
   if (f.cat === 'uniq' && n(t => t.fam === fam) >= 1) return '全场唯一，只能建造一个';
-  if (f.cat === 'god' && (G.godLock.has(fam) || G.towers.some(t => t.fam === fam))) return '神塔全场唯一：建造后全体不能再次建造，回收也不返还建造处（等下次随机建造）';
+  if ((fam === '狂狼塔' || fam === '兽王塔') && G.ghosts.some(t => t.fam === fam)) return `${fam}只能被一个玩家建造（${pname(G.ghosts.find(t => t.fam === fam).pid)} 已经建了）`;
+  if (f.cat === 'god' && (G.godLock.has(fam) || allTowers().some(t => t.fam === fam))) return '神塔全场唯一：建造后全体不能再次建造，回收也不返还建造处（等下次随机建造）';
   if (ONLY_ONE.has(fam) && n(t => t.fam === fam) >= 1) return '只能建造一个';         // 科技塔 owtw、灵魂塔 otrb、精灵塔 obea
   return null;
 }
@@ -666,6 +679,7 @@ function castFinger(m) {
   const loss = FOD_DRAGON.includes(m.uid) ? (m.hp > 150000 * k ? 100000 * k : 0) : FOD_BOSS[m.uid] ? FOD_BOSS[m.uid] * k : m.hp;
   uiDirty();
   if (!loss) return msg(`死亡之指对${m.name}没有效果（它的生命不高于 ${fmt(150000 * k)}）`);
+  if (m.proxy) { MP.hit(m, loss, b, !FOD_DRAGON.includes(m.uid) && !FOD_BOSS[m.uid]); return msg(`死亡之指：${m.name}失去 ${fmt(Math.min(loss, m.hp))} 生命`); }
   m.hp -= loss; b.dealt = (b.dealt || 0) + Math.min(loss, m.hp + loss);
   if (m.hp <= 0) kill(m, b); else msg(`死亡之指：${m.name}失去 ${fmt(loss)} 生命`);
 }
@@ -783,6 +797,7 @@ function towerUpdate(t, dt) {
   monsterAttacked(target, t);                             // BOSS 被攻击时的触发器
   t.cdLeft += st.cd;
   t.attacks++; t.atkT = G.t;
+  if (G.mp) MP.atk(t, target);                           // 队友那边放个攻击动画
   const pre = holdHits(() => {     // 别的塔攻击时触发的伤害，也等这次攻击的弹道命中再结算
     for (const h of G.heroes) if (HERO_DEF[h.heroName].anyAttack) HERO_DEF[h.heroName].anyAttack(h, t, target);   // 坦克的能量
     for (const o of G.towers) { const k = KITS[o.fam]; if (k && k.anyAttack) k.anyAttack(o, t, target); }      // 别的塔攻击时触发的（原始指挥官的宁静）
@@ -2916,7 +2931,7 @@ const KITS = {
         .sort((a, b) => dist2(t.x, t.y, a.x, a.y) - dist2(t.x, t.y, b.x, b.y))[0];
       if (!c) return;
       setCd(t, 'dm', 1); slowM(c, 0.6, 6); c.dmSlow = G.t + 6;
-      if (G.god.hq >= 8) { c.hp *= 0.88; FXS.ring(c.x, c.y, 90, '#8a5cff', 0.4, 3); } else G.god.hq++;
+      if (G.god.hq >= 8) { if (c.proxy) MP.hit(c, c.hp * 0.12, t); else c.hp *= 0.88; FXS.ring(c.x, c.y, 90, '#8a5cff', 0.4, 3); } else G.god.hq++;
     },
     sell() { G.god.hq = 0; },
     info: () => [G.god.hq >= 8 ? '暗影突袭：减速并扣目标当前生命的 12%' : `暗影突袭：再放 ${8 - G.god.hq} 次后开始扣生命`],
@@ -5591,7 +5606,7 @@ function zone(owner, x, y, r, dur, dps, atk, endFn, style, extra) {
   if (style === 'bladestorm') SFX.spell('bladestorm', { x, y });
   G.zones.push({ owner, x, y, r, t0: G.t, until: G.t + dur, dps, atk, endFn, style, fxT: 0, ...extra });
 }
-function later(s, fn) { G.timeouts.push({ at: G.t + s, fn }); }
+function later(s, fn) { if (LSHIFT != null) { s -= LSHIFT; if (s < 0) return; } G.timeouts.push({ at: G.t + s, fn, g: GLOBALCTX }); }
 // 学习技能：第 n 个（已学 DU = n-1 个）要 18×DU 木材、力量 ≥ 80×DU，最多 4 个；有的技能还有额外条件（canLearn）
 const LEARN_COST = [{ wood: 0, str: 0 }, { wood: 18, str: 80 }, { wood: 36, str: 160 }, { wood: 54, str: 240 }];
 function learnBlock(h, i, viaSacrifice) {
@@ -5700,7 +5715,7 @@ function applyAuras() {
   }
   // 光环塔 (同类光环不叠加，取最大)
   let armorAuras = [], slowAuras = [];
-  for (const a of G.towers) {
+  for (const a of allTowers()) {                     // 队友的光环塔（影子）也算
     if (a.cat !== 'aura') continue;
     const ab = auraAb(a);
     if (!ab) continue;
@@ -5747,7 +5762,7 @@ function applyAuras() {
     for (const [a, r, v] of heroSlows) if (dist2(a.x, a.y, m.x, m.y) <= r * r) m.heroSlow = Math.max(m.heroSlow, v);
   }
   // 荣誉光环：加在上面同类光环取大的结果上（可与任意光环叠加），几座荣誉光环之间取大
-  const honors = G.towers.filter(a => a.fam === '荣誉光环' && a.honor);
+  const honors = allTowers().filter(a => a.fam === '荣誉光环' && a.honor);
   if (honors.length) {
     const best = (x, y, k) => Math.max(0, ...honors.map(a => { const lv = a.honor[k], r = honorArea(k, lv); return dist2(a.x, a.y, x, y) <= r * r ? honorV(lv) : 0; }));
     for (const t of G.towers) { t.buffDmg += best(t.x, t.y, 0); t.buffAS += best(t.x, t.y, 3); }
@@ -6143,13 +6158,12 @@ function startWave() {
   }
   const alive = monstersAlive();
   G.wave++;
-  if (alive === 0) { G.perfect++; G.ach += RULE.achPerPerfect; msg(`Perfect +1（当前 ${G.perfect}），当局成就 +${RULE.achPerPerfect}`); earnAch(PROFILE.perfect); }
-  if (G.player && G.mode !== 'demo') { const p = profileOf(G.player); if (G.wave > p.best) p.best = G.wave; }
-  earnAch(PROFILE.wave);
+  if (G.mp) MP.send({ t: 'wave', n: G.wave, pf: alive === 0 });
+  asLocal(() => waveLocal(alive === 0));
   G.score -= alive;
   G.bossRule = null; G.waveHook = null; G.waveNote = ''; G.curUnit = null;
   const n = G.wave, { fn, row } = G.next;
-  SFX.stinger(n);                                  // 原图每波开始放一段音乐（war3map.j 的 PlaySoundBJ）
+  if (G.mp) MP.waveBegan(fn, row);
   if (RULE.rabbitWaves.includes(n)) later(RULE.rabbitDelay, () => spawnRabbit(null, null, RULE.rabbitLife + (MODES[G.mode].waveGold ? 30 : 0)));   // 原图：BOSS 波中途 TriggerExecute(U0) 放出兔子（BLV：存活 60 + 30×JI 秒，新人随机 90 秒）
   if (!row.next) {                                 // 最后一个函数（原图第 47 波之后）：最终 BOSS 波，先倒计时 30 秒
     G.spawners = []; G.next = null;               // 原图在这里关掉三个出怪器
@@ -6164,6 +6178,13 @@ function startWave() {
   rollFn(row.next);
   G.timer = waveLen(row);
   refreshHint();
+}
+// 新一波开始时每个玩家各自结算的部分（联机时主机广播 wave，各端都跑一遍）：Perfect、账号成就、最高波数、开场音乐
+function waveLocal(perfect) {
+  if (perfect) { G.perfect++; G.ach += RULE.achPerPerfect; msg(`Perfect +1（当前 ${G.perfect}），当局成就 +${RULE.achPerPerfect}`); earnAch(PROFILE.perfect); }
+  if (G.player && G.mode !== 'demo') { const p = profileOf(G.player); if (G.wave > p.best) p.best = G.wave; }
+  earnAch(PROFILE.wave);
+  SFX.stinger(G.wave);                             // 原图每波开始放一段音乐（war3map.j 的 PlaySoundBJ）
 }
 // 提示栏：本波实际出的怪 + 下一波的预告（原图的提示词就是倒计时期间给出的预告）
 function hintTags(hint) {
@@ -6258,6 +6279,7 @@ const KOBOLDS = ['nkob', 'nkot', 'nkog', 'ngst'];
 function startFinal() {
   G.finalCountdown = false;
   G.final = { need: [], check: false, dragons: [] };
+  if (G.mp) G.mp.finalT0 = G.t;
   G.timer = 300;
   G.waveNote = '　<b>最终 BOSS 波</b>：300 秒内杀死所有龙和魔王即可通关！';
   msg('杀死所有龙 BOSS 和魔王后会通关');
@@ -6268,8 +6290,8 @@ function startFinal() {
     for (const d of spawnAt(spec, id, { boss: true })) {
       need(d);
       if (Math.random() < 0.5) d.armor = 200;
-      d.onDeath = () => { G.wood += 20; msg('你杀死了一条龙，获得 20 点木材'); };
-      d.kob = KOBOLDS.map(k => { const g = spawnMonster(k, { boss: true, gate: d.gate, at: d.at }); if (g) { Object.assign(g, { x: d.x, y: d.y, escort: d }); g.onDeath = () => { G.wood += 5; msg('你杀死了一只狗，获得 5 点木材'); }; } return g; });
+      d.onDeath = src => { if (G.mp) addWood(G.roster[pidOf(src)] || me(), 20); else G.wood += 20; msg(G.mp ? `${pname(pidOf(src))}杀死了一条龙，获得 20 点木材` : '你杀死了一条龙，获得 20 点木材'); };
+      d.kob = KOBOLDS.map(k => { const g = spawnMonster(k, { boss: true, gate: d.gate, at: d.at }); if (g) { Object.assign(g, { x: d.x, y: d.y, escort: d }); g.onDeath = src => { if (G.mp) addWood(G.roster[pidOf(src)] || me(), 5); else { G.wood += 5; msg('你杀死了一只狗，获得 5 点木材'); } }; } return g; });
       if (!G.final.dragons.length) { later(2, kobLoop); later(3, kobOrders); }
       G.final.dragons.push(d);
       msg(`${d.name}出现了，带着 4 只狗头人`);
@@ -6370,6 +6392,7 @@ function achFirst() {
 }
 function bossCount(n, name) {
   if (++G.bossKills !== n) return;
+  if (G.mp) MP.gev({ k: 'ach', name });                // 全场统计（主机数），达成时每个人各得
   msg(`所有玩家完成成就：${name}`, 10);
   earnAch(1, name);
 }
@@ -6399,6 +6422,7 @@ const ENDLESS_GOALS = [
 ];
 function finalCleared() {
   G.final.check = false;
+  if (G.mp) MP.gev({ k: 'cleared' });
   if (G.player && G.mode !== 'demo') { profileOf(G.player).clears++; earnAch(PROFILE.clear); }
   const c8 = G.t - (G.final.dragonAt ?? G.t), fp = c8 <= 150 ? 3 : c8 <= 250 ? 2 : c8 <= 350 ? 1 : 0;
   if (fp) { G.perfect += fp; msg(`${['', '快速', '超能', '完美'][fp]}杀死龙BOSS获得${fp}点perfect分`); }
@@ -6413,7 +6437,8 @@ function startEndless(thrill) {
   G.timer = RULE.endlessOpen;
   G.waveNote = '　<b>无尽关卡</b>：不能通关，分数决定实力';
   msg(`Perfect分数大于10，【无尽关卡】${RULE.endlessOpen - 5}秒后开启`, 10);
-  gainAch('无尽我来了', 3, '所有玩家完成成就：无尽我来了（当局成就+3）');
+  if (G.mp) MP.gev({ k: 'endless', thrill });
+  asLocal(() => gainAch('无尽我来了', 3, '所有玩家完成成就：无尽我来了（当局成就+3）'));
   if (thrill) gainAch('刺激', 2, '完成成就：刺激.......   当局成就+2');
   if (!G.rabbit) spawnRabbit(null, '我真希望能永远在大家身边！T。T', null);   // 原图这只没设存活时间，一直在场上
   later(80, () => msg('无尽关卡是不能通关的，分数决定实力', 10));
@@ -6438,6 +6463,7 @@ function endlessWave() {
   G.spawners = G.spawners.filter(s => s.word !== '无尽');
   G.spawners.push({ word: '无尽', every: 0.6, left: RULE.endlessCount, next: 0.6, opt });
   msg(`【无尽关卡第 ${E.wave} 波】`);
+  if (G.mp) MP.gev({ k: 'ewave' });
   earnAch(PROFILE.wave);
   refreshHint();
 }
@@ -6454,6 +6480,7 @@ function endlessTick() {
 }
 function endlessEnd() {
   const E = G.endless, c = monstersAlive();
+  if (G.mp) MP.ended('eend');
   G.phase = 'win'; G.score += 100; SFX.end('victory');
   let rec = '';
   if (G.player && G.mode !== 'demo') {
@@ -6500,16 +6527,21 @@ const RABBIT_SHOP = [
 // 原图每处召唤兔子都是 GetRandomLocInRect(GetPlayableMapRect())：整张可玩区域（w3i：94×94 格，四边各留 1 格，即 ±6016）里随机一点；
 // 落在树上时 WC3 会挪到最近能站的地方，这里避开树墙重抽。life：存活秒数，null = 一直在（进无尽关卡时那只没设存活时间）
 const PLAYABLE = 6016;
-function spawnRabbit(by, talk, life = RULE.rabbitLife) {
+function spawnRabbit(by, talk, life = RULE.rabbitLife, at) {      // at：联机时别人广播过来的位置
   let x = 0, y = 0;
-  for (let k = 0; k < 30; k++) {
+  if (!talk && !by) talk = pick(RABBIT_TALK);
+  if (at) [x, y] = at;
+  else for (let k = 0; k < 30; k++) {
     x = rnd(-PLAYABLE, PLAYABLE); y = rnd(-PLAYABLE, PLAYABLE);
     if (!W3MAP.trees.some(t => dist2(t[1], t[2], x, y) < 160 * 160)) break;
   }
   G.rabbit = { isRabbit: true, mdx: 'units/critters/easterrabbit/easterrabbit.mdx', scale: 3, id: G.nextId++, x, y, hx: x, hy: y, t0: G.t, until: life == null ? Infinity : G.t + life, face: rnd(0, TAU), next: G.t + 1 };
   SFX.ui('hint');
-  msg(by ? `${by}召唤了一次兔子，大家快找呀！` : `兔子：${talk || pick(RABBIT_TALK)}`);
-  msg(`兔子出现了（小地图上闪烁的粉点），${life == null ? '这次会一直在场上' : life + ' 秒内'}，让守卫者走到它旁边，用当局成就买道具`);
+  if (G.mp && !at) MP.send({ t: 'rabbit', by: by || null, talk: talk || null, life, at: [x, y] });   // 兔子全场同一只位置
+  asLocal(() => {
+    msg(by ? `${by}召唤了一次兔子，大家快找呀！` : `兔子：${talk || pick(RABBIT_TALK)}`);
+    msg(`兔子出现了（小地图上闪烁的粉点），${life == null ? '这次会一直在场上' : life + ' 秒内'}，让守卫者走到它旁边，用当局成就买道具`);
+  });
   uiDirty();
 }
 function rabbitUpdate(dt) {
@@ -6694,7 +6726,7 @@ const SHOP_ITEMS = [
   { id: 'I00B', key: 'D', name: '收购卷轴', gold: 1800, inv: true, range: 600,
     tip: '对一个允许收购的友军 1 级光环塔使用，收购这个光环；出售者获得 1500 金币；收购荣誉光环时你有 10000 金币就付给对方 10000 金币（对方另得 4 木材），不够 10000 时和普通光环一样<br>自己的 1 级光环塔可以在命令面板里设成"允许收购"',
     pick: '收购卷轴：选择队友允许收购的 1 级光环塔（Esc 取消）',
-    why: () => G.towers.some(t => !mine(t) && t.cat === 'aura') ? null : '没有队友的光环塔可以收购（多人规模开局可以放模拟队友）',
+    why: () => allTowers().some(t => !mine(t) && t.cat === 'aura') ? null : '没有队友的光环塔可以收购（多人规模开局可以放模拟队友）',
     ok: t => !t || !t.fam || t.cat !== 'aura' || mine(t) ? '只能对友军的光环塔使用' : t.lv !== 0 ? '只能收购 1 级光环塔' : !t.forSale ? '收购失败：对方没有允许收购' : null,
     use: t => buyAura(t) },
 ];
@@ -6728,7 +6760,7 @@ function invPick(i) {
   G.pending = 'inv:' + i; G.placing = null; msg(it.pick); uiDirty();
 }
 // 物品的目标：自己和队友的塔、队友的守卫者、怪物（糖果对小精灵）、野生宠物
-const itemTarget = t => !!t && (G.towers.includes(t) || G.monsters.includes(t) || G.wild.includes(t) || activePlayers().some(p => p.builder === t));
+const itemTarget = t => !!t && (G.towers.includes(t) || G.ghosts.includes(t) || G.monsters.includes(t) || G.wild.includes(t) || activePlayers().some(p => p.builder === t));
 function orderUse(i, t, queue) {
   const it = G.inv[i], why = it.ok(t); if (why) return msg(why);
   giveOrder({ kind: 'use', item: it, target: t, x: t.x, y: t.y, reach: it.range }, queue);
@@ -6761,7 +6793,8 @@ const auraAb = t => { const ab = curLevel(t).abils[0]; return ab && t.talent ? {
 // 本机玩家的资源就是 G.gold / G.wood / G.ach；其他玩家由联机层同步（window.GC_NET.send 发出、window.GC.receive 收到，现在还没有联机）。
 // 多人规模开局可以在空位放"模拟队友"：站在出生点不操作，带一座允许收购的 1 级光环塔，用来试复制 / 收购 / 投票 / 点赞。
 // 只算实际在场的玩家（空位、离开、被踢的不算）：排名、飞艇奖励、投票人数、大红牛奖励都按实际人数。
-const NET = { send(ev) { try { if (window.GC_NET && window.GC_NET.send) window.GC_NET.send(ev); } catch (e) { console.warn('[net]', e); } } };
+const NET = { send(ev, to) { try { if (window.GC_NET && window.GC_NET.send) window.GC_NET.send(ev, to); } catch (e) { console.warn('[net]', e); } },
+  snap(d, to) { try { if (window.GC_NET && window.GC_NET.snap) window.GC_NET.snap(d, to); } catch (e) { /* 丢这一帧 */ } } };
 function makeRoster(np, bots, player) {
   const r = [{ slot: 0, name: player || '你', local: true }];
   if (bots) for (let s = 1; s < np; s++) r.push({ slot: s, name: `模拟队友${s + 1}`, bot: true });
@@ -6776,14 +6809,15 @@ const pname = slot => (G.roster[slot] || {}).name || `玩家${slot + 1}`;
 const board = () => activePlayers().slice().sort((a, b) => b.kills - a.kills || a.slot - b.slot);
 const rankOf = slot => board().findIndex(p => p.slot === slot) + 1;
 // 给某个玩家加资源：本机直接加；其他玩家记在名单上（联机时每台机器跑同一套规则，各自加自己的）
-function addGold(p, n) { if (p.local) G.gold += n; else p.gold += n; }
-function addWood(p, n) { if (p.local) G.wood += n; else p.wood += n; }
+function addGold(p, n) { if (p.local) G.gold += n; else if (G.mp) MP.give(p.slot, n, 0); else p.gold += n; }
+function addWood(p, n) { if (p.local) G.wood += n; else if (G.mp) MP.give(p.slot, 0, n); else p.wood += n; }
 // 模拟队友：守卫者站在出生区域 s，随机一套建造栏，在自己的出怪口旁放一座允许收购的 1 级光环塔
 function seatBots() {
   const [sx0, sy0, sx1, sy1] = W3MAP.rects.s;
   for (const p of G.roster) {
     if (p.local) continue;
     p.builder = { isBuilder: true, remote: true, pid: p.slot, x: rnd(sx0, sx1), y: rnd(sy0, sy1), face: -Math.PI / 2 };
+    if (!p.bot) continue;                              // 联机的队友：建造栏、塔都由他自己同步过来
     p.build = SLOTS.map(s => pick(slotPool(s)));
     const hc = rint(1, 17); p.heroChoice = Object.keys(D.heroes).find(n => D.heroes[n].hc === hc) || null;
     const [gx, gy] = NODES[GATES[p.slot][1]], spot = freeSpotNear(gx, gy, 700);
@@ -6804,13 +6838,14 @@ const sameBuild = p => p.build.map(f => GOD_COPY[f] || f).join() === G.build.joi
 function copyBuild(p) {
   G.build = p.build.map(f => GOD_COPY[f] || f); G.heroChoice = p.heroChoice; G.rerolls = Math.max(G.rerolls, 1); G.placing = null; G.honorLv = null;
   godRefresh();
-  addWood(p, 5);
+  if (!G.mp) addWood(p, 5);                          // 联机时对方收到 copy 自己加
   NET.send({ t: 'copy', slot: G.me, target: p.slot });
   msg(`复制成功：建造栏换成了 ${p.name} 的（${G.build.join('、')}${G.heroChoice ? '、' + G.heroChoice : ''}）；${p.name} 获得 5 木材`);
 }
 // 收购卷轴（原图 BKC）：对方的 1 级光环塔要打开"允许收购"（A03K 2 级），收购后归你，出售者 +1500 金
 // 荣誉光环（最大魔法 8）且收购者有 10000 金：收购者付 10000，出售者 +10000 金、+4 木（提示写 3 木，触发器加的是 4）；钱不够时按普通光环 +1500
 function buyAura(t) {
+  if (G.mp) return MP.buyReq(t);                     // 联机：主机确认后才成交（两个人抢同一座）
   const p = G.roster[pidOf(t)], honor = t.fam === '荣誉光环' && G.gold >= 10000;
   if (honor) { G.gold -= 10000; addGold(p, 10000); addWood(p, 4); } else addGold(p, 1500);
   t.pid = G.me; t.forSale = false;
@@ -6843,12 +6878,14 @@ function castVote(voter, target) {
   if (activePlayers().every(p => v.voted[p.slot])) { G.vote = null; msg('投票结束，没有玩家被踢出'); }
 }
 // 踢出 / 离开：他的单位全部移除（原图 m5(玩家) → RemoveUnit），上限每秒 -1（playerLeft）
-function kickPlayer(slot, left) {
+function kickPlayer(slot, left, byLord) {
   const p = G.roster[slot]; if (!p || p.out) return;
   p.out = left ? 'left' : 'kicked';
-  msg(left ? `${p.name} 离开了游戏` : `${p.name} 被投票踢出了游戏`);
-  if (p.local) return gameOver('你已经被踢出游戏!!');
+  msg(left ? `${p.name} 离开了游戏` : byLord ? `${p.name} 被房主踢出了游戏` : `${p.name} 被投票踢出了游戏`);
+  if (p.local) { if (G.mp) G.mp.kicked = true; return gameOver('你已经被踢出游戏!!'); }
   G.towers = G.towers.filter(t => pidOf(t) !== slot);
+  if (G.selected && G.selected.ghost && G.selected.pid === slot) G.selected = G.builder;
+  G.ghosts = G.ghosts.filter(t => t.pid !== slot);
   if (G.selected && (G.selected === p.builder || (G.selected.fam && pidOf(G.selected) === slot))) G.selected = G.builder;
   p.builder = null;
   playerLeft(slot);
@@ -6875,10 +6912,11 @@ function giveLike(from, to) {
   if (p.local && G.player && G.mode !== 'demo') { const pr = profileOf(G.player); pr.likes = (pr.likes || 0) + 1; saveProfiles(); }
 }
 // 收到联机层的事件（以后接联机时由 window.GC.receive 调用；模拟队友不发事件）
-function netReceive(ev) {
+function netReceive(ev, from) {
   if (!G || !ev) return;
+  if (G.mp) { if (G.mp.dead || MP.receive(ev, from)) return; if (ev.slot == null) ev.slot = from; }
   const p = G.roster[ev.slot];
-  if (ev.t === 'join') { G.roster[ev.slot] = Object.assign({ kills: 0, gold: 0, wood: 0, likes: 0, out: null, build: [], heroChoice: null, builder: null }, { slot: ev.slot, name: ev.name }); msg(`${ev.name} 加入了游戏`); }
+  if (ev.t === 'join' && !G.mp) { G.roster[ev.slot] = Object.assign({ kills: 0, gold: 0, wood: 0, likes: 0, out: null, build: [], heroChoice: null, builder: null }, { slot: ev.slot, name: ev.name }); msg(`${ev.name} 加入了游戏`); }
   else if (!p) return;
   else if (ev.t === 'leave') kickPlayer(ev.slot, true);
   else if (ev.t === 'state') Object.assign(p, ev.state);                                  // kills / build / heroChoice / builder 位置等
@@ -6889,7 +6927,403 @@ function netReceive(ev) {
   else if (ev.t === 'buy') { const t = G.towers.find(o => o.id === ev.tower); if (t && mine(t)) { t.pid = ev.slot; t.forSale = false; G.gold += ev.honor ? 10000 : 1500; if (ev.honor) G.wood += 4; msg(`${p.name}收购了你的${curLevel(t).name}，你获得 ${ev.honor ? '10000 金币、4 木材' : '1500 金币'}`); } }
   uiDirty();
 }
-window.GC = { receive: netReceive, roster: () => G && G.roster };
+window.GC = { receive: netReceive, snap: (d, from) => MP.onSnap(d, from), roster: () => G && G.roster, get version() { return NETV; },
+  ui: { showModal: (html, dlg) => { showModal(html); if (dlg) { $('modal-box').classList.add('dlg'); fitDialog(); } }, hideModal: () => hideModal(), escHtml: t => escHtml(t), msg: (t, s) => msg(t, s) },
+  menu: () => showStart(), bgTick: () => { if (G && G.mp && performance.now() - frameAt > 200) simAdvance(performance.now()); },     // 画面帧停了（标签页在后台）才由定时器推进
+  // 联机开局（net.js 在房间开始时调用）：cfg = { mode, allGates, me, name, players: [{ slot, name }] }
+  startNet(cfg) {
+    hideModal(); newGame(cfg.mode, cfg.players.length, cfg.name, false, cfg);
+    const [gx, gy] = GATE_POS[cfg.me]; G.cam.x = gx; G.cam.y = gy - 600;
+    resize(); clampCam(); uiDirty();
+    msg(`联机对局开始：${cfg.players.map(p => p.name).join('、')}。你是 ${cfg.me + 1} 号位，${cfg.me + 1} 号出怪口的怪归你的机器算${cfg.me === 0 ? '；你是主机，波次由你的机器发' : ''}`, 12);
+  } };
+
+// ================================================================ 联机对局同步（设计见 analysis/联机设计.md；连接层在 net.js）
+// "谁刷的怪谁算"：每台机器只模拟自己的怪（m.own = 自己的 slot），别人的怪在本机是代理（m.proxy，只插值显示）；
+// 塔打到代理怪：伤害在本机按代理怪的状态算好，攒成批用 hit 发给怪的主人扣血，主人判定死亡后广播 dead。
+// 别人的塔 / 英雄 / 召唤物是影子（G.ghosts）：只画出来、给光环、占格子，不攻击。
+// 波次、Perfect、判负、BOSS 波规则、无尽由主机（在线里 slot 最小的）跑，掉线后下一个人按 clk 里的检查点接管。
+// 单机时 G.mp 是 null，下面的代码都不会跑。
+const NETV = '8.6.6-h5.1';                       // 进房校验的版本号：改了同步协议或数值就要换
+const allTowers = () => G.ghosts.length ? G.towers.concat(G.ghosts) : G.towers;
+const netRoster = net => net.players.map(p => Object.assign({ kills: 0, gold: 0, wood: 0, likes: 0, out: null, build: [], heroChoice: null, builder: null }, { slot: p.slot, name: p.name, local: p.slot === net.me }));
+// 主机跑的全局脚本（波次、BOSS 波规则）里的提示要广播给所有人；asLocal 里的不广播（各端自己会显示）
+const asGlobal = fn => { const p = GLOBALCTX; GLOBALCTX = true; try { return fn(); } finally { GLOBALCTX = p; } };
+const asLocal = fn => { const p = GLOBALCTX; GLOBALCTX = false; try { return fn(); } finally { GLOBALCTX = p; } };
+// 怪物身上要同步的状态（主人 → 所有人；别人改了代理怪的 → 主人）。"到几时为止"的字段各端时钟不同，传剩余秒数
+const ST_FIELDS = ['armor', 'speed', 'maxHp', 'slow', 'slowUntil', 'stunUntil', 'shred', 'shredUntil', 'armorDown', 'armorDownUntil', 'deb', 'frozenUntil', 'expel',
+  'ignoreArmorUntil', 'etherealUntil', 'invisUntil', 'invulUntil', 'ams', 'amsUntil', 'cannonUntil', 'zsUntil', 'innerFire', 'frostArmor', 'dmSlow', 'magicImmune', 'evade2', 'skin2'];
+const stTime = k => k === 'until' || k.endsWith('Until') || k === 'innerFire' || k === 'frostArmor' || k === 'dmSlow';
+function stEnc(v, k) {
+  if (typeof v === 'number') return stTime(k) ? (v > G.t ? (v === Infinity ? 1e9 : Math.round((v - G.t) * 100) / 100) : -1) : v;
+  if (Array.isArray(v)) return v;
+  if (v && typeof v === 'object') { const o = {}; for (const kk in v) o[kk] = stEnc(v[kk], kk); return o; }
+  return v ?? null;
+}
+function stDec(v, k) {
+  if (typeof v === 'number') return stTime(k) ? (v < 0 ? 0 : v >= 1e9 ? Infinity : G.t + v) : v;
+  if (Array.isArray(v)) return v;
+  if (v && typeof v === 'object') { const o = {}; for (const kk in v) o[kk] = stDec(v[kk], kk); return o; }
+  return v;
+}
+// 和上次同步时比，哪些状态变了（返回 null 或 { 字段: 编码后的值 }）
+function stDiff(m) {
+  const sh = m._sh || (m._sh = {}); let out = null;
+  for (const k of ST_FIELDS) { const s = JSON.stringify(m[k] ?? null); if (sh[k] !== s) { sh[k] = s; (out || (out = {}))[k] = stEnc(m[k], k); } }
+  return out;
+}
+function stApply(m, ch, merge) {
+  for (const k in ch) {
+    if (!ST_FIELDS.includes(k)) continue;
+    const v = stDec(ch[k], k);
+    m[k] = merge && stTime(k) && typeof v === 'number' ? Math.max(m[k] || 0, v) : v;      // 别人报上来的时限只会延长
+    if (!merge) (m._sh || (m._sh = {}))[k] = JSON.stringify(m[k] ?? null);
+  }
+  if (m.deb == null) m.deb = {};
+}
+const FINAL_NEED = new Set(['nbzd', 'nrdr', 'nrdk', 'ngrd', 'Udea']);
+const UNIQUE_FAM = t => t.cat === 'god' || t.fam === '狂狼塔' || t.fam === '兽王塔';
+const srcKey = src => !src ? null : src === G.builder ? 'b' : src.id ?? (src.owner && src.owner.id) ?? null;
+const MP = {
+  init(net) {
+    return { net, lord: 0, wasHost: net.me === 0, ann: new Map(), px: new Map(), hits: new Map(), atks: [], tw: new Map(), sold: new Set(), want: new Map(),
+      acc: 0, twT: 0, clkT: 0, ck: null, cur: null, waveT0: 0, finalT0: 0, stateStr: '', dead: false, escrow: 0 };
+  },
+  send(ev, to) { NET.send(ev, to); },
+  hostSlot() { const p = G.roster.find(p => p && !p.out); return p ? p.slot : G.me; },
+  host() { return MP.hostSlot() === G.me; },
+  gateOwner(g) { const p = G.roster[g]; return p && !p.out ? g : MP.hostSlot(); },
+  ownerOf(m) { const p = G.roster[m.own]; return p && !p.out ? m.own : MP.hostSlot(); },
+  gev(ev) { MP.send(Object.assign({ t: 'gev' }, ev)); },
+  give(slot, gold, wood) { MP.send({ t: 'give', gold, wood }, slot); },
+  // 出怪节拍（主机）：每个口的主人在自己的口刷 1 只
+  spawnTick(uid, opt) { MP.send({ t: 'sp', u: uid, o: opt || null }); MP.spawnMine(uid, opt); },
+  spawnMine(uid, opt) { for (const g of G.gates) if (MP.gateOwner(g) === G.me) spawnMonster(uid, { gate: g, ...(opt || {}) }); },
+  waveBegan(fn, row) { const M = G.mp; M.cur = [fn, WR.fns[fn].rows.indexOf(row)]; M.waveT0 = G.t; },
+  // ---- 打别人的怪
+  hit(m, dmg, src, killIt) {
+    const M = G.mp; let h = M.hits.get(m.id);
+    if (!h) M.hits.set(m.id, h = { m, d: 0, s: null, k: 0 });
+    h.d += dmg || 0; h.s = srcKey(src); if (killIt) h.k = 1;
+    if (dmg > 0) m.hp = Math.max(1, m.hp - dmg);           // 先在本地扣（显示用），以主人的快照为准
+  },
+  onHit(ev, from) {
+    for (const [id, d, s, k] of ev.h || []) {
+      const m = G.monsters.find(x => x.id === id && !x.proxy);
+      if (!m || m.dead) continue;
+      const src = MP.srcStub(from, s);
+      if (d > 0 && !(m.invulUntil > G.t)) m.hp -= d;
+      if (k || m.hp <= 0) kill(m, src);
+    }
+  },
+  srcStub(pid, s) { return (s != null && s !== 'b' && G.ghosts.find(g => g.id === s)) || { pid, id: s, stub: true }; },
+  // ---- 自己的怪死了 / 没了
+  died(m, by, src) {
+    const M = G.mp; if (m.neutral || m.spirit) return;
+    M.ann.delete(m.id);
+    MP.send({ t: 'dead', id: m.id, by, s: srcKey(src), u: m.uid, x: Math.round(m.x), y: Math.round(m.y), b: m.bounty, e: m.elite ? [m.elite.aura.key, m.elite.lvl] : 0 });
+  },
+  onDead(ev, from) {
+    const M = G.mp, u = D.units[ev.u] || {};
+    let m = M.px.get(ev.id);
+    if (!m) { m = { id: ev.id, uid: ev.u, name: u.name, x: ev.x, y: ev.y, bounty: ev.b, type: u.armorType, r: 55, hp: 0, maxHp: 1, gate: 0, face: 0, proxy: true, own: from };
+      if (ev.e) { const a = ELITE_AURAS.find(e => e.key === ev.e[0]); m.elite = { aura: a, lvl: ev.e[1] }; } }
+    if (m.dead) return;
+    M.px.delete(ev.id); M.hits.delete(ev.id);
+    const pl = G.roster[ev.by]; if (pl) pl.kills++;
+    if (ev.by === G.me) {                                    // 我杀的：赏金、击杀奖励、掉落在我这边结算
+      const src = ev.s === 'b' ? G.builder : G.towers.find(t => t.id === ev.s) || null;
+      killCredit(m, src, me());
+      monsterDrop(m); bossStone(m);
+    }
+    if (m.onDeath) m.onDeath(MP.srcStub(ev.by, ev.s));       // 主机上 BOSS 波的计数（大红牛、飞艇）
+    m.dead = true; m.netDead = true; m.hp = 0;
+    deathFx(m); uiDirty();
+  },
+  // ---- 怪的描述 / 代理
+  desc(m) {
+    const st = {}; for (const k of ST_FIELDS) if (m[k] != null) st[k] = stEnc(m[k], k);
+    return { id: m.id, u: m.uid, x: Math.round(m.x), y: Math.round(m.y), hp: m.hp, g: m.gate, at: m.at, b: m.boss ? 1 : 0, r: m.r, bt: m.bounty, nm: m.name,
+      e: m.elite ? [m.elite.aura.key, m.elite.lvl] : 0, mdx: m.mdx, sc: m.scale, st };
+  },
+  onBorn(d, from) {
+    const M = G.mp; let p = M.px.get(d.id);
+    if (!p) {
+      const own = G.monsters.find(x => x.id === d.id && !x.proxy);
+      if (own) return;                                        // 是我自己的怪（不该发生）
+      p = spawnMonster(d.u, { gate: d.g, at: d.at, boss: !!d.b, noElite: true, mdx: d.mdx, scale: d.sc, proxy: true });
+      if (!p) return;
+      if (d.e) makeElite(p, d.e);
+      Object.assign(p, { id: d.id, proxy: true, x: d.x, y: d.y, target: null, path: [], _sh: {} });
+      G.monsters.push(p); M.px.set(d.id, p);
+      if (MP.host() && G.waveHook && G.waveHook.onSpawn) G.waveHook.onSpawn(p);
+    }
+    Object.assign(p, { own: from, nx: d.x, ny: d.y, hp: d.hp, r: d.r, bounty: d.bt, name: d.nm || p.name });
+    stApply(p, d.st); stDiff(p); p.cr = colRadius(p);
+  },
+  lerp(m, dt) {
+    const dx = m.nx - m.x, dy = m.ny - m.y, d2 = dx * dx + dy * dy;
+    if (d2 > 700 * 700) { m.x = m.nx; m.y = m.ny; return; }
+    const k = Math.min(1, dt * 10); m.x += dx * k; m.y += dy * k;
+  },
+  // ---- 别人的塔（影子）
+  twDesc(t) {
+    const lv = t.isHero ? null : curLevel(t), hero = t.isHero;
+    return { id: t.id, k: hero ? 'h' : t.cat === 'summon' || !D.towers[t.fam] ? 's' : 't', fam: t.fam, cat: t.cat, x: Math.round(t.x / 8) * 8, y: Math.round(t.y / 8) * 8, lv: t.lv, br: t.branch || 0,
+      hn: t.heroName, hl: t.level, sk: t.skin ? 1 : 0, tint: t.tint, sheet: t.sheet, mdx: t.mdx, sc: t.scale, label: t.label, title: t.title,
+      nm: hero ? t.heroName : (lv && lv.name) || t.title || t.fam, atk: hero ? heroStats(t).atk : lv && lv.atk, rg: hero ? 0 : t.cat === 'aura' ? 0 : (lv && lv.range) || 0,
+      banner: t.banner ? 1 : 0, solid: t.solid ? 1 : 0, bmax: t.bmax ? 1 : 0, talent: t.talent || 0, sale: t.forSale ? 1 : 0, honor: t.honor };
+  },
+  ghost(d, pid) {
+    const f = D.towers[d.fam];
+    const g = { id: d.id, ghost: true, pid, fam: d.fam, cat: d.cat, x: d.x, y: d.y, lv: d.lv || 0, gname: d.nm, gatk: d.atk || 'normal', grange: d.rg || 0, sheet: d.sheet, mdx: d.mdx, scale: d.sc, label: d.label, title: d.title,
+      banner: !!d.banner, solid: !!d.solid, bmax: !!d.bmax, talent: d.talent, forSale: !!d.sale, honor: d.honor, tint: d.tint, isHero: false, skin: null };
+    if (d.k === 'h') Object.assign(g, { isHero: true, heroName: d.hn, level: d.hl, lv: 0, levels: [{ name: d.hn, atk: g.gatk, abils: [] }], skin: d.sk ? (D.heroes[d.hn] || {}).skin || {} : null, home: { x: d.x, y: d.y } });
+    else if (d.k === 's' || !f) Object.assign(g, { lv: 0, levels: [{ name: d.nm, atk: g.gatk, dmg: 0, cd: 1, range: 0, abils: [] }] });
+    else { g.levels = d.br && f.branches && f.branches[d.br] ? [f.levels[0]].concat(f.branches[d.br]) : f.levels; g.branch = d.br || undefined; g.lv = Math.min(g.lv, g.levels.length - 1); }
+    return g;
+  },
+  onTw(ev, from) {
+    for (const d of ev.u || []) {
+      const old = G.ghosts.find(g => g.id === d.id), g = MP.ghost(d, from);
+      if (old) Object.assign(old, g); else Object.assign(g, { buff: {}, cds: {}, kills: 0, dealt: 0, attacks: 0, buffAS: 0, buffDmg: 0, eliteAS: 0, eliteWeak: 0, spent: 0, food: 0, mana: 0, maxMana: 0 }), G.ghosts.push(g);
+    }
+    if (ev.d && ev.d.length) {
+      if (G.selected && G.selected.ghost && ev.d.includes(G.selected.id)) G.selected = G.builder;
+      G.ghosts = G.ghosts.filter(g => !(g.pid === from && ev.d.includes(g.id)));
+    }
+    // 全场唯一的塔两个人同时建了：slot 小的保留，我的自动原价回收
+    for (const t of G.towers.filter(t => mine(t) && !t.isHero && D.towers[t.fam] && UNIQUE_FAM(t))) {
+      const g = G.ghosts.find(g => g.fam === t.fam && g.pid < G.me);
+      if (g) { msg(`${pname(g.pid)} 先建了${t.fam}（全场只能有一座），你的已经原价回收`, 8); sellTower(t); }
+    }
+    uiDirty();
+  },
+  ghostFx(g, m) {
+    const style = MISSILE[g.isHero ? 'hero:' + g.heroName : g.fam] || BY_ATK[g.gatk] || 'arcaneDagger';
+    const o = g.isHero ? W3M['hero:' + g.heroName] : g.cat === 'summon' ? null : W3M['tower:' + g.fam + ':' + (g.lv + 1)] ?? W3M['tower:' + g.fam];
+    g.face = Math.atan2(m.y - g.y, m.x - g.x); g.atkT = G.t;
+    FXS.launch(style, muzzle(g, style), m, () => {}, o ? { w3: o.missile, speed: o.speed, arc: o.arc } : {});
+  },
+  atk(t, m) { const a = G.mp.atks; if (a.length < 80 && !t.hide) a.push([t.id, m.id]); },
+  // ---- 收购卷轴：主机确认
+  buyReq(t) {
+    const M = G.mp, honor = t.fam === '荣誉光环' && G.gold >= 10000;
+    if (M.escrow) return msg('上一次收购还在等主机确认'), false;
+    if (honor) { G.gold -= 10000; M.escrow = 10000; } else M.escrow = -1;
+    const ev = { t: 'buy-req', tower: t.id, honor };
+    if (MP.host()) MP.onBuyReq(ev, G.me); else MP.send(ev, MP.hostSlot());
+    return false;                                            // 卷轴先不扣，确认了再扣
+  },
+  onBuyReq(ev, from) {
+    if (!MP.host()) return;
+    const M = G.mp, g = allTowers().find(t => t.id === ev.tower);
+    if (!g || g.cat !== 'aura' || g.lv !== 0 || !g.forSale || M.sold.has(g.id) || pidOf(g) === from) { const no = { t: 'buy-no' }; return from === G.me ? MP.onBuyNo() : MP.send(no, from); }
+    M.sold.add(g.id);
+    const ok = { t: 'sold', buyer: from, owner: pidOf(g), tower: g.id, honor: !!ev.honor, fam: g.fam, x: g.x, y: g.y };
+    MP.send(ok); MP.onSold(ok);
+  },
+  onBuyNo() { const M = G.mp; if (M.escrow > 0) G.gold += M.escrow; M.escrow = 0; msg('收购失败：这座光环塔已经不在、不再允许收购，或者被别人先收购了'); uiDirty(); },
+  onSold(ev) {
+    const M = G.mp, pay = ev.honor ? '10000 金币、4 木材' : '1500 金币';
+    if (ev.buyer === G.me) {
+      M.escrow = 0;
+      const it = G.inv.find(x => x && x.id === 'I00B'); if (it) { if (it.charges > 1) it.charges--; else invRemove(it); }
+      G.towers.push(newTower(ev.fam, ev.x, ev.y)); SFX.ui('item');
+      msg(`收购成功：${ev.fam} 现在是你的了；${pname(ev.owner)} 获得 ${pay}`);
+    } else if (ev.owner === G.me) {
+      const t = G.towers.find(o => o.id === ev.tower);
+      if (t) { G.towers = G.towers.filter(o => o !== t); if (G.selected === t) G.selected = G.builder; }
+      G.gold += ev.honor ? 10000 : 1500; if (ev.honor) G.wood += 4;
+      msg(`${pname(ev.buyer)}收购了你的${ev.fam}，你获得 ${pay}`);
+    }
+    uiDirty();
+  },
+  // ---- 房主命令
+  cmdKick(slot) {
+    const p = G.roster[slot];
+    if (!G.mp || G.me !== G.mp.lord || !p || p.out || p.local) return;
+    MP.send({ t: 'kick', target: slot }); kickPlayer(slot, false, true);
+  },
+  cmdLord() {
+    const M = G.mp; if (!M || !G.roster[M.lord] || !G.roster[M.lord].out) return;
+    M.lord = G.me; MP.send({ t: 'lord' }); msg(`${myName()} 接管了房主（可以用 -fuck02~08 踢人、-KN）`, 8);
+  },
+  // ---- 每个模拟步
+  frame(dt) {
+    const M = G.mp; if (!M || M.dead) return;
+    for (const p of G.roster) { const b = p && !p.out && p.builder; if (b && b.nx != null) { const k = Math.min(1, dt * 10); b.x += (b.nx - b.x) * k; b.y += (b.ny - b.y) * k; } }
+    if (MP.host()) { if (!M.wasHost) { M.wasHost = true; MP.takeover(); } MP.adopt(); }
+    M.acc += dt; if (M.acc < 0.1) return; M.acc = 0;
+    // 新怪的描述、状态变化、没了的怪
+    const here = new Set(G.monsters), born = [], ms = [], mf = new Map(), gone = [];
+    for (const m of G.monsters) {
+      if (m.dead || m.neutral || m.spirit) continue;
+      if (m.proxy) { const ch = stDiff(m); if (ch) { const o = MP.ownerOf(m); if (!mf.has(o)) mf.set(o, []); mf.get(o).push([m.id, ch]); } continue; }
+      if (m.own == null) m.own = G.me;
+      if (!M.ann.has(m.id)) { M.ann.set(m.id, m); stDiff(m); born.push(MP.desc(m)); }
+      else { const ch = stDiff(m); if (ch) ms.push([m.id, ch]); }
+    }
+    for (const [id, m] of M.ann) if (m.dead || !here.has(m) || m.proxy) { M.ann.delete(id); gone.push(id); }
+    if (born.length) MP.send({ t: 'born', l: born });
+    if (ms.length) MP.send({ t: 'ms', l: ms });
+    for (const [o, l] of mf) MP.send({ t: 'mf', l }, o);
+    if (gone.length) MP.send({ t: 'gone', ids: gone });
+    // 代理怪被本机的规则直接移除了（主机 60 秒清掉没杀完的大红牛等）：告诉主人
+    const rm = new Map();
+    for (const [id, p] of M.px) if (p.dead && !p.netDead) { M.px.delete(id); const o = MP.ownerOf(p); if (!rm.has(o)) rm.set(o, []); rm.get(o).push(id); }
+    for (const [o, ids] of rm) MP.send({ t: 'rm', ids }, o);
+    // 伤害批
+    if (M.hits.size) {
+      const by = new Map();
+      for (const [id, h] of M.hits) { if (h.m.dead) continue; const o = MP.ownerOf(h.m); if (!by.has(o)) by.set(o, []); by.get(o).push([id, Math.round(h.d * 100) / 100, h.s, h.k]); }
+      M.hits.clear();
+      for (const [o, h] of by) if (o !== G.me) MP.send({ t: 'hit', h }, o);
+    }
+    // 位置快照（不可靠通道）：[1, slot, n(u16)] + n × [id u32, x i16, y i16, hp f32, face i8, 标记 u8]
+    const mine_ = [...M.ann.values()], buf = new ArrayBuffer(4 + mine_.length * 14), dv = new DataView(buf);
+    dv.setUint8(0, 1); dv.setUint8(1, G.me); dv.setUint16(2, mine_.length, true);
+    mine_.forEach((m, i) => { const o = 4 + i * 14; dv.setUint32(o, m.id, true); dv.setInt16(o + 4, clamp(Math.round(m.x), -32000, 32000), true); dv.setInt16(o + 6, clamp(Math.round(m.y), -32000, 32000), true);
+      dv.setFloat32(o + 8, m.hp, true); dv.setInt8(o + 12, Math.round(clamp(m.face || 0, -3.15, 3.15) * 40)); dv.setUint8(o + 13, 0); });
+    NET.snap(buf);
+    const b = G.builder;
+    NET.snap({ t: 'u', b: [Math.round(b.x), Math.round(b.y), Math.round((b.face || 0) * 100) / 100], a: M.atks });
+    M.atks = [];
+    for (const [o, ids] of M.want) if (ids.size) { MP.send({ t: 'want', ids: [...ids] }, o); ids.clear(); }
+    // 塔的增量（0.3 秒一次）
+    if ((M.twT += 1) >= 3) {
+      M.twT = 0;
+      const now = new Map(), u = [], d = [];
+      for (const t of G.towers) { if (t.hide || !mine(t)) continue; const s = JSON.stringify(MP.twDesc(t)); now.set(t.id, s); if (M.tw.get(t.id) !== s) u.push(JSON.parse(s)); }
+      for (const id of M.tw.keys()) if (!now.has(id)) d.push(id);
+      M.tw = now;
+      if (u.length || d.length) MP.send({ t: 'tw', u, d });
+      const st = { build: G.build, heroChoice: G.heroChoice }, ss = JSON.stringify(st);
+      if (ss !== M.stateStr) { M.stateStr = ss; MP.send({ t: 'state', slot: G.me, state: st }); }
+    }
+    // 主机时钟 + 接管用的检查点（0.5 秒一次）
+    if (MP.host() && (M.clkT += 1) >= 5) {
+      M.clkT = 0;
+      const nx = G.next;
+      MP.send({ t: 'clk', timer: G.timer, wave: G.wave, phase: G.phase, sc: G.sc, cu: G.curUnit, note: G.waveNote, nh: nx ? nx.hint : null, c9: G.c9, pf: G.perfect, score: G.score,
+        hl: G.hl, k7: G.k7, kn: G.knWave ?? null, fc: G.finalCountdown, E: G.endless,
+        ck: { vars: G.waveVars, carry: G.carryHint ?? null, next: nx && nx.fn ? [nx.fn, WR.fns[nx.fn].rows.indexOf(nx.row), nx.hint] : null, cur: M.cur, el: G.t - M.waveT0, sp: G.spawners,
+          fin: G.final ? G.t - M.finalT0 : null } });
+    }
+  },
+  onClk(ev) {
+    const M = G.mp;
+    G.timer = ev.timer; G.wave = ev.wave; if (ev.phase === 'run' && G.phase === 'prep') G.phase = 'run';
+    G.sc = ev.sc; G.curUnit = ev.cu; G.waveNote = ev.note || ''; G.next = ev.nh != null ? { hint: ev.nh } : null;
+    G.c9 = ev.c9; G.perfect = ev.pf; G.score = ev.score; G.hl = ev.hl; G.k7 = ev.k7; if (ev.kn != null) G.knWave = ev.kn; G.finalCountdown = !!ev.fc;
+    if (ev.E) { const old = G.endless || {}; G.endless = Object.assign({}, ev.E, { goals: Object.assign({}, ev.E.goals, old.goals), segUp: old.segUp || ev.E.segUp, hintAt: old.hintAt || 0 }); }
+    M.ck = ev.ck;
+    if (!G.endless) refreshHint();
+  },
+  // 主机走了，我成了主机：按最后一次检查点把波次接过来
+  takeover() {
+    const M = G.mp, ck = M.ck;
+    msg('原来的主机离开了，现在由你的机器负责波次和全局规则', 8);
+    if (!ck) return;                                         // 还没收到过检查点（刚开局）：用自己开局时抽的
+    G.waveVars = ck.vars || {}; G.carryHint = ck.carry ?? undefined;
+    G.next = ck.next ? { fn: ck.next[0], row: WR.fns[ck.next[0]].rows[ck.next[1]], hint: ck.next[2] } : null;
+    const shifted = (el, fn) => { LSHIFT = el; try { asGlobal(fn); } finally { LSHIFT = null; } };
+    if (ck.fin != null) {
+      const timer = G.timer;
+      shifted(ck.fin, startFinal);
+      G.timer = timer; M.finalT0 = G.t - ck.fin;
+      Object.assign(G.final, { need: G.monsters.filter(m => !m.dead && FINAL_NEED.has(m.uid)), check: ck.fin >= 59.3, dragonAt: G.t - Math.max(0, ck.fin - 20) });
+    } else if (ck.cur && G.phase === 'run' && !G.endless && !G.finalCountdown) {
+      const [fn, ri] = ck.cur, row = WR.fns[fn].rows[ri];
+      M.cur = ck.cur; M.waveT0 = G.t - ck.el;
+      shifted(ck.el, () => { if (BOSS_WAVES[fn]) BOSS_WAVES[fn](); for (const [t, op, id, k, life, gate] of row.ev) later(t, () => waveOp(op, id, k, life, gate)); });
+      if (G.bossRule) { G.bossRule.killBy -= ck.el; G.bossRule.ids = G.monsters.filter(m => m.boss && !m.dead); }
+    }
+    G.spawners = ck.sp || [];
+    refreshHint();
+  },
+  // 主人不在了的怪：主机接过来自己算（就近找个路口接着走）
+  adopt() {
+    const M = G.mp;
+    for (const [id, p] of M.px) {
+      const o = G.roster[p.own]; if (o && !o.out) continue;
+      M.px.delete(id);
+      let best = null, bd = Infinity; for (const k of Object.keys(ADJ)) { const d = dist2(p.x, p.y, NODES[k][0], NODES[k][1]); if (d < bd) { bd = d; best = k; } }
+      Object.assign(p, { proxy: false, own: G.me, cur: best, prev: null, target: null, path: [], freeTo: best, lane: rnd(-0.75, 0.75), _sh: null, dots: [], burn: null });
+    }
+  },
+  onSnap(data, from) {
+    if (!G || !G.mp || G.mp.dead) return;
+    const M = G.mp;
+    if (data instanceof ArrayBuffer) {
+      const dv = new DataView(data); if (dv.byteLength < 4 || dv.getUint8(0) !== 1) return;
+      const n = Math.min(dv.getUint16(2, true), Math.floor((dv.byteLength - 4) / 14));
+      for (let i = 0; i < n; i++) {
+        const o = 4 + i * 14, id = dv.getUint32(o, true), p = M.px.get(id);
+        if (!p) { if (!M.want.has(from)) M.want.set(from, new Set()); M.want.get(from).add(id); continue; }
+        if (p.own !== from) continue;
+        p.nx = dv.getInt16(o + 4, true); p.ny = dv.getInt16(o + 6, true); p.face = dv.getInt8(o + 12) / 40;
+        if (!M.hits.has(id)) p.hp = dv.getFloat32(o + 8, true);          // 手上还有没发出去的伤害时先不覆盖
+      }
+    } else if (data && data.t === 'u') {
+      const p = G.roster[from], b = p && !p.out && p.builder;
+      if (b && Array.isArray(data.b)) { b.nx = data.b[0]; b.ny = data.b[1]; b.face = data.b[2]; if (dist2(b.x, b.y, b.nx, b.ny) > 900 * 900) { b.x = b.nx; b.y = b.ny; } }
+      for (const [tid, mid] of data.a || []) {
+        const g = G.ghosts.find(x => x.id === tid), m = g && (M.px.get(mid) || G.monsters.find(x => x.id === mid));
+        if (m && !m.dead) { try { MP.ghostFx(g, m); } catch (e) { /* 只是动画 */ } }
+      }
+    }
+  },
+  // ---- 收到可靠通道的事件（netReceive 转过来）；返回 true 表示处理了
+  receive(ev, from) {
+    const M = G.mp, t = ev.t;
+    if (t === 'born') { for (const d of ev.l) MP.onBorn(d, from); }
+    else if (t === 'ms') { for (const [id, ch] of ev.l) { const p = M.px.get(id); if (p && p.own === from) stApply(p, ch); } }
+    else if (t === 'mf') { for (const [id, ch] of ev.l) { const m = G.monsters.find(x => x.id === id && !x.proxy); if (m && !m.dead) stApply(m, ch, true); } }
+    else if (t === 'gone') { for (const id of ev.ids) { const p = M.px.get(id); if (p && p.own === from) { p.dead = true; p.netDead = true; M.px.delete(id); M.hits.delete(id); } } }
+    else if (t === 'rm') { for (const id of ev.ids) { const m = G.monsters.find(x => x.id === id && !x.proxy); if (m) m.dead = true; } }
+    else if (t === 'want') { const l = [], gone = []; for (const id of ev.ids) { const m = M.ann.get(id); if (m && !m.dead) l.push(MP.desc(m)); else gone.push(id); } if (l.length) MP.send({ t: 'born', l }, from); if (gone.length) MP.send({ t: 'gone', ids: gone }, from); }
+    else if (t === 'hit') MP.onHit(ev, from);
+    else if (t === 'dead') MP.onDead(ev, from);
+    else if (t === 'tw') MP.onTw(ev, from);
+    else if (t === 'give') { G.gold += +ev.gold || 0; G.wood += +ev.wood || 0; }
+    else if (t === 'es') { if (MP.host() && G.endless) G.endless.score += +ev.n || 0; }
+    else if (t === 'buy-req') MP.onBuyReq(ev, from);
+    else if (t === 'buy-no') MP.onBuyNo();
+    else if (t === 'sold') { if (from === MP.hostSlot()) MP.onSold(ev); }
+    else if (t === 'chat') msg(`[${pname(from)}]：${String(ev.text).slice(0, 80)}`, 8);
+    else if (t === 'kick') { if (from === M.lord) kickPlayer(ev.target, false, true); }
+    else if (t === 'lord') { if (G.roster[M.lord] && G.roster[M.lord].out) { M.lord = from; msg(`${pname(from)} 接管了房主`, 8); } }
+    else if (t === 'kn') { if (from === M.lord && G.knWave == null) { G.knWave = G.wave; msg('难度系数增加为困难', 10); } }
+    else if (t === 'rabbit') spawnRabbit(ev.by, ev.talk, ev.life, ev.at);
+    else if (from !== MP.hostSlot()) return false;          // 往下只认主机发的
+    else if (t === 'sp') MP.spawnMine(ev.u, ev.o);
+    else if (t === 'clk') MP.onClk(ev);
+    else if (t === 'wave') { G.wave = ev.n; if (G.phase === 'prep') G.phase = 'run'; waveLocal(ev.pf); }
+    else if (t === 'say') msg(ev.text, ev.sec);
+    else if (t === 'gev') MP.onGev(ev);
+    else return false;
+    return true;
+  },
+  onGev(ev) {
+    const k = ev.k;
+    if (k === 'over') gameOver(ev.reason);
+    else if (k === 'win') victory();
+    else if (k === 'eend') { if (G.endless) endlessEnd(); }
+    else if (k === 'cleared') { if (G.player) { profileOf(G.player).clears++; earnAch(PROFILE.clear); } }
+    else if (k === 'endless') { gainAch('无尽我来了', 3, '所有玩家完成成就：无尽我来了（当局成就+3）'); if (ev.thrill) gainAch('刺激', 2, '完成成就：刺激.......   当局成就+2'); uiDirty(); }
+    else if (k === 'ewave') earnAch(PROFILE.wave);
+    else if (k === 'ach') { msg(`所有玩家完成成就：${ev.name}`, 10); earnAch(1, ev.name); }
+  },
+  // 对局结束（失败 / 通关 / 被踢）：主机通知大家，然后断开联机
+  ended(k, reason) {
+    const M = G.mp; if (!M || M.dead) return;
+    if (!M.kicked && MP.host()) MP.gev({ k, reason });
+    M.dead = true;
+    setTimeout(() => { if (window.GC_NET) window.GC_NET.leave(); }, M.kicked ? 0 : 800);
+  },
+};
+
 
 // ================================================================ 全场唯一塔的技能等级（t.ulv）
 // 数值按技能表 + war3map.w3a 的各级数据；恐惧塔、火速塔建成时是技能 2 级（和之前的数值一致），神力、冰封是 1 级
@@ -7415,32 +7849,33 @@ function step(dt) {
   G.t += dt;
   // 计时
   G.timer -= dt;
-  if (G.timer <= 0) {
+  const host = !G.mp || MP.host();                  // 联机：波次、判负只在主机上跑
+  if (G.timer <= 0 && host && asGlobal(() => {
     if (G.phase === 'prep') { G.phase = 'run'; startWave(); }
     else if (G.endless) endlessWave();
-    else if (G.final) return gameOver('300 秒内没有杀死所有龙和魔王');
+    else if (G.final) return gameOver('300 秒内没有杀死所有龙和魔王'), true;
     else if (G.finalCountdown) startFinal();
     else startWave();
-  }
+  })) return;
   // 发金（原图 R6 / wX：开局就打开的 5 秒周期触发器）：每 5 秒给 排行榜名次 ×8 + 波数 ×2（LeaderboardGetPlayerIndexBJ，按杀敌数排，
   // 名次越靠后拿得越多；只有你一人时是第 1 名）；新人随机模式 ×12 + ×4
   if (G.knWave == null && (G.incomeT = (G.incomeT || 0) + dt) >= 5) {     // -KN 之后 R6 关掉了
     G.incomeT -= 5;
     const [gr, gw] = MODES[G.mode].waveGold || [8, 2];
-    for (const p of activePlayers()) addGold(p, rankOf(p.slot) * gr + G.wave * gw);
+    for (const p of G.mp ? [me()] : activePlayers()) addGold(p, rankOf(p.slot) * gr + G.wave * gw);     // 联机：各人的机器加各人的
   }
   if ((G.slotT = (G.slotT || 0) + dt) >= 5) { G.slotT -= 5; if (G.ovln < 1 && !holdsSlot(G.me)) G.ovln = 1; }   // BcC：每 5 秒补主塔名额
   if ((G.dpT = (G.dpT || 0) + dt) >= 1) { G.dpT -= 1; for (let i = 0; i < MAX_PLAYERS; i++) { G.dp[i]++; G.je[i]++; } }   // 原图 BbM / Bay
   // 延时事件
   const due = G.timeouts.filter(x => x.at <= G.t);
   G.timeouts = G.timeouts.filter(x => x.at > G.t);
-  due.forEach(x => x.fn());
+  due.forEach(x => x.g ? asGlobal(x.fn) : x.fn());
   // 出怪
-  for (const s of G.spawners) {
+  if (host) for (const s of G.spawners) {
     s.next -= dt;
-    while (s.next <= 0 && s.left > 0) { if (G.sc) for (const g of G.gates) spawnMonster(G.sc, { gate: g, ...s.opt }); s.left--; s.next += s.every; }   // 每个开着的出怪口各刷 1 只"当前出怪单位"（原图的 Ul）
+    while (s.next <= 0 && s.left > 0) { if (G.sc) { if (G.mp) MP.spawnTick(G.sc, s.opt); else for (const g of G.gates) spawnMonster(G.sc, { gate: g, ...s.opt }); } s.left--; s.next += s.every; }   // 每个开着的出怪口各刷 1 只"当前出怪单位"（原图的 Ul）
   }
-  G.spawners = G.spawners.filter(s => s.left > 0);
+  if (host) G.spawners = G.spawners.filter(s => s.left > 0);
   builderUpdate(dt);
   rabbitUpdate(dt);
   extrasUpdate(dt);
@@ -7462,6 +7897,13 @@ function step(dt) {
   // 怪物
   for (const m of G.monsters) {
     if (m.dead) continue;
+    if (m.proxy) {                                   // 别人的怪：位置跟快照走；我的塔上的毒 / 燃烧照样跳（伤害发给主人）
+      MP.lerp(m, dt);
+      if (m.burn) hurt(m, m.burn.dps * dt, 'magic', m.burn.src, { ignoreArmor: true });
+      for (const d of m.dots) if (d.until > G.t) hurt(m, d.dps * dt, d.atk, d.src, { noKill: d.noKill });
+      m.dots = m.dots.filter(d => d.until > G.t);
+      continue;
+    }
     if (m.until && G.t >= m.until) { m.dead = true; if (!m.neutral && !m.spirit) monsterDied(m, null); continue; }     // 限时单位到时间消失：不给赏金，但原图算死亡（没有凶手），死亡触发器照样走（浅滩怪物的分身再分裂等）
     moveMonster(m, dt);
     if (m.burn) hurt(m, m.burn.dps * dt, 'magic', m.burn.src, { ignoreArmor: true });
@@ -7474,7 +7916,7 @@ function step(dt) {
   G.monsters = G.monsters.filter(m => !m.dead);
   separateMonsters();
   // 规则检查
-  if (G.phase === 'run' && monstersAlive() > cap()) return G.endless ? endlessEnd() : gameOver(`当前怪数 ${monstersAlive()} 超过上限 ${cap()}`);
+  if (host && G.phase === 'run' && monstersAlive() > cap()) return G.endless ? endlessEnd() : gameOver(`当前怪数 ${monstersAlive()} 超过上限 ${cap()}`);
   if (G.endless) endlessTick();
   if (G.bossRule && G.t > G.bossRule.killBy) {
     if (G.bossRule.ids.some(b => b && !b.dead)) return gameOver('100 秒内没有杀死所有 BOSS');
@@ -7486,6 +7928,7 @@ function step(dt) {
   for (const f of G.fx) f.life -= dt;
   FXS.update(dt);
   G.fx = G.fx.filter(f => f.life > 0);
+  if (G.mp) { try { MP.frame(dt); } catch (e) { console.error('[mp]', e); } }
 }
 // 结算时附上本局获得的账号成就和档位
 function achSummary() {
@@ -7494,6 +7937,8 @@ function achSummary() {
   return `<p>${G.player}：本局账号成就 <b style="color:#ff9ad5">+${G.earned}</b>，共 ${p.pts} 点 · ${t.name}${p.endless ? ` · 无尽最高 ${p.endless} 分` : ''}（下局开局当局成就 ${RULE.startAch + t.lv + endlessBonus(p.endless || 0)}${t.next ? `，${t.next} 点升下一档` : ''}）</p>`;
 }
 function gameOver(reason) {
+  if (G.phase === 'over') return;
+  if (G.mp) MP.ended('over', reason);
   G.phase = 'over'; SFX.end('defeat');
   showModal(`<h2>大家很厉害！很遗憾，还是失败了！</h2><p>${reason}</p>
     <p>到达第 <b>${G.wave}</b> 波 · 击杀 ${G.kills} · Perfect ${G.perfect} · 得分 ${G.score}</p>${achSummary()}
@@ -7508,6 +7953,7 @@ function demoEnd() {
   document.getElementById('m-restart').onclick = () => { hideModal(); showStart(); };
 }
 function victory() {
+  if (G.mp) MP.ended('win');
   G.phase = 'win'; SFX.end('victory');
   showModal(`<h2>通关！</h2><p>你杀死了最终 BOSS。击杀 ${G.kills} · Perfect ${G.perfect} · 得分 ${G.score}</p>${achSummary()}
     <p>Perfect 分未达到 ${RULE.endlessFp}，没有开启无尽关卡（每波开始时场上没有怪 +1，杀死龙越快加得越多）。</p>
@@ -7816,11 +8262,11 @@ function draw() {
   GATE_POS.forEach(([x, y], k) => { const on = G.gates.includes(k); label(on ? `出怪口 ${k + 1}` : `出怪口 ${k + 1}（${k + 1} 人以上开放）`, x, y + 300, on ? '#ffb0a8' : '#9a8784', 12); });
   for (const z of G.zones) if (z.style !== 'bladestorm') { ctx.fillStyle = z.color || 'rgba(122,184,255,.18)'; gcircle(z.x, z.y, z.r); ctx.fill(); }
   for (const z of G.zones) if (z.style === 'bladestorm') drawBladestormGround(z);
-  for (const t of G.towers) if (t.cat === 'aura') { t.m3 = auraModel(t); if (!t.m3) drawAuraGround(t, now); }   // 光环塔：原版光环模型，画不了才程序绘制地面光环
-  for (const t of G.towers) if (t.cat !== 'aura' && t.cat !== 'summon' && !t.isHero) drawTierGround(t, now);   // 塔的等级光圈
+  for (const t of allTowers()) if (t.cat === 'aura') { t.m3 = auraModel(t); if (!t.m3) drawAuraGround(t, now); }   // 光环塔：原版光环模型，画不了才程序绘制地面光环
+  for (const t of allTowers()) if (t.cat !== 'aura' && t.cat !== 'summon' && !t.isHero) drawTierGround(t, now);   // 塔的等级光圈
   // 选中范围
   const sel = G.selected;
-  if (sel && sel.fam) rangeCircle(sel.x, sel.y, sel.cat === 'aura' ? (curLevel(sel).abils[0] || {}).area || 900 : towerStats(sel).range, 'rgba(255,255,255,.35)');
+  if (sel && sel.fam) rangeCircle(sel.x, sel.y, sel.cat === 'aura' ? (curLevel(sel).abils[0] || {}).area || 900 : sel.ghost ? sel.grange : towerStats(sel).range, 'rgba(255,255,255,.35)');
   // 守卫者的移动/建造目标
   const b = G.builder;
   if (b.order) {
@@ -7838,7 +8284,7 @@ function draw() {
   HOV = hovered();
   for (const s of SHOPS) drawShop(s);
   for (const it of G.items) drawItem(it);
-  for (const t of G.towers) drawTower(t);
+  for (const t of allTowers()) drawTower(t);
   for (const m of G.monsters) drawMonster(m);
   for (const w of G.wild) drawWild(w);
   drawBuilder(b);
@@ -8116,7 +8562,7 @@ function drawTower(t) {
   if (t.hide || !onScr(t.x, t.y)) return;          // 看不见的马甲（树妖箭）
   const K = kAt(t.y);
   const x = sx(t.x, t.y), y = sy(t.y), s = Math.max((t.cat === 'summon' ? 90 : 150) * K, (t.cat === 'summon' ? 9 : 14) * DPR);
-  const atk = t.cat === 'aura' ? 'aura' : (t.isHero ? heroStats(t).atk : curLevel(t).atk);
+  const atk = t.cat === 'aura' ? 'aura' : t.ghost ? t.gatk : (t.isHero ? heroStats(t).atk : curLevel(t).atk);
   if (t.cat === 'summon') { if (t === G.selected) selRing(x, y, s * 0.6, '#3cff3c'); else if (t === HOV) selRing(x, y, s * 0.6, '#3cff3c', 0.45); }
   else if (t === G.selected) footRing(t, 1); else if (t === HOV) footRing(t, 0.45);
   if (t.cat === 'aura') { if (!t.m3) drawAuraCore(t, performance.now() / 1000); return; }
@@ -8322,6 +8768,7 @@ function drawMinimap() {
   mctx.strokeStyle = '#6dff6d'; mctx.lineWidth = Math.max(1, 30 * k); mctx.beginPath(); mctx.arc(mx(0), my(0), 300 * k, 0, 7); mctx.stroke();
   const dot = (x, y, c, s) => { mctx.fillStyle = c; mctx.fillRect(mx(x) - s / 2, my(y) - s / 2, s, s); };
   for (const t of G.towers) dot(t.x, t.y, t.isHero ? '#ffd257' : '#3cdc3c', 4 * DPR);
+  for (const t of G.ghosts) if (!t.hide) dot(t.x, t.y, t.isHero ? '#ffd257' : '#58a8ff', 4 * DPR);     // 队友的塔
   for (const m of G.monsters) dot(m.x, m.y, m.boss ? '#ff2bff' : '#ff3c3c', (m.boss ? 4 : 2.5) * DPR);
   for (const s of SHOPS) dot(s.x, s.y, '#ffd257', (s === SHOP ? 5 : 3.5) * DPR);
   for (const it of G.items) dot(it.x, it.y, it.def.power ? '#ffd257' : '#cfe8ff', 2.5 * DPR);
@@ -8350,6 +8797,7 @@ function uiDirty() { dirty = true; }
 const MSG_SND = [[/^金币不足/, 'noGold'], [/^木材不足/, 'noLumber'], [/^人口不足/, 'noFood'], [/不能建造|已被占用/, 'cantBuild'],
   [/冷却中|射程内没有敌人|只能|限制|最多|太远|召唤失败|已经在场上|已经学习|需要力量|魔法值不足/, 'error']];
 function msg(text, sec = 6) {
+  if (GLOBALCTX && G && G.mp && !G.mp.dead && MP.host()) MP.send({ t: 'say', text, sec });   // 主机全局脚本里的提示：所有人都看到
   const snd = MSG_SND.find(([re]) => re.test(text)); if (snd) SFX.ui(snd[1]);
   const d = document.createElement('div'); d.textContent = text; $('msgs').appendChild(d);
   setTimeout(() => d.remove(), sec * 1000);
@@ -8394,7 +8842,7 @@ function bar(cls, v, max, text) { return `<div class="bar ${cls}"><i style="widt
 const builderState = b => { const o = b.order; return !o ? '待命' : o.kind === 'build' ? '前往建造 ' + (o.fam === 'hero' ? G.heroChoice : o.fam === 'ancient' ? '古树' : o.fam === 'banner' ? '英雄旗帜' : o.fam)
   : o.kind === 'use' ? `前去使用${o.item.name}` : o.kind === 'fod' ? '前去施放死亡之指' : o.kind === 'talent' ? '前去激活天赋' : o.kind === 'pick' ? `去捡${o.target.def.name}` : '移动中'; };
 // 新加的几类单位（三个商人、队友的守卫者、地上的物品、野生宠物、宠物）的信息卡内容：{ name, sub, lines }
-const known = e => e === G.builder || e === G.rabbit || SHOPS.includes(e) || G.towers.includes(e) || G.monsters.includes(e) || G.items.includes(e) || G.wild.includes(e) || activePlayers().some(p => p.builder === e);
+const known = e => e === G.builder || e === G.rabbit || SHOPS.includes(e) || G.towers.includes(e) || G.ghosts.includes(e) || G.monsters.includes(e) || G.items.includes(e) || G.wild.includes(e) || activePlayers().some(p => p.builder === e);
 function extraCard(e) {
   if (e.isShop && e !== SHOP) {
     const d = Math.round(Math.hypot(G.builder.x - e.x, G.builder.y - e.y)), near = d <= RULE.shopReach;
@@ -8403,6 +8851,11 @@ function extraCard(e) {
     if (e.shop === 'master') lines.push(`当局成就：<b style="color:#ff9ad5">${G.ach}</b>`);
     if (e.shop === 'pet') lines.push(G.pet ? `你的宠物：${G.pet.def.name}` : '每人只能有一只宠物；野生宠物（10 波 BOSS 后出现）用糖果抓');
     return { name: e.name, sub: e.sub, lines };
+  }
+  if (e.ghost) {
+    const p = G.roster[e.pid] || {}, kind = e.isHero ? '英雄' : e.cat === 'summon' ? '召唤物' : e.cat === 'aura' ? '光环塔' : '塔';
+    return { name: escHtml(e.gname || e.fam), sub: `队友 ${escHtml(p.name || '')} 的${kind}`, lines: [e.isHero ? `等级 ${e.level}` : e.cat === 'summon' ? '' : `等级 ${e.lv + 1} / ${e.levels.length}`,
+      e.cat === 'aura' && e.lv === 0 ? (e.forSale ? '<b style="color:#6fd17a">允许收购</b>：可以对它使用收购卷轴' : '没有允许收购') : '', '队友的单位由他的机器控制'].filter(Boolean) };
   }
   if (e.remote) { const p = G.roster[e.pid]; return { name: `${p.name} 的守卫者`, sub: '队友 · 循环圈守卫者', lines: [`建造栏：${p.build.join('、')}${p.heroChoice ? '、' + p.heroChoice : ''}`, `杀敌 ${p.kills} · 被赞 ${p.likes}`, '可以对他使用复制卷轴'] }; }
   if (e.isItem) return { name: e.def.name + (e.charges > 1 ? ` ×${e.charges}` : ''), sub: '物品 · 选中守卫者后点它（或右键）去捡', lines: [e.def.tip || ''] };
@@ -8639,7 +9092,7 @@ function buildCmds() {
     out.push(comeHere(rabbitNear(), e.x, e.y, '兔子'));
     return out;
   }
-  if (e.remote || e.isItem || e.isWild) return out;            // 队友的守卫者、地上的物品、野生宠物没有命令
+  if (e.remote || e.ghost || e.isItem || e.isWild) return out;            // 队友的守卫者、地上的物品、野生宠物没有命令
   if (e.kind === 'pet' && G.pet && G.pet.e === e) {
     const P = G.pet;
     out.push(cmd('Q', '天', '普通天赋', `<b>宠物普通天赋</b>（10 木材）<br>宠物技能升 1 级（小狼攻速 +60%、小鱼人攻击 +300 且渔人大鱼上限 +1、小牛给神牛的加成翻倍……）；激活后才能用糖果给宠物升级${P.talent ? '<br><b style="color:#6fd17a">已激活</b>' : ''}`,
@@ -8863,7 +9316,7 @@ function hitTest(px, py) {
   for (const w of G.wild) if (d2(w, 80) < rpx(w, 90, 14)) return w;
   if (!G.pending) for (const it of G.items) if (d2(it, 30) < rpx(it, 60, 12)) return it;
   let best = null, bd = Infinity;
-  for (const t of G.towers) { if (t.hide) continue; const d = d2(t, t.cat === 'aura' ? 80 : 200); if (d < rpx(t, 120, 16) && d < bd) { bd = d; best = t; } }
+  for (const t of allTowers()) { if (t.hide) continue; const d = d2(t, t.cat === 'aura' ? 80 : 200); if (d < rpx(t, 120, 16) && d < bd) { bd = d; best = t; } }
   if (best) return best;
   for (const m of G.monsters) { const d = d2(m, 110 * (m.elite ? 1.3 : 1)); if (d < rpx(m, 90, 12) && d < bd) { bd = d; best = m; } }
   return best;
@@ -8989,9 +9442,12 @@ mm.addEventListener('pointerup', () => { mmDown = false; });
 // 做了：-QXPF（以后建英雄不自动用皮肤，见 HERO_SKIN）、-KN（只有 1 号玩家能用：关掉每 5 秒发金的 R6，原图怪物生命科技 Rhar 也是 R6 每 5 秒设成当前波数的，所以一起停在当时的波数）、
 // -PF（Perfect 数）、-CJ（当局成就；原图后半是平台成就币，这里换成账号成就）、-CZ（英雄成长值，妖灵再加飞鸟的 X / Y / Z）、-SC（全场玩家单位总数 De）。
 // 没做：-MS（调试用的一串数字）、-YX（平台英雄点）、-CZCZ / -ZHTZ（平台赞助：重置成长值 / 召唤兔子，重置成长值见守护宗师的重置卷轴）、
-// -fuck02~08 / -gb00（房主踢人 / 房主掉线后接管，等联机）；地图里另外被塞进了"魔解网"的作弊脚本（cx / sc / -wp 等），不做
+// 联机时另有 -fuck02~08 / -gb00（房主踢人 / 房主掉线后接管）；地图里另外被塞进了"魔解网"的作弊脚本（cx / sc / -wp 等），不做
 const CHAT_CMDS = [
-  { s: '-KN', fn() { if (G.me !== 0) return; msg('难度系数增加为困难', 10); if (G.knWave == null) G.knWave = G.wave; } },
+  { s: '-KN', fn() { if (G.mp ? G.me !== G.mp.lord : G.me !== 0) return; msg('难度系数增加为困难', 10); if (G.knWave == null) G.knWave = G.wave; if (G.mp) MP.send({ t: 'kn' }); } },
+  // 房主命令（原图只注册给 Player(0)）：-fuck02 ~ -fuck08 直接踢出 2~8 号玩家；-gb00：房主不在了，输入的人接管房主
+  ...[2, 3, 4, 5, 6, 7, 8].map(n => ({ s: '-FUCK0' + n, exact: true, fn() { MP.cmdKick(n - 1); } })),
+  { s: '-GB00', exact: true, fn() { MP.cmdLord(); } },
   { s: '-PF', fn() { msg(`Perfect数:${G.perfect}`, 10); } },
   { s: '-CJ', fn() { msg(`当局成就：${G.ach}   账号成就：${G.player ? profileOf(G.player).pts : 0}`, 5); } },
   { s: '-CZ', exact: true, fn() {
@@ -9015,6 +9471,7 @@ const CHAT_CMDS = [
 function chatSend(text) {
   text = text.trim(); if (!text) return;
   msg(`[${G.player || '玩家'}]：${text}`, 8);
+  if (G.mp) MP.send({ t: 'chat', text });
   const up = text.toUpperCase();
   for (const c of CHAT_CMDS) if (c.exact ? up === c.s : up.includes(c.s)) c.fn();
   uiDirty();
@@ -9039,7 +9496,7 @@ window.addEventListener('keydown', e => {
   if (e.key === 'F1') { e.preventDefault(); select(G.builder); centerOn(G.builder); return; }
   if (e.key === 'F2' && G.hero) { e.preventDefault(); const hs = G.heroes, h = hs[(hs.indexOf(G.selected) + 1) % hs.length]; select(h); centerOn(h); return; }   // 有两个英雄时再按一次换另一个
   if (e.key === ' ') { e.preventDefault(); if (G.selected) centerOn(G.selected); return; }
-  if (e.key.toLowerCase() === 'p') { G.paused = !G.paused; return; }
+  if (e.key.toLowerCase() === 'p') { if (G.mp) msg('联机对局不能暂停'); else G.paused = !G.paused; return; }
   const ni = e.code.startsWith('Numpad') ? INV_KEYS.indexOf(e.code.slice(6)) : -1;   // 小键盘：物品栏
   if (ni >= 0) { e.preventDefault(); if (invItems()[ni]) { SFX.ui('click'); invPick(ni); } return; }
   const k = e.key.toUpperCase();
@@ -9048,13 +9505,13 @@ window.addEventListener('keydown', e => {
   if (c && !c.disabled) { SFX.ui('click'); c.fn(); showTip(c); }
 });
 window.addEventListener('keyup', e => keys.delete(e.key));
-$('btn-start').onclick = () => { if (G.phase === 'prep') G.timer = 0.01; };
-$('btn-pause').onclick = () => { G.paused = !G.paused; };
+$('btn-start').onclick = () => { if (G.mp && !MP.host()) return msg('联机对局只有主机（1 号位）能提前开始'); if (G.phase === 'prep') G.timer = 0.01; };
+$('btn-pause').onclick = () => { if (G.mp) return msg('联机对局不能暂停'); G.paused = !G.paused; };
 $('btn-snd').onclick = () => {                              // 全开 → 只有音效 → 静音 → 全开
   const p = SFX.pref;
   if (p.sfx && p.music) SFX.toggle('music'); else if (p.sfx) SFX.toggle('sfx'); else { SFX.toggle('sfx'); SFX.toggle('music'); }
 };
-$('btn-speed').onclick = () => { G.speed = G.speed === 1 ? 2 : G.speed === 2 ? 4 : 1; };
+$('btn-speed').onclick = () => { if (G.mp) return msg('联机对局不能变速'); G.speed = G.speed === 1 ? 2 : G.speed === 2 ? 4 : 1; };
 $('btn-help').onclick = showHelp;
 const zoomBtn = f => { const z0 = zoomTo ? zoomTo.z : G.cam.zoom, w = W / DPR / 2, h = H / DPR / 2; zoomTo = { z: clamp(z0 * f, ZMIN, ZMAX), px: w, py: h, g: groundAt(w, h) }; };
 $('btn-zin').onclick = () => zoomBtn(1.3);
@@ -9115,6 +9572,7 @@ function askName() {
   input.focus(); input.select();
 }
 function showStart() {
+  if (window.GC_NET && window.GC_NET.inGame) window.GC_NET.leave();     // 从联机对局回到菜单：断开
   if (!profiles.last) return askName();
   const player = profiles.last;
   const start = (mode, players = 1, bots = false) => { newGame(mode, players, player, bots); hideModal(); resize(); clampCam(); uiDirty(); };
@@ -9126,6 +9584,7 @@ function showStart() {
   })).concat([
     { text: '演示：前两波', hint: MODES.demo.desc, fn: () => start('demo') },
     { text: '多人规模（2~8 人）', hint: '按原图多人局的规模开局：N 人开 N 个出怪口，怪物上限 40×N，最终波的龙和魔王也按人数。原版数值，联机前用来试玩', fn: pickPlayers },
+    { text: '联机（房间码）', hint: '和朋友一起玩：建房间把房间码发给朋友，或输入朋友的房间码加入。2~8 人，每人守自己的出怪口。需要先有大厅服务（本机试玩：node server/server.js）', fn: () => window.GC_NET ? window.GC_NET.open(player) : msg('联机模块没有加载') },
     { text: '玩法简介', hint: '怎么玩、怎么操作', fn: intro },
     { text: `玩家 ${escHtml(player)} · 成就 ${profileOf(player).pts} 点（切换）`, hint: `账号成就 ${profileLine(player)}<br>点这里换一个玩家名称，各名称的账号成就分开记`, fn: askName },
   ]), '把鼠标移到选项上查看说明');
@@ -9183,13 +9642,20 @@ function showHelp() {
 // ================================================================ 主循环
 let last = performance.now(), acc = 0, uiTick = 0;
 const DT = 1 / 30;
-function frame(now) {
+// 推进模拟。联机对局不能暂停、不能变速，弹窗开着也照样跑（别人还在打）；标签页在后台时由 net.js 的定时器调用（GC.bgTick）
+function simAdvance(now) {
   const el = Math.min(0.25, (now - last) / 1000); last = now;
-  if (G && !G.paused && $('modal').classList.contains('hidden')) {
-    acc += el * G.speed;
+  if (G && (G.mp ? true : !G.paused && $('modal').classList.contains('hidden'))) {
+    acc += el * (G.mp ? 1 : G.speed);
     let n = 0;
     while (acc >= DT && n < 40) { step(DT); acc -= DT; n++; }
   }
+  return el;
+}
+let frameAt = 0;
+function frame(now) {
+  frameAt = performance.now();
+  const el = simAdvance(now);
   if (G) {
     // 方向键平移镜头
     zoomStep(el);

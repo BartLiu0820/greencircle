@@ -308,3 +308,25 @@ main:has(#chat:not(.hidden)) #msgs { bottom: 44px; }
 /* 聊天按钮：只在触屏设备上显示（键盘用回车） */
 #q-chat { display: none; }
 @media (pointer: coarse) { #q-chat { display: inline-flex; align-items: center; justify-content: center; } }
+
+/* 联机大厅（net.js） */
+.lobby .lb-row{display:flex;gap:8px;align-items:center;margin:6px 0;color:#cfe3d2;font-size:13px}
+.lobby .lb-row .w3input{flex:1;min-width:0;margin:0}
+.lobby .lb-row .w3btn{flex:1;margin:0}
+.lobby .lb-code{color:#ffd257;letter-spacing:4px;font-family:monospace;font-size:1.2em;user-select:all}
+.lobby .lb-players{margin:6px 0;text-align:left}
+.lobby .lb-p{display:flex;gap:8px;align-items:center;padding:4px 8px;margin:3px 0;background:rgba(0,0,0,.35);border:1px solid #3a4a3d;border-radius:3px;font-size:13px;color:#e8f0e9}
+.lobby .lb-p>b{color:#ffd257;width:14px}
+.lobby .lb-p .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lobby .lb-p em{font-style:normal;font-size:11px;color:#111;background:#9fc4a6;border-radius:2px;padding:0 4px;margin-left:4px}
+.lobby .lb-p i{font-style:normal;font-size:11px}
+.lobby .ok{color:#6fd17a}.lobby .wait{color:#ffb347}
+.lobby .lb-p button{font-size:11px;padding:1px 6px;background:#5a2a26;color:#ffd0cc;border:1px solid #8a4a44;border-radius:2px;cursor:pointer}
+.lobby .lb-set{font-size:12px;color:#cfe3d2;margin:6px 0;text-align:left}
+.lobby .lb-set select{background:#1a241c;color:#e8f0e9;border:1px solid #3a4a3d;padding:2px}
+.lobby .lb-set label{margin-left:10px;white-space:nowrap}
+.lobby .lb-chat{height:84px;overflow-y:auto;text-align:left;font-size:12px;background:rgba(0,0,0,.4);border:1px solid #3a4a3d;padding:4px 6px;margin:6px 0;color:#e8f0e9}
+.lobby .lb-chat .sys{color:#8fa593}
+.lobby .lb-chat b{color:#9fd8ff}
+.lobby code{background:rgba(0,0,0,.4);padding:0 4px;border-radius:2px}
+.lobby .w3btn:disabled{opacity:.45;cursor:not-allowed}
