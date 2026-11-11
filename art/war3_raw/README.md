@@ -20,7 +20,7 @@ python3 tools/war3_icons.py
 python3 tools/war3_missiles.py
 # 6. 地面贴图 + 树墙 + 出怪口光芒的天气贴图 → h5/assets/w3terrain.js、h5/assets/terrain/
 python3 tools/war3_terrain.py
-# 7. 实时 3D 渲染用的模型和贴图（第 2 步登记过的模型 + 引用的贴图 + 队伍颜色，约 36 MB）→ h5/assets/w3/
+# 7. 实时 3D 渲染用的模型和贴图（第 2 步登记过的模型 + 召唤物 LOOK 表 + 地上物品 + 引用的贴图 + 队伍颜色，约 69 MB）→ h5/assets/w3/、h5/assets/w3items.js
 python3 tools/war3_models.py
 # 8. 音效和音乐（直接从压缩包里读，不用先解压；约 49 MB）→ h5/assets/w3sounds.js、h5/assets/sounds/
 python3 tools/war3_sounds.py

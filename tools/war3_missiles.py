@@ -44,6 +44,8 @@ OUT = os.path.join(ROOT, 'h5', 'assets', 'missiles')
 ZK = 0.64                       # 和 fx.js 一致：高度在屏幕上压缩成 0.64
 RES = 2                         # 本体图：每个游戏单位 2 像素
 MAX_SPEED = 5000                # 原图里速度 10000 的"投射物"其实是瞬间命中，不算
+# 用原图投射物的召唤物：妖灵的普通 / 魔法 / 混乱 / 通用飞鸟（模型是 "_"，画面上只有弹道），月之女神的精灵守卫 / 大精灵守卫
+SUMMONS = ['nanb', 'nanc', 'n00F', 'n06J', 'u00E', 'u00J']
 
 
 # ---------------------------------------------------------------- 额外解析：GEOA 颜色、PRE2、RIBB（颜色按读出来的顺序当 RGB 用：火龙的火是橙色、水元素是蓝色）
@@ -319,6 +321,7 @@ def main():
         u2 = U[t['levels'][-1]['id']]                         # 第二武器（风行塔天赋打开的鹰身人箭……）：登记 'tower:<塔>:w2'
         if len((u2.get('Missileart') or '').split(',')) > 1 and u2.get('weapTp2'): use[f'tower:{fam}:w2'] = (u2, 1)
     for n, h in D['heroes'].items(): use['hero:' + n] = U[h['id']]
+    for uid in SUMMONS: use['unit:' + uid] = U[uid]         # 召唤物：game.js 里召唤时给 w3m: 'unit:<编号>'
     data, who = {}, {}
     for k, u in use.items():
         u, w = u if isinstance(u, tuple) else (u, 0)
@@ -340,7 +343,7 @@ def main():
         fp.write('// 自动生成：tools/war3_missiles.py —— 原版投射物（本体图 + 粒子发射器 + 拖尾），fx.js 用\n')
         fp.write('window.W3_MISSILES = ' + json.dumps({d['name']: d for d in data.values()}, ensure_ascii=False) + ';\n')
         fp.write('window.W3_MISSILE_OF = ' + json.dumps(who, ensure_ascii=False, indent=1) + ';\n')
-    print(f'导出了 {len(data)} 种投射物，{len(who)} 个塔 / 英雄用上')
+    print(f'导出了 {len(data)} 种投射物，{len(who)} 个塔 / 英雄 / 召唤物用上')
 
 
 if __name__ == '__main__':
