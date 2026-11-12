@@ -32,6 +32,8 @@ function create(canvas, sheets) {
   const H = MV.viewer.handlers;
   viewer.addHandler(H.mdx, solver); viewer.addHandler(H.blp); viewer.addHandler(H.tga);
   viewer.on('error', e => console.warn('[3d]', e.error, e.fetchUrl || ''));
+  let nStart = 0, nEnd = 0;                          // 模型和贴图的加载计数（game.js 的预加载进度条用）
+  viewer.on('loadstart', () => nStart++); viewer.on('loadend', () => nEnd++);
   // 每帧开头：清屏成地图外的暗色 → 地块（groundPass）→ 叠上这一帧的地面画布（backdrop）→ 库再画模型
   let ground = null, terrain = null;
   const drawGround = backdrop(viewer), drawTerrain = groundPass(viewer);
@@ -187,7 +189,7 @@ function create(canvas, sheets) {
     viewer.updateAndRender(Math.max(0, dtGame) * 1000);
   }
 
-  return { frame, put, putModel, burst, render, doodad, preload: mdx => typeof modelOf(mdx) !== 'string',
+  return { frame, put, putModel, burst, render, doodad, stats: () => [nStart, nEnd], preload: mdx => typeof modelOf(mdx) !== 'string',
     ready: meta => { const mdx = mdxOf(meta); return !!mdx && typeof modelOf(mdx) !== 'string'; } };
 }
 

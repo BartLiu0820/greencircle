@@ -5,8 +5,29 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>绿色循环圈外传 H5</title>
 <link rel="stylesheet" href="style.css?v=20261110n">
+<style>
+/* 加载进度条：写在页面里，样式表和脚本还没下载完就能显示 */
+#boot { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; background: #050805; color: #e8dfc0;
+  font: 13px/1.45 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; transition: opacity .35s; }
+#boot.gone { opacity: 0; pointer-events: none; }
+#boot .bx { width: min(460px, 80vw); text-align: center; }
+#boot h1 { margin: 0 0 22px; font-size: 26px; font-weight: 700; letter-spacing: 4px; color: #ffd257; text-shadow: 0 0 14px rgba(60,200,60,.55); }
+#boot .bar { height: 14px; padding: 2px; border: 1px solid #6b5a2e; border-radius: 3px; background: #0d120d; box-shadow: inset 0 0 6px #000; }
+#boot .bar i { display: block; width: 0; height: 100%; border-radius: 2px; background: linear-gradient(#7be07b, #2f9a2f); transition: width .15s linear; }
+#boot .row { display: flex; justify-content: space-between; margin-top: 8px; color: #a9b79a; }
+#boot .row b { color: #ffd257; font-variant-numeric: tabular-nums; }
+#boot button { margin-top: 18px; padding: 5px 14px; font: inherit; color: #e8dfc0; background: #1b241b; border: 1px solid #6b5a2e; border-radius: 4px; cursor: pointer; }
+</style>
 </head>
 <body>
+<div id="boot">
+  <div class="bx">
+    <h1>绿色循环圈外传</h1>
+    <div class="bar"><i id="boot-fill"></i></div>
+    <div class="row"><span id="boot-text">正在加载…</span><b id="boot-pct">0%</b></div>
+    <button id="boot-skip" hidden>不等了，直接进入</button>
+  </div>
+</div>
 <div id="app">
   <header id="top">
     <div class="menu">
@@ -58,23 +79,56 @@
   </footer>
 </div>
 <div id="modal" class="hidden"><div id="modal-box"></div></div>
-<script src="assets/manifest.js?v=20261020b"></script>
-<script src="assets/war3_icons.js?v=20261031b"></script>
-<script src="assets/sprites.js?v=20261031a"></script>
-<script src="assets/w3missiles.js?v=20261110a"></script>
-<script src="assets/w3items.js?v=20261110a"></script>
-<script src="assets/w3portraits.js?v=20261031a"></script>
-<script src="data.js?v=20261031b"></script>
-<script src="waves.js?v=20261023a"></script>
-<script src="assets/w3terrain.js?v=20261022a"></script>
-<script src="assets/w3map.js?v=20261023a"></script>
-<script src="terrain.js?v=20261023a"></script>
-<script src="fx.js?v=20261022b"></script>
-<script src="vendor/mdx-m3-viewer-5.12.0.min.js"></script>
-<script src="assets/w3sounds.js?v=20261030a"></script>
-<script src="sound.js?v=20261021a"></script>
-<script src="units3d.js?v=20261022d"></script>
-<script src="game.js?v=20261110q"></script>
-<script src="net.js?v=20261110c"></script>
+<script>
+// 加载进度条。脚本按顺序加载（原来是一排 <script>，下载完之前页面一直是白的），占进度条的前 40%，数字是各文件的大小（KB），只用来算比例；
+// 后 60% 是 game.js 的资源预加载（preBoot）。开局时 game.js 再用同一个进度条等本局资源（preStart）。改了脚本记得改这里的 ?v=
+(() => {
+const SCRIPTS = [
+  ['assets/manifest.js?v=20261020b', 1],
+  ['assets/war3_icons.js?v=20261031b', 66],
+  ['assets/sprites.js?v=20261031a', 518],
+  ['assets/w3missiles.js?v=20261110a', 61],
+  ['assets/w3items.js?v=20261110a', 9],
+  ['assets/w3portraits.js?v=20261031a', 57],
+  ['data.js?v=20261031b', 248],
+  ['waves.js?v=20261023a', 588],
+  ['assets/w3terrain.js?v=20261022a', 2],
+  ['assets/w3map.js?v=20261023a', 40],
+  ['terrain.js?v=20261023a', 16],
+  ['fx.js?v=20261022b', 41],
+  ['vendor/mdx-m3-viewer-5.12.0.min.js', 928],
+  ['assets/w3sounds.js?v=20261030a', 102],
+  ['sound.js?v=20261021a', 5],
+  ['units3d.js?v=20261111a', 19],
+  ['game.js?v=20261111c', 790],
+  ['net.js?v=20261110c', 20],
+];
+const $ = id => document.getElementById(id), box = $('boot'), skip = $('boot-skip');
+let shown = 0, skipT = 0;
+const BOOT = window.BOOT = {
+  set(p, text) { shown = Math.max(shown, Math.min(1, p)); $('boot-fill').style.width = (shown * 100).toFixed(1) + '%'; $('boot-pct').textContent = Math.floor(shown * 100) + '%'; if (text) $('boot-text').textContent = text; },
+  // title 给了就是开局那次：进度从 0 重新走；onSkip：等了 5 秒还没好时让玩家可以直接进（没加载完的资源进游戏后照旧边玩边加载）
+  show(title, onSkip) {
+    if (title) { shown = 0; BOOT.set(0, title); }
+    box.classList.remove('gone'); skip.hidden = true; clearTimeout(skipT);
+    if (onSkip) { skip.onclick = onSkip; skipT = setTimeout(() => { skip.hidden = false; }, 5000); }
+  },
+  hide() { clearTimeout(skipT); BOOT.set(1); box.classList.add('gone'); },
+};
+const total = SCRIPTS.reduce((a, s) => a + s[1], 0);
+let done = 0, left = SCRIPTS.length;
+function fail(src) {
+  $('boot-text').textContent = '加载失败：' + src + '　';
+  const b = document.createElement('button'); b.textContent = '重试'; b.onclick = () => location.reload(); $('boot-text').appendChild(b);
+}
+for (const [src, kb] of SCRIPTS) {
+  const el = document.createElement('script');
+  el.src = src; el.async = false;                    // 并行下载，按顺序执行
+  el.onload = () => { done += kb; left--; if (left) BOOT.set(0.4 * done / total, '加载脚本 ' + (SCRIPTS.length - left) + ' / ' + SCRIPTS.length); };
+  el.onerror = () => fail(src);
+  document.body.appendChild(el);
+}
+})();
+</script>
 </body>
 </html>

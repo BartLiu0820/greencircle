@@ -245,6 +245,16 @@
       ],
       "port": 8931,
       "autoPort": false
+    },
+    {
+      "name": "h5-perf",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /private/tmp/claude-501/-Users-liuyiang--claude-spares-spare-7mTvFP/ddfb9802-3b0b-4f19-a8c9-506fe98e73ea/scratchpad/h5srv && exec python3 -m http.server 8941"
+      ],
+      "port": 8941,
+      "autoPort": false
     }
   ]
 }
