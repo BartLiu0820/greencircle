@@ -105,29 +105,53 @@ const SCRIPTS = [
 ];
 const $ = id => document.getElementById(id), box = $('boot'), skip = $('boot-skip');
 let shown = 0, skipT = 0;
+let started = false, broken = false;                 // started：game.js 已经接管进度条（preBoot 调了 show）；broken：启动失败，不再往下加载
 const BOOT = window.BOOT = {
-  set(p, text) { shown = Math.max(shown, Math.min(1, p)); $('boot-fill').style.width = (shown * 100).toFixed(1) + '%'; $('boot-pct').textContent = Math.floor(shown * 100) + '%'; if (text) $('boot-text').textContent = text; },
+  set(p, text) { if (broken) return; shown = Math.max(shown, Math.min(1, p)); $('boot-fill').style.width = (shown * 100).toFixed(1) + '%'; $('boot-pct').textContent = Math.floor(shown * 100) + '%'; if (text) $('boot-text').textContent = text; },
   // title 给了就是开局那次：进度从 0 重新走；onSkip：等了 5 秒还没好时让玩家可以直接进（没加载完的资源进游戏后照旧边玩边加载）
   show(title, onSkip) {
+    if (broken) return;
+    started = true;
     if (title) { shown = 0; BOOT.set(0, title); }
     box.classList.remove('gone'); skip.hidden = true; clearTimeout(skipT);
     if (onSkip) { skip.onclick = onSkip; skipT = setTimeout(() => { skip.hidden = false; }, 5000); }
   },
-  hide() { clearTimeout(skipT); BOOT.set(1); box.classList.add('gone'); },
+  hide() { if (broken) return; clearTimeout(skipT); skip.hidden = true; BOOT.set(1); box.classList.add('gone'); },
 };
 const total = SCRIPTS.reduce((a, s) => a + s[1], 0);
-let done = 0, left = SCRIPTS.length;
-function fail(src) {
-  $('boot-text').textContent = '加载失败：' + src + '　';
-  const b = document.createElement('button'); b.textContent = '重试'; b.onclick = () => location.reload(); $('boot-text').appendChild(b);
+let done = 0, cur = '';
+// 启动失败：停在加载页，写明原因，给“重试”。之后的脚本不再执行（免得缺了前面的脚本连锁报错），进度条也不再动
+function fail(why) {
+  if (broken) return;
+  broken = true; clearTimeout(skipT); skip.hidden = true;
+  box.classList.remove('gone');
+  const t = $('boot-text'); t.textContent = why + '　'; t.style.color = '#ff8a7a';
+  const b = document.createElement('button'); b.textContent = '重试'; b.style.marginTop = '0'; b.onclick = () => location.reload(); t.appendChild(b);
 }
-for (const [src, kb] of SCRIPTS) {
-  const el = document.createElement('script');
-  el.src = src; el.async = false;                    // 并行下载，按顺序执行
-  el.onload = () => { done += kb; left--; if (left) BOOT.set(0.4 * done / total, '加载脚本 ' + (SCRIPTS.length - left) + ' / ' + SCRIPTS.length); };
-  el.onerror = () => fail(src);
+// 脚本执行时抛错（下载成功了但代码出错）：只认正在执行的那个脚本自己抛的（定时器、画面帧里的报错不算启动失败）；
+// 拿不到文件名的（跨域脚本只给 "Script error."）在 game.js 接管之前也算
+function onErr(e) {
+  const f = e.filename || '', mine = !!cur && f.indexOf(cur) >= 0;
+  if (!mine && (started || f)) return;
+  fail('启动出错：' + (e.message || e) + (cur ? '（' + cur.replace(/\?.*/, '') + (mine && e.lineno ? ' 第 ' + e.lineno + ' 行' : '') + '）' : ''));
+}
+addEventListener('error', e => { if (!(e.target && e.target.tagName)) onErr(e); });      // 资源加载失败的 error 事件不冒泡到这里（target 是元素），只接脚本运行时错误
+// 并行下载、按顺序执行：先用 preload 把所有脚本一起下载，再一个跑完了才插下一个，这样前面出错时后面的可以不执行（一排 async=false 的脚本插进去以后就停不下来了）
+for (const [src] of SCRIPTS) { const l = document.createElement('link'); l.rel = 'preload'; l.as = 'script'; l.href = src; document.head.appendChild(l); }
+function next(i) {
+  if (broken) return;
+  if (i >= SCRIPTS.length) {
+    cur = '';
+    if (!started) fail('启动出错：游戏没有启动起来（打开浏览器控制台看具体报错）');     // 脚本都跑完了 game.js 还没接管进度条：多半是 game.js 中途出错又被吞了
+    return;
+  }
+  const [src, kb] = SCRIPTS[i], el = document.createElement('script');
+  cur = src; el.src = src;
+  el.onload = () => { if (broken) return; done += kb; if (!started) BOOT.set(0.4 * done / total, '加载脚本 ' + (i + 1) + ' / ' + SCRIPTS.length); next(i + 1); };
+  el.onerror = () => fail('加载失败：' + src);
   document.body.appendChild(el);
 }
+next(0);
 })();
 </script>
 </body>
