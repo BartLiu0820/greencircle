@@ -6200,7 +6200,7 @@ function refreshHint() {
   else if (G.endless) {
     const E = G.endless, u = E.unit && D.units[E.unit];
     cur = (E.wave ? `无尽关卡第 ${E.wave} 波` : `无尽关卡 ${Math.ceil(G.timer)} 秒后开启`) + `　无尽积分 <b style="color:#ffd257">${E.score}</b>` +
-      (u ? `　${u.name}（${ARMOR_CN[u.armorType]}护甲，生命 ${fmt(u.hp * (1 + 0.25 * (E.rhla + E.iy)) * G.hpScale)}，护甲 ${u.armor}，移速 ${u.speed + 5 * E.mg}）` : '');
+      (u ? `　${u.name}（${ARMOR_CN[u.armorType]}护甲，生命 ${fmt(u.hp * endlessHpMul(E) * G.hpScale)}，护甲 ${u.armor}，移速 ${u.speed + 5 * E.mg}）` : '');
     G.hint = cur; return;
   } else {
     const u = G.curUnit && D.units[G.curUnit];
@@ -6401,12 +6401,14 @@ function bossCount(n, name) {
 // 杀死所有龙和魔王时（原图 zI）：按第一条龙出来后的秒数（C8）加 Perfect 分：≤150 秒 +3、≤250 +2、≤350 +1；Perfect 分 ≥ 10 开启无尽，否则通关结束。
 // 开启后（zM）：180 秒倒计时，80 秒提示"无尽关卡是不能通关的"，120 秒提示怪物上限降到 每人 15；185 秒第一波，之后每 20 秒一波（zd）。
 // 每波随机 10 种怪物之一（鬼、精灵、加理瑟斯、卡尔发丝、鹿神、幽灵、大法、风之希尔、阿尔萨斯、魔），每个出怪口每 0.6 秒 1 只、共 15 只；
-// 每波怪物科技 Rhla +1（生命 +25%）；无尽积分到 10000 后每波再 +1 级 R010（生命 +25%），到 15000 后再 +1 级 R010 和 R01M（移速 +5）。
+// 每波怪物科技 Rhla +1（生命 +25%）；无尽积分到 10000 后每波再 +1 级 R010（生命 +25%），到 15000 后再 +1 级 R010 和 R01M（移速 +5），
+// 到 25000 后每波 +1 级 R01U（生命 +75%，原图 Nc）。
 // 无尽积分 Ds：每杀一只怪 +(NM+4)，每波 +45（8 人在场）或 离开人数×45 + 空位×54（NM = 4 的 4 人局只有杀怪分，每只 +8）。
 // 第一波开始时守卫者失去随机建造、使用木材、死亡之指、守护神技；塔类之球不能买。怪数超过上限时结束，按无尽积分结算（原图 RW / zr）
 const ENDLESS_START = [[25000, 15], [24000, 14], [23000, 13], [22000, 12], [21000, 11], [20000, 10], [15000, 8], [10000, 6], [5000, 4], [1, 2]];
 // 开局按玩家档案里的无尽最高分加当局成就（原图 qi 按平台存的无尽分 Oz：≥1 +2 … ≥25000 +15）
 const endlessBonus = best => (ENDLESS_START.find(([s]) => best >= s) || [0, 0])[1];
+const endlessHpMul = E => 1 + 0.25 * (E.rhla + E.iy) + 0.75 * (E.nc || 0);   // Rhla / R010 每级 +25%，R01U 每级 +75%（rhpo 按基础生命相加）
 const endlessLock = () => !!(G.endless && G.endless.locked);
 // 无尽积分里程碑（原图 SG，每 3 秒检查）：给平台的至尊积分，这里换成账号成就（至尊 +1 = 账号成就 +10）
 const ENDLESS_GOALS = [
@@ -6432,7 +6434,7 @@ function finalCleared() {
   victory();
 }
 function startEndless(thrill) {
-  G.endless = { wave: 0, score: 0, rhla: 0, iy: 0, mg: 0, unit: null, locked: false, goals: {}, hintAt: 0, nm: G.players === 4 ? 4 : 0 };
+  G.endless = { wave: 0, score: 0, rhla: 0, iy: 0, mg: 0, nc: 0, unit: null, locked: false, goals: {}, hintAt: 0, nm: G.players === 4 ? 4 : 0 };
   G.spawners = []; G.sc = null; G.curUnit = null; G.bossRule = null; G.waveHook = null;     // 原图 zM 关掉最终波的出怪器
   G.timer = RULE.endlessOpen;
   G.waveNote = '　<b>无尽关卡</b>：不能通关，分数决定实力';
@@ -6457,9 +6459,10 @@ function endlessWave() {
   if (!E.nm) E.score += G.players === 8 ? 45 : G.roster.filter(p => p && p.out).length * 45 + (MAX_PLAYERS - G.players) * 54;
   if (E.score >= 10000) E.iy++;
   if (E.score >= 15000) { E.iy++; E.mg++; }
+  if (E.score >= 25000) E.nc = (E.nc || 0) + 1;
   E.unit = pick(D.endless);
   G.sc = G.curUnit = E.unit;
-  const opt = { noWaveHp: true, noElite: true, hpMul: 1 + 0.25 * (E.rhla + E.iy), speedPlus: 5 * E.mg };
+  const opt = { noWaveHp: true, noElite: true, hpMul: endlessHpMul(E), speedPlus: 5 * E.mg };
   G.spawners = G.spawners.filter(s => s.word !== '无尽');
   G.spawners.push({ word: '无尽', every: 0.6, left: RULE.endlessCount, next: 0.6, opt });
   msg(`【无尽关卡第 ${E.wave} 波】`);
@@ -6932,7 +6935,7 @@ window.GC = { receive: netReceive, snap: (d, from) => MP.onSnap(d, from), roster
   menu: () => showStart(), bgTick: () => { if (G && G.mp && performance.now() - frameAt > 200) simAdvance(performance.now()); },     // 画面帧停了（标签页在后台）才由定时器推进
   // 联机开局（net.js 在房间开始时调用）：cfg = { mode, allGates, me, name, players: [{ slot, name }] }
   startNet(cfg) {
-    hideModal(); newGame(cfg.mode, cfg.players.length, cfg.name, false, cfg);
+    hideModal(); newGame(cfg.mode, cfg.players.length, cfg.name, false, cfg); preGame();
     const [gx, gy] = GATE_POS[cfg.me]; G.cam.x = gx; G.cam.y = gy - 600;
     resize(); clampCam(); uiDirty();
     msg(`联机对局开始：${cfg.players.map(p => p.name).join('、')}。你是 ${cfg.me + 1} 号位，${cfg.me + 1} 号出怪口的怪归你的机器算${cfg.me === 0 ? '；你是主机，波次由你的机器发' : ''}`, 12);
@@ -7843,6 +7846,98 @@ function w3meta(mdx, scale) {
     actions: { idle: { loop: true, frames: 30, fps: 30, dirs: 8 }, walk: { loop: true, frames: 30, fps: 30, dirs: 8 }, attack: { frames: 12, fps: 30, dirs: 8 }, death: { frames: 30, fps: 30, dirs: 8 } } });
 }
 
+// ================================================================ 资源预加载（加载进度条）
+// 模型、贴图、精灵图、头像原来都是第一次画到时才去下载，进游戏后会看到怪先是色块 / 精灵图、过一会儿才变成模型。现在分三段提前拿：
+//   1. 打开页面：脚本 + 核心资源（图标、界面、地面、投射物、守卫者、商人、光环）——index.html 的进度条等它（preBoot）；
+//   2. 点开始：本局建造栏的塔（各级）、英雄、第 1 波和第 2 波可能出的怪——进度条等它，等的时候对局不走（preStart，联机不等）；
+//   3. 进游戏后：后面各波的怪、其余的塔和英雄、召唤物，在后台按波次顺序一个一个加载（preQueue），不挡操作。
+// 能画 3D 时预加载模型（贴图由模型库跟着加载，U3.stats 计数），否则预加载精灵图；file:// 下模型读不了（fetch 不能读本地文件），按精灵图算。
+const PRE = { n: 0, done: 0, seen: new Set(), queue: [], get use3d() { return !!U3 && location.protocol !== 'file:'; } };
+let LOADING = false;                                 // 开局进度条还在等：单机对局不走
+function preTrack(im) { PRE.n++; const fin = () => { PRE.done++; }; if (im.complete) fin(); else { im.addEventListener('load', fin); im.addEventListener('error', fin); } return im; }
+function preUrl(src) { if (!src || PRE.seen.has(src)) return; PRE.seen.add(src); const im = new Image(); im.src = src; preTrack(im); }
+function preSheet(m) { if (!m || !m.src || SHEET_IMG[m.src]) return; const im = new Image(); im.src = 'assets/' + m.src; SHEET_IMG[m.src] = preTrack(im); }
+function preMeta(m) {
+  if (!m) return;
+  const mdx = m.war3 && m.aliasOf ? m.aliasOf.split(':').slice(2).join(':') + '.mdx' : null;
+  if (PRE.use3d && mdx) U3.preload(mdx); else preSheet(m);
+}
+const preKey = key => preMeta(SHEETS[key]);
+function prePortrait(key) { const m = PORTRAITS[key]; if (m && !PIMG[m.src]) { const im = new Image(); im.src = 'assets/' + m.src; PIMG[m.src] = preTrack(im); } }
+function preTower(fam) {
+  const f = D.towers[fam]; if (!f) return;
+  preKey('tower:' + fam); prePortrait('tower:' + fam);
+  for (let l = 2; l <= f.levels.length + 1; l++) { preKey('tower:' + fam + ':' + l); prePortrait('tower:' + fam + ':' + l); }
+}
+function preHero(name) { if (!name) return; for (const k of ['hero:' + name, 'hero:' + name + ':皮肤']) { preKey(k); prePortrait(k); } }
+const preUnit = id => { preKey('unit:' + id); prePortrait('unit:' + id); };
+const rowUnits = row => row.ev.filter(e => e[1] === 'sc' || e[1] === 'mk').map(e => e[2]);
+const preFn = name => { const f = WR.fns[name]; if (f) for (const r of f.rows) rowUnits(r).forEach(preUnit); };
+function preStats() { const [a, b] = PRE.use3d ? U3.stats() : [0, 0]; return [PRE.n + a, PRE.done + b]; }
+const prePending = () => { const [n, d] = preStats(); return n - d; };
+// 等现在排着的都加载完。模型加载完才知道要哪些贴图，所以要连续两次看到"没有在加载的"才算完；10 秒没有任何进展（断网、文件缺失）就不等了
+function preWait(onProgress) {
+  let stop = false;
+  const p = new Promise(res => {
+    const d0 = preStats()[1]; let idle = 0, lastDone = -1, lastAt = performance.now(), shown = 0;      // 从"已经完成的"算起：调用前就在路上的也算进这次要等的
+    const tick = () => {
+      const [n, d] = preStats(), now = performance.now();
+      if (d !== lastDone) { lastDone = d; lastAt = now; }
+      idle = n - d <= 0 ? idle + 1 : 0;
+      shown = Math.max(shown, n > d0 ? (d - d0) / (n - d0) : 1);
+      if (onProgress) onProgress(idle >= 2 ? 1 : Math.min(shown, 0.99), d - d0, n - d0);
+      if (stop || idle >= 2 || now - lastAt > 10000) return res();
+      setTimeout(tick, 100);
+    };
+    tick();
+  });
+  p.skip = () => { stop = true; };
+  return p;
+}
+// 第 1 段：核心资源。图标和头像图（AM.sprites）在上面 img() 里已经全部开始加载并计数
+function preCore() {
+  for (const n of ['console', 'top', 'dialog-bg', 'dialog-border', 'dialog-btn', 'dialog-btn-border', 'dialog-btn-hl', 'dialog-btn-down', 'dialog-btn-border-down']) preUrl(`assets/ui/${n}.png`);
+  for (const n of ['armor-divine', 'armor-fortified', 'armor-hero', 'armor-large', 'armor-medium', 'armor-small', 'armor-unarmored', 'attack-chaos', 'attack-hero', 'attack-magic', 'attack-melee',
+    'attack-piercing', 'attack-siege', 'gold', 'supply', 'heroattributes-agi', 'heroattributes-int', 'heroattributes-str']) preUrl(ui(n));
+  JSON.stringify(window.W3_MISSILES || {}, (k, v) => { if (typeof v === 'string' && /^missiles\/.+\.(png|webp)$/.test(v)) preUrl('assets/' + v); return v; });   // 投射物本体和粒子图（共约 2 MB）
+  preKey('builder'); prePortrait('builder');
+  for (const s of SHOPS) preMeta(metaOf(s));
+  if (PRE.use3d) for (const a of Object.values(AURA_MDX)) U3.preload(a[0]);
+}
+// 第 2 段：这一局马上要用的
+function preGame() {
+  preMeta(metaOf(G.builder));
+  G.build.forEach(preTower); preHero(G.heroChoice);
+  if (G.next && G.next.row) rowUnits(G.next.row).forEach(preUnit);       // 第 1 波已经抽好了
+  const f1 = WR.fns[WR.start]; if (f1) for (const r of f1.rows) if (r.next) preFn(r.next);   // 第 2 波的各种可能
+  preFill();
+}
+// 第 3 段：后台队列。先按波次（所有随机分支），再是其余的怪（死亡 / 被攻击触发器刷的）、塔、英雄、召唤物
+function preFill() {
+  const q = [];
+  for (const name of Object.keys(WR.fns).sort((a, b) => WR.fns[a].wave - WR.fns[b].wave)) q.push(() => preFn(name));
+  for (const key of Object.keys(SHEETS)) if (/^(unit|tower|hero):/.test(key)) q.push(() => preKey(key));
+  if (PRE.use3d) for (const v of Object.values(LOOK)) if (v && typeof v[0] === 'string') q.push(() => U3.preload(v[0] + '.mdx'));
+  PRE.queue = q;
+}
+setInterval(() => { if (!LOADING && PRE.queue.length && prePending() < 3) PRE.queue.shift()(); }, 150);   // 同时只加载两三个，不和正在用的抢
+// 开局：进度条等本局资源（0.4 秒内就齐了的不闪进度条；preWait 自己最少要 0.2 秒确认）
+function preStart() {
+  if (!window.BOOT || prePending() <= 0) return;
+  LOADING = true;
+  const w = preWait((p, d, n) => window.BOOT.set(p, `加载本局资源 ${d} / ${n}`));
+  const t = setTimeout(() => { if (LOADING) window.BOOT.show('正在进入游戏', w.skip); }, 400);
+  w.then(() => { clearTimeout(t); LOADING = false; window.BOOT.hide(); });
+}
+// 打开页面：脚本已经占了进度条的前 40%（index.html），核心资源和背景里那一局占后 60%
+function preBoot() {
+  preCore();
+  if (!window.BOOT) return;
+  const w = preWait((p, d, n) => window.BOOT.set(0.4 + 0.6 * p, `加载资源 ${d} / ${n}`));
+  window.BOOT.show(null, w.skip);
+  w.then(() => window.BOOT.hide());
+}
+
 // ---------------------------------------------------------------- 主循环
 function step(dt) {
   if (G.phase === 'over' || G.phase === 'win') return;
@@ -7949,7 +8044,7 @@ function demoEnd() {
   G.phase = 'win'; SFX.end('victory');
   showModal(`<h2>演示结束</h2><p>撑过了前 ${G.wave} 波。击杀 ${G.kills} · Perfect ${G.perfect} · 剩余 ${Math.floor(G.gold)} 金</p>
     <div class="row"><button class="primary" id="m-again">再演示一次</button><button id="m-restart">回到开始菜单</button></div>`);
-  document.getElementById('m-again').onclick = () => { hideModal(); newGame('demo'); resize(); clampCam(); uiDirty(); };
+  document.getElementById('m-again').onclick = () => { hideModal(); newGame('demo'); resize(); clampCam(); uiDirty(); preGame(); preStart(); };
   document.getElementById('m-restart').onclick = () => { hideModal(); showStart(); };
 }
 function victory() {
@@ -7969,7 +8064,7 @@ function img(key) {
   const src = AM.sprites && AM.sprites[key];
   if (!src) return null;
   if (!IMG[key]) {
-    const i = new Image(); i.src = 'assets/' + src; IMG[key] = i;
+    const i = new Image(); i.src = 'assets/' + src; IMG[key] = i; preTrack(i);
     // 命令面板只在命令变了时才重建，开局那一次往往图标还没下载完、用了 SVG 占位；原版图标到了就重画一次
     if (/^(ico|icon):/.test(key)) i.onload = () => { if (G) uiDirty(); };
   }
@@ -8285,6 +8380,7 @@ function draw() {
   for (const s of SHOPS) drawShop(s);
   for (const it of G.items) drawItem(it);
   for (const t of allTowers()) drawTower(t);
+  lodMonsters();
   for (const m of G.monsters) drawMonster(m);
   for (const w of G.wild) drawWild(w);
   drawBuilder(b);
@@ -8586,14 +8682,32 @@ function drawTower(t) {
   }
   if (tier >= 3) onTop(() => drawTierTop(t, tier, performance.now() / 1000));
 }
+// 怪太多时的降级：3D 模型是逐个更新骨骼、逐个绘制的（实测每个约 0.025 毫秒，300 只怪每帧 11 毫秒），画面里用模型画的怪超过 LOD_3D 只时，
+// 多出来的改画精灵图（m.lod）；画面里的怪降到 LOD_3D 的 3/4 以下再全部换回模型。中间留一段不动，免得怪在模型和精灵图之间来回跳。
+// 选中的怪和 BOSS 一直用模型（drawMonster 里判断）。
+const LOD_3D = 120;
+function lodMonsters() {
+  if (!U3) return;
+  const solid = [], flat = [];
+  for (const m of G.monsters) if (onScr(m.x, m.y)) (m.lod ? flat : solid).push(m);
+  if (solid.length + flat.length <= LOD_3D * 0.75) { for (const m of flat) m.lod = false; return; }
+  if (solid.length > LOD_3D) {
+    let over = solid.length - LOD_3D;
+    for (let i = solid.length - 1; i >= 0 && over > 0; i--) { const m = solid[i]; if (m === G.selected || m.boss || m.elite) continue; m.lod = true; over--; }   // 后刷出来的先降级；精英尽量留着模型
+  } else if (solid.length < LOD_3D * 0.75) {
+    let room = Math.floor(LOD_3D * 0.9) - solid.length;
+    for (const m of flat) { if (room-- <= 0) break; m.lod = false; }
+  }
+}
 function drawMonster(m) {
   if (!onScr(m.x, m.y)) return;
   const K = kAt(m.y);
   const x = sx(m.x, m.y), y = sy(m.y), r = Math.max(2.5 * DPR, m.r * K);
   if (m === G.selected) selRing(x, y, r, '#ff3c3c'); else if (m === HOV) selRing(x, y, r, '#ff3c3c', 0.5);
   const m3 = metaOf(m), k3 = m.elite ? 1.3 : 1;
-  const in3d = m3 && model3d(m, m3, m.x, m.y, m.face, pickAnim(m, m3), k3);
-  const sh = !in3d && sheetOf(m), im = !in3d && !sh && entityImg(m);
+  const flat = m.lod && m !== G.selected && !m.boss ? sheetOf(m) : null;      // 怪太多时改画精灵图（lodMonsters）；精灵图还没加载好就先照旧画模型
+  const in3d = !flat && m3 && model3d(m, m3, m.x, m.y, m.face, pickAnim(m, m3), k3);
+  const sh = flat || (!in3d && sheetOf(m)), im = !in3d && !sh && entityImg(m);
   let barY = y - r - 7 * DPR;
   if (in3d) {
     shadow(m.x, m.y, r * 0.9 * k3);
@@ -9575,7 +9689,7 @@ function showStart() {
   if (window.GC_NET && window.GC_NET.inGame) window.GC_NET.leave();     // 从联机对局回到菜单：断开
   if (!profiles.last) return askName();
   const player = profiles.last;
-  const start = (mode, players = 1, bots = false) => { newGame(mode, players, player, bots); hideModal(); resize(); clampCam(); uiDirty(); };
+  const start = (mode, players = 1, bots = false) => { newGame(mode, players, player, bots); hideModal(); resize(); clampCam(); uiDirty(); preGame(); preStart(); };
   const intro = () => showDialog('玩法简介', [{ text: '返回', fn: pickMode }],
     `怪物沿"回"字形双环路线<b>永远绕圈</b>，不会漏到基地。<b>场上怪物超过上限即失败</b>（每个玩家 ${RULE.capPerPlayer} 只，单人 ${RULE.capPerPlayer} 只）。地图是原图的 8 人地图，有 8 个出怪口，参与几人就开几个（单人只开左上角）。每波按时出怪，不管上一波清没清完。<br><br>
     选中<b>守卫者</b>（F1），点击地面让它移动；在右下角命令面板里打开<b>建造</b>，选塔后点地面，守卫者会走过去建造。拖动画面或点击小地图移动镜头，滚轮缩放。`);
@@ -9645,7 +9759,7 @@ const DT = 1 / 30;
 // 推进模拟。联机对局不能暂停、不能变速，弹窗开着也照样跑（别人还在打）；标签页在后台时由 net.js 的定时器调用（GC.bgTick）
 function simAdvance(now) {
   const el = Math.min(0.25, (now - last) / 1000); last = now;
-  if (G && (G.mp ? true : !G.paused && $('modal').classList.contains('hidden'))) {
+  if (G && (G.mp ? true : !G.paused && !LOADING && $('modal').classList.contains('hidden'))) {
     acc += el * (G.mp ? 1 : G.speed);
     let n = 0;
     while (acc >= DT && n < 40) { step(DT); acc -= DT; n++; }
@@ -9677,6 +9791,7 @@ function refreshCmdState() {
 resize();
 newGame('rookie');
 showStart();
+preGame(); preBoot();
 requestAnimationFrame(frame);
 window.__G = () => G;   // 调试用
 window.__dbg = { get G() { return G; }, NODES, EDGES, kill, hurt, spawnMonster, FXS, buildTower, upgradeTower, learnSkill, heroLevelUp, step, canPlace, newGame, monstersAlive, towerStats, rerollBuild, orderBuild, orderMove, castSkill, spawnRabbit, buyRabbit, RABBIT_SHOP, makePet, spawnWisp, spawnWildPet, dropItem, invAdd, ITEMS, startVote, kickPlayer, giveLike, netReceive, MASTER_ITEMS, PET_ITEMS, wishBuy, petTalent, MASTER, WISHER, PETSHOP, buyItem, critterTick, sellItem, pickUp, candyWild, renderCmds, SHOP, SHOP_ITEMS, buyShop, orderFinger, KITS, towerAS, towerAtk, effArmor, applyAuras, sellTower, select, hurt, buildCmds, newTower, attack, bounceXfer, spendPoint, upSkill, wujiSacrifice, plantAncient, knWard, heroStats, HERO_KITS, HERO_DEF, heroAuraList, gateSpots, spawnAt, cap, playerLeft, startFinal, GATES, monsterAttacked, monsterDied, attackDmg, activateTalent, talentWhy, talentOf, orderTalent, TALENTS, primalMaxHit, makeHero, bounceMax, bounceMerge, towerSkin, sheetOf, spriteKey };
