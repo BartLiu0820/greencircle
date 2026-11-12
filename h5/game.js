@@ -85,6 +85,7 @@ const WISHER = { isShop: true, shop: 'wish', name: '许愿商人', sub: '中立 
 const PETSHOP = { isShop: true, shop: 'pet', name: '宠物商人', sub: '中立 · 宠物', x: -576, y: 128, mdx: 'units/critters/highelfpeasant/highelfpeasant.mdx', scale: 2.0 };
 const SHOPS = [SHOP, MASTER, WISHER, PETSHOP];
 const WORLD = 6016;                                     // 可玩区域 94×94 格（w3i），±6016
+const CAM_START = 4;   // 开局镜头缩放 = 魔兽标准镜头（距离 1650、竖直视野约 55°：注视点处画面高 ≈ 1730 单位 = VIEW_REF / 4），见“3D 镜头”一节
 const CAM_LIM = W3MAP.camera;                           // 镜头中心的范围（w3i 的镜头边界）
 // 寻路图：32 单位一格，"不能建造"的位图（不能行走的地图边界也算）
 const PATHING = (() => {
@@ -164,7 +165,7 @@ function newGame(mode, players = 1, player = null, bots = false, net = null) {  
     // 循环圈守卫者：无敌、移速 500、全图闪烁 (CD 1 秒)。原图所有玩家的守卫者都出生在地图上方的区域 s
     builder: { isBuilder: true, x: bx, y: by, speed: 500, order: null, blinkCd: 0, mana: FOD.maxMana, fodAt: 0 },
     inv: Array(6).fill(null),
-    cam: { x: bx, y: by - 600, zoom: 2.4 },
+    cam: { x: bx, y: by - 350, zoom: CAM_START },
     menu: 'main', pending: null,
     player, sponsor: RULE.heroSponsors.includes(player), earned: 0, ach: RULE.startAch, rabbit: null, rabbitScroll: false, buys: {}, itemCd: {},
     waveVars: {}, next: null, carryHint: null, sc: null, curUnit: null, waveHook: null, waveNote: '', finalCountdown: false,
@@ -8278,13 +8279,17 @@ function clampCam() {
 }
 // ---------------------------------------------------------------- 3D 镜头（有 WebGL 时）：和魔兽一样的透视相机，镜头朝北
 // 魔兽的默认镜头：距离 1650、俯角 56°（Angle of Attack 304°）、视野 70°（4:3 画面的水平视野，换成竖直约 55°）。
-// 这里滚轮拉远时俯角变大、接近俯视（方便看全图），拉到最近正好是魔兽的标准镜头；镜头注视点 = G.cam.x / y，
+// 开局和正常对局就是魔兽的标准镜头（CAM_START，画面里单位和原版一样大）；滚轮再拉远到 PITCH_ZOOM 以下才逐渐抬高俯角、接近俯视（方便看全图），
+// 拉近到 ZMAX 比魔兽镜头近 1.5 倍、俯角不变。镜头注视点 = G.cam.x / y，
 // 注视点处每世界单位的像素数 = S（和原来的平面画法一样，所以缩放档位、平移速度都不用改）。
 // 没有 WebGL（U3 为空）时退回原来的正上方平面：sx / sy 就是线性换算，k(y) = S。
 // 缩放 1 = 画面短边看到 VIEW_REF 世界单位；最小缩放能看到整张地图
 const VIEW_REF = 6900, ZMIN = VIEW_REF / (WORLD * 2 + 300), ZMAX = 6, FOVY = 2 * Math.atan(Math.tan(35 * Math.PI / 180) * 0.75);
-const PITCH_FAR = 82, PITCH_NEAR = 56;
-const camPitch = zoom => (PITCH_FAR - (PITCH_FAR - PITCH_NEAR) * Math.pow(Math.log(zoom / ZMIN) / Math.log(ZMAX / ZMIN), 1.4)) * Math.PI / 180;
+const PITCH_FAR = 82, PITCH_NEAR = 56, PITCH_ZOOM = 2;
+const camPitch = zoom => {
+  const u = clamp(Math.log(zoom / ZMIN) / Math.log(PITCH_ZOOM / ZMIN), 0, 1), e = u * u * (3 - 2 * u);   // 全图 → PITCH_ZOOM 之间平滑过渡
+  return (PITCH_FAR - (PITCH_FAR - PITCH_NEAR) * e) * Math.PI / 180;
+};
 let CAM = null;                                       // { ex, ey, ez, c, s, F, d }：眼睛位置、俯角的 cos / sin、焦距（像素）、到注视点的距离
 function camera() {
   if (!U3 || !G) { CAM = null; return; }
