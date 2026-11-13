@@ -7,7 +7,7 @@
 'use strict';
 const GC = window.GC, UI = GC.ui;
 const LS_URL = 'gc.net.url', LS_RELAY = 'gc.net.relay';
-const STAGE_MS = 8000, GRACE_MS = 20000, SNAP_BUF = 16384;
+const STAGE_MS = 8000, GRACE_MS = 60000, SNAP_BUF = 16384;
 const LOCAL_PAGE = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) || location.protocol === 'file:';
 const defaultUrl = () => LOCAL_PAGE ? 'http://localhost:8787' : `${location.origin}/lobby`;
 function savedUrl(value) {
@@ -23,7 +23,7 @@ const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return 
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 忽略 */ } };
 
 const N = { url: savedUrl(lsGet(LS_URL)), name: '', code: null, token: null, id: null, room: null, ver: 0, chatSeq: 0, chat: [],
-  peers: new Map(), ice: { iceServers: [], turn: false }, inGame: false, slots: [], lobbyOpen: false, lastLinks: '', pollGen: 0, stats: {} };
+  peers: new Map(), ice: { iceServers: [], turn: false }, inGame: false, slots: [], lobbyOpen: false, lastLinks: '', pollGen: 0, stats: {}, departed: new Set() };
 
 async function api(method, path, body) {
   const controller = new AbortController();
@@ -50,29 +50,39 @@ async function pollLoop(gen) {
       if (gen !== N.pollGen) return;
       fails = 0;
       N.ver = r.ver; N.room = r.room;
+      // Temporary TURN credentials expire after an hour; refresh while polling
+      // so later reconnects also work in long matches.
+      if (Date.now() - (N.iceAt || 0) > 20 * 60 * 1000) {
+        try { N.ice = await api('GET', '/ice'); N.iceAt = Date.now(); } catch (e) { /* 下一轮重试 */ }
+      }
       for (const c of r.chat) { N.chatSeq = Math.max(N.chatSeq, c.seq); N.chat.push(c); }
       if (N.chat.length > 60) N.chat.splice(0, N.chat.length - 60);
-      for (const s of r.signals) onSignal(s);
+      for (const s of r.signals) await onSignal(s);
       syncPeers();
       if (N.room.state === 'playing' && !N.inGame) startGame();
       if (N.lobbyOpen) renderRoom();
     } catch (e) {
       if (gen !== N.pollGen) return;
-      if (e.status === 410 || e.status === 404 || e.status === 403 || ++fails >= 6) return lostRoom(e.status ? e.message : '连不上大厅服务');
-      await new Promise(r => setTimeout(r, 1000));
+      if ([410, 404, 403].includes(e.status)) return lostRoom(e.message);
+      if (++fails === 3) UI.msg('大厅暂时断开，正在自动重连，请保持页面打开', 8);
+      await new Promise(r => setTimeout(r, Math.min(3000, 500 * fails)));
     }
   }
 }
-// 被服务器移出（被踢 / 掉线 / 服务挂了）：大厅里直接退出；对局中直连还在就继续打（只是没法再重连别人）
+// 服务器确认本机已离开：结束本机对局，避免继续生成别人不会接受的分叉状态。
 function lostRoom(why) {
-  if (N.inGame) { N.token = null; UI.msg(`和大厅服务断开了（${why}），已经连上的队友不受影响`, 10); return; }
+  if (N.inGame) {
+    const slot = slotOf(N.id); UI.msg(`无法恢复本局连接：${why}`, 10);
+    if (slot >= 0) GC.receive({ t: 'leave', slot }, slot);
+    leave(); return;
+  }
   reset();
   if (N.lobbyOpen) showConnect(why);
 }
 function reset() {
   N.pollGen++;
   for (const p of N.peers.values()) closePeer(p);
-  N.peers.clear();
+  N.peers.clear(); N.departed.clear();
   Object.assign(N, { code: null, token: null, id: null, room: null, ver: 0, chatSeq: 0, chat: [], inGame: false, slots: [], lastLinks: '' });
 }
 
@@ -93,21 +103,22 @@ function syncPeers() {
   if (!N.room) return;
   const ids = new Set(N.room.players.map(p => p.id));
   for (const pl of N.room.players) {
-    if (pl.id === N.id || N.peers.has(pl.id)) continue;
+    if (pl.id === N.id || N.peers.has(pl.id) || N.departed.has(pl.id)) continue;
     if (N.inGame && !N.slots.some(s => s.id === pl.id)) continue;
-    const p = { id: pl.id, name: pl.name, connectingSince: Date.now(), offerer: N.id > pl.id, pc: null, ctl: null, snap: null, open: false, gen: 0, stage: firstStage(), timer: 0, lostAt: 0, queue: [], rtt: null, pend: [], bye: false };
+    const p = { id: pl.id, name: pl.name, connectingSince: Date.now(), offerer: N.id > pl.id, pc: null, ctl: null, snap: null, open: false, gen: 0, stage: firstStage(), timer: 0, lostAt: 0, queue: [], rtt: null, pend: [], bye: false, lastSeen: Date.now(), protocol: null, inbox: [] };
+    p.protocol = new window.GC_ReliableEvents(ev => deliver(p, ev));
     N.peers.set(pl.id, p);
     if (p.offerer) connect(p);
   }
   for (const p of N.peers.values()) {
     if (ids.has(p.id)) continue;
     if (!N.inGame) { closePeer(p); N.peers.delete(p.id); }
-    else if (!p.open) peerGone(p);                 // 对局中：名单里没了、直连也断了才算走（直连还通就不管名单）
+    else peerGone(p); // 大厅名单确认退出，所有存活玩家采用同一个成员集合
   }
   reportLinks();
 }
 function closePeer(p) {
-  clearTimeout(p.timer); p.open = false;
+  clearTimeout(p.timer); p.open = false; p.protocol?.detach();
   for (const c of [p.ctl, p.snap]) if (c) { c.onopen = c.onclose = c.onmessage = null; try { c.close(); } catch (e) { /* 忽略 */ } }
   if (p.pc) { p.pc.onicecandidate = p.pc.onconnectionstatechange = null; try { p.pc.close(); } catch (e) { /* 忽略 */ } }
   p.pc = p.ctl = p.snap = null;
@@ -124,17 +135,19 @@ function makePc(p, stage, gen) {
     const k = (/ typ (\w+)/.exec(e.candidate.candidate) || [])[1] || '?'; N.stats[k] = (N.stats[k] || 0) + 1;     // host / srflx / relay 各几个（排查用）
     signal(p, 'ice', { c: e.candidate.toJSON(), gen });
   };
-  ctl.onopen = () => {
-    if (p.pc !== pc) return;
-    clearTimeout(p.timer); p.open = true; p.lostAt = 0;
+  const opened = () => {
+    if (p.pc !== pc || ctl.readyState !== 'open' || snap.readyState !== 'open' || p.open) return;
+    clearTimeout(p.timer); p.open = true; p.lostAt = 0; p.lastSeen = Date.now();
     if (stage === 'relay') lsSet(LS_RELAY, String(Date.now() + 7 * 864e5));
-    const q = p.queue; p.queue = []; for (const s of q) ctl.send(s);
+    p.protocol.attach(text => { if (p.pc !== pc || ctl.readyState !== 'open') throw new Error('连接已替换'); ctl.send(text); });
+    if (N.inGame) { GC.resync?.(slotOf(p.id)); UI.msg(`${p.name} 已重新连通`, 5); }
     reportLinks(); if (N.lobbyOpen) renderRoom();
   };
-  ctl.onclose = () => { if (p.pc === pc) peerLost(p); };
+  ctl.onopen = snap.onopen = opened;
+  ctl.onclose = snap.onclose = () => { if (p.pc === pc) peerLost(p); };
   pc.onconnectionstatechange = () => { if (p.pc === pc && pc.connectionState === 'failed') peerLost(p); };
-  ctl.onmessage = e => onCtl(p, e.data);
-  snap.onmessage = e => { if (!N.inGame) return; const s = slotOf(p.id); if (s >= 0) GC.snap(typeof e.data === 'string' ? JSON.parse(e.data) : e.data, s); };
+  ctl.onmessage = e => { if (p.pc === pc) onCtl(p, e.data); };
+  snap.onmessage = e => { if (p.pc !== pc || !N.inGame) return; const s = slotOf(p.id); if (s >= 0) GC.snap(typeof e.data === 'string' ? JSON.parse(e.data) : e.data, s); };
   return pc;
 }
 async function connect(p, stage = p.stage) {
@@ -153,6 +166,7 @@ async function onSignal(s) {
   const d = s.data || {};
   try {
     if (s.kind === 'offer') {
+      if (p.offerer || !Number.isSafeInteger(d.gen) || d.gen <= p.gen) return;
       const pc = makePc(p, d.stage || 'all', d.gen);
       await pc.setRemoteDescription(d.sdp); p.remoteSet = true;
       for (const c of p.pend.splice(0)) pc.addIceCandidate(c).catch(() => {});
@@ -163,7 +177,7 @@ async function onSignal(s) {
       await p.pc.setRemoteDescription(d.sdp); p.remoteSet = true;
       for (const c of p.pend.splice(0)) p.pc.addIceCandidate(c).catch(() => {});
     } else if (s.kind === 'ice') {
-      if (!p.pc || d.gen !== p.gen) { if (d.gen > p.gen) (p.early = p.early || []).push(d); return; }
+      if (!p.pc || d.gen !== p.gen) { if (d.gen > p.gen) (p.early = p.early || []).push(d); if (p.early?.length > 128) p.early.splice(0, p.early.length - 128); return; }
       for (const c of loopback(d.c)) { if (p.remoteSet) p.pc.addIceCandidate(c).catch(() => {}); else p.pend.push(c); }
     }
     if (p.early && p.early.length && s.kind === 'offer') { for (const e of p.early.splice(0)) if (e.gen === p.gen) p.pc.addIceCandidate(e.c).catch(() => {}); }
@@ -177,48 +191,59 @@ function loopback(c) {
 }
 function peerLost(p) {
   if (!N.peers.has(p.id)) return;
-  const was = p.open; p.open = false;
+  const was = p.open; p.open = false; p.protocol.detach();
   if (was) { p.connectingSince = Date.now(); p.lostAt = Date.now(); reportLinks(); if (N.lobbyOpen) renderRoom(); }
-  if (N.inGame) {
-    if (p.bye || (N.room && N.token && !N.room.players.some(x => x.id === p.id))) return peerGone(p);
-    if (was) setTimeout(() => { if (N.peers.get(p.id) === p && !p.open && p.lostAt) peerGone(p); }, GRACE_MS);   // 重连窗口
-  }
+  if (p.bye || (N.room && !N.room.players.some(x => x.id === p.id))) return peerGone(p);
+  // A broken edge is not a player departure. Only the shared lobby membership
+  // (or an explicit bye) may remove a player and elect a new host.
+  if (N.inGame && was) UI.msg(`${p.name} 连接中断，正在自动重连（保留本局最多 ${GRACE_MS / 1000} 秒）`, 8);
   if (p.offerer && was) connect(p, firstStage());
 }
 function peerGone(p) {
   if (!N.peers.has(p.id)) return;
   const s = slotOf(p.id);
-  closePeer(p); N.peers.delete(p.id);
+  closePeer(p); N.peers.delete(p.id); N.departed.add(p.id);
   if (N.inGame && s >= 0) GC.receive({ t: 'leave', slot: s }, s);
 }
 function reportLinks() {
-  if (!N.token || N.inGame) return;
+  if (!N.token || N.reportingLinks) return;
   const links = [...N.peers.values()].filter(p => p.open).map(p => p.id).sort(), k = links.join();
   if (k === N.lastLinks) return;
-  N.lastLinks = k; post('me', { links }).catch(() => {});
+  N.reportingLinks = true;
+  post('me', { links }).then(() => { N.lastLinks = k; }).catch(() => {}).finally(() => { N.reportingLinks = false; });
 }
 function onCtl(p, data) {
   let ev; try { ev = JSON.parse(data); } catch (e) { return; }
   if (!ev || typeof ev !== 'object') return;
+  p.lastSeen = Date.now();
+  if (p.protocol.receive(ev)) return;
   if (ev.t === '_ping') return p.ctl && p.ctl.readyState === 'open' && p.ctl.send(JSON.stringify({ t: '_pong', at: ev.at }));
   if (ev.t === '_pong') { p.rtt = Math.round(performance.now() - ev.at); return; }
   if (ev.t === 'bye') { p.bye = true; return N.inGame ? peerGone(p) : peerLost(p); }
-  if (!N.inGame) return;
+  // Only transport messages are accepted outside the sequenced event stream.
+}
+function deliver(p, ev) {
+  if (N.departed.has(p.id)) return;
+  if (!N.inGame) { if (p.inbox.length < 4096) p.inbox.push(ev); return; }
   const s = slotOf(p.id); if (s < 0) return;
   if (ev.slot != null) ev.slot = s;                // 身份按连接定，不信消息里自报的
   try { GC.receive(ev, s); } catch (e) { console.error('[net] receive', ev.t, e); }
 }
-setInterval(() => { for (const p of N.peers.values()) if (p.open && p.ctl.readyState === 'open') p.ctl.send(JSON.stringify({ t: '_ping', at: performance.now() })); }, 2000);
+setInterval(() => {
+  for (const p of N.peers.values()) if (p.open && p.ctl?.readyState === 'open') {
+    if (Date.now() - p.lastSeen > 6000) { peerLost(p); continue; }
+    try { p.ctl.send(JSON.stringify({ t: '_ping', at: performance.now() })); } catch (e) { peerLost(p); }
+  }
+  reportLinks();
+}, 2000);
 
 const slotOf = id => { const s = N.slots.find(x => x.id === id); return s ? s.slot : -1; };
 const peerOfSlot = slot => { const s = N.slots.find(x => x.slot === slot); return s && N.peers.get(s.id); };
 function send(ev, to) {
   if (!N.inGame) return;
-  const str = JSON.stringify(ev);
   for (const p of to == null ? N.peers.values() : [peerOfSlot(to)]) {
     if (!p) continue;
-    if (p.open && p.ctl.readyState === 'open') p.ctl.send(str);
-    else if (p.queue.length < 3000) p.queue.push(str);      // 重连窗口里先攒着
+    try { p.protocol.send(ev); } catch (e) { return lostRoom(e.message); }
   }
 }
 function snap(data, to) {
@@ -251,6 +276,8 @@ function startGame() {
   UI.hideModal();
   GC.startNet({ mode: N.room.settings.mode, allGates: N.room.settings.allGates, me: me.seat, name: N.name, code: N.code,
     players: N.slots.map(s => ({ slot: s.slot, name: s.name })).sort((a, b) => a.slot - b.slot) });
+  for (const p of N.peers.values()) for (const ev of p.inbox.splice(0)) deliver(p, ev);
+  GC.resync?.();
 }
 
 // ---------------------------------------------------------------- 大厅界面
@@ -276,7 +303,7 @@ function showConnect(note = '') {
     for (const id of ['lb-create', 'lb-join', 'lb-back', 'lb-url', 'lb-default']) document.getElementById(id).disabled = true;
     note_('正在连接大厅…');
     try {
-      N.ice = await api('GET', '/ice');
+      N.ice = await api('GET', '/ice'); N.iceAt = Date.now();
       if (!Array.isArray(N.ice.iceServers)) throw new Error('大厅地址未正确配置，请使用默认大厅后重试');
       const r = make ? await api('POST', '/rooms', { name: N.name, v: GC.version }) : await api('POST', `/rooms/${code}/join`, { name: N.name, v: GC.version });
       Object.assign(N, { code: r.code, token: r.token, id: r.id, ver: 0, chatSeq: 0, chat: [] });
@@ -309,7 +336,7 @@ function renderRoom() {
   const R = N.room, $ = id => document.getElementById(id);
   if (!$('lb-players')) return;
   $('lb-rc').textContent = N.code || '';
-  if (!R) { $('lb-hint').textContent = '正在进入房间…'; return; }
+  if (!R) { $('lb-hint').textContent = '正在进入房间…'; $('lb-ready').textContent = '正在同步…'; $('lb-ready').disabled = true; return; }
   const me = R.players.find(p => p.id === N.id), host = !!(me && me.host), n = R.players.length;
   $('lb-players').innerHTML = R.players.map(p => {
     const peer = N.peers.get(p.id), link = p.id === N.id ? '' : peer && peer.open ? `<i class="ok">已连通${peer.rtt != null ? ' ' + peer.rtt + 'ms' : ''}${peer.stage === 'relay' ? '（中继）' : ''}</i>` : '<i class="wait">连接中…</i>';

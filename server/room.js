@@ -2,7 +2,7 @@
 // 外层（server.js）只做路由：handle(action, token, body, query) → { status, json } 或 Promise（长轮询）。
 'use strict';
 
-const MAX_PLAYERS = 8, POLL_MS = 25000, GONE_MS = 30000, CHAT_KEEP = 60;
+const MAX_PLAYERS = 8, POLL_MS = 25000, GONE_MS = 60000, CHAT_KEEP = 60;
 const MODES = ['rookie', 'origin'];
 const rid = n => { let s = ''; for (let i = 0; i < n; i++) s += 'abcdefghjkmnpqrstuvwxyz23456789'[Math.floor(Math.random() * 31)]; return s; };
 const ok = json => ({ status: 200, json });

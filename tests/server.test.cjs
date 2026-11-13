@@ -10,7 +10,7 @@ before(async () => {
 });
 after(() => child.kill());
 test('HTTPS proxy path serves frontend, lobby and assets with correct MIME and cache validation', async () => {
- const root = await fetch(base); assert.equal(root.status, 200); assert.match(await root.text(), /net.js\?v=20261112a/); assert.equal(root.headers.get('cache-control'), 'no-store');
+ const root = await fetch(base); assert.equal(root.status, 200); assert.match(await root.text(), /net.js\?v=20261112b/); assert.equal(root.headers.get('cache-control'), 'no-store');
  const js = await fetch(base + '/net.js'); assert.match(js.headers.get('content-type'), /javascript/); assert.match(await js.text(), /location.origin/);
  const unchanged = await fetch(base + '/net.js', { headers: { 'If-None-Match': js.headers.get('etag') } }); assert.equal(unchanged.status, 304);
  for (const name of ['/missing.js', '/server/server.js', '/.git/config', '/%2e%2e%2fserver/server.js']) assert.equal((await fetch(base + name)).status, 404, name);

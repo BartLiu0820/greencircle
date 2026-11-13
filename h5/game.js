@@ -282,7 +282,7 @@ function kill(m, src) {
   m.dead = true; m.hp = 0;
   if (m.spirit) return spiritDied(m, src);            // 圣灵塔的圣灵：不算击杀、没有赏金和掉落
   const pl = G.roster[pidOf(src)] || me();           // 击杀算在凶手的玩家头上（原图排行榜 Cp[凶手玩家] +1，赏金也给他）
-  pl.kills++;
+  if (!G.mp || pl.local) pl.kills++;
   const mineKill = !G.mp || pl.local;                // 联机时凶手是队友：赏金、击杀奖励、掉落在他那边结算（MP.died 广播出去）
   if (G.mp) MP.died(m, pl.slot, src);
   if (mineKill) killCredit(m, src, pl);
@@ -6886,7 +6886,7 @@ function kickPlayer(slot, left, byLord) {
   const p = G.roster[slot]; if (!p || p.out) return;
   p.out = left ? 'left' : 'kicked';
   msg(left ? `${p.name} 离开了游戏` : byLord ? `${p.name} 被房主踢出了游戏` : `${p.name} 被投票踢出了游戏`);
-  if (p.local) { if (G.mp) G.mp.kicked = true; return gameOver('你已经被踢出游戏!!'); }
+  if (p.local) { if (G.mp) G.mp.kicked = true; return gameOver(left ? '连接已失效，你已离开本局；其他玩家可以继续游戏' : '你已经被踢出游戏!!'); }
   G.towers = G.towers.filter(t => pidOf(t) !== slot);
   if (G.selected && G.selected.ghost && G.selected.pid === slot) G.selected = G.builder;
   G.ghosts = G.ghosts.filter(t => t.pid !== slot);
@@ -6931,7 +6931,7 @@ function netReceive(ev, from) {
   else if (ev.t === 'buy') { const t = G.towers.find(o => o.id === ev.tower); if (t && mine(t)) { t.pid = ev.slot; t.forSale = false; G.gold += ev.honor ? 10000 : 1500; if (ev.honor) G.wood += 4; msg(`${p.name}收购了你的${curLevel(t).name}，你获得 ${ev.honor ? '10000 金币、4 木材' : '1500 金币'}`); } }
   uiDirty();
 }
-window.GC = { receive: netReceive, snap: (d, from) => MP.onSnap(d, from), roster: () => G && G.roster, get version() { return NETV; },
+window.GC = { resync: to => MP.resync(to), receive: netReceive, snap: (d, from) => MP.onSnap(d, from), roster: () => G && G.roster, get version() { return NETV; },
   ui: { showModal: (html, dlg) => { showModal(html); if (dlg) { $('modal-box').classList.add('dlg'); fitDialog(); } }, hideModal: () => hideModal(), escHtml: t => escHtml(t), msg: (t, s) => msg(t, s) },
   menu: () => showStart(), bgTick: () => { if (G && G.mp && performance.now() - frameAt > 200) simAdvance(performance.now()); },     // 画面帧停了（标签页在后台）才由定时器推进
   // 联机开局（net.js 在房间开始时调用）：cfg = { mode, allGates, me, name, players: [{ slot, name }] }
@@ -6948,7 +6948,7 @@ window.GC = { receive: netReceive, snap: (d, from) => MP.onSnap(d, from), roster
 // 别人的塔 / 英雄 / 召唤物是影子（G.ghosts）：只画出来、给光环、占格子，不攻击。
 // 波次、Perfect、判负、BOSS 波规则、无尽由主机（在线里 slot 最小的）跑，掉线后下一个人按 clk 里的检查点接管。
 // 单机时 G.mp 是 null，下面的代码都不会跑。
-const NETV = '8.6.6-h5.1';                       // 进房校验的版本号：改了同步协议或数值就要换
+const NETV = '8.6.6-h5.2';                       // 进房校验的版本号：改了同步协议或数值就要换
 const allTowers = () => G.ghosts.length ? G.towers.concat(G.ghosts) : G.towers;
 const netRoster = net => net.players.map(p => Object.assign({ kills: 0, gold: 0, wood: 0, likes: 0, out: null, build: [], heroChoice: null, builder: null }, { slot: p.slot, name: p.name, local: p.slot === net.me }));
 // 主机跑的全局脚本（波次、BOSS 波规则）里的提示要广播给所有人；asLocal 里的不广播（各端自己会显示）
@@ -6991,7 +6991,7 @@ const srcKey = src => !src ? null : src === G.builder ? 'b' : src.id ?? (src.own
 const MP = {
   init(net) {
     return { net, lord: 0, wasHost: net.me === 0, ann: new Map(), px: new Map(), hits: new Map(), atks: [], tw: new Map(), sold: new Set(), want: new Map(),
-      acc: 0, twT: 0, clkT: 0, ck: null, cur: null, waveT0: 0, finalT0: 0, stateStr: '', dead: false, escrow: 0 };
+      acc: 0, twT: 0, clkT: 0, ck: null, cur: null, waveT0: 0, finalT0: 0, stateStr: '', dead: false, escrow: 0, deadSeen: new Set(), syncT: 0 };
   },
   send(ev, to) { NET.send(ev, to); },
   hostSlot() { const p = G.roster.find(p => p && !p.out); return p ? p.slot : G.me; },
@@ -7024,17 +7024,20 @@ const MP = {
   // ---- 自己的怪死了 / 没了
   died(m, by, src) {
     const M = G.mp; if (m.neutral || m.spirit) return;
-    M.ann.delete(m.id);
+    M.ann.delete(m.id); M.deadSeen.add(m.id);
     MP.send({ t: 'dead', id: m.id, by, s: srcKey(src), u: m.uid, x: Math.round(m.x), y: Math.round(m.y), b: m.bounty, e: m.elite ? [m.elite.aura.key, m.elite.lvl] : 0 });
   },
   onDead(ev, from) {
     const M = G.mp, u = D.units[ev.u] || {};
+    if (M.deadSeen.has(ev.id)) return;
+    const existing = M.px.get(ev.id); if (existing && existing.own !== from) return;
+    M.deadSeen.add(ev.id);
     let m = M.px.get(ev.id);
     if (!m) { m = { id: ev.id, uid: ev.u, name: u.name, x: ev.x, y: ev.y, bounty: ev.b, type: u.armorType, r: 55, hp: 0, maxHp: 1, gate: 0, face: 0, proxy: true, own: from };
       if (ev.e) { const a = ELITE_AURAS.find(e => e.key === ev.e[0]); m.elite = { aura: a, lvl: ev.e[1] }; } }
     if (m.dead) return;
     M.px.delete(ev.id); M.hits.delete(ev.id);
-    const pl = G.roster[ev.by]; if (pl) pl.kills++;
+    const pl = G.roster[ev.by]; if (pl?.local) pl.kills++;
     if (ev.by === G.me) {                                    // 我杀的：赏金、击杀奖励、掉落在我这边结算
       const src = ev.s === 'b' ? G.builder : G.towers.find(t => t.id === ev.s) || null;
       killCredit(m, src, me());
@@ -7051,7 +7054,7 @@ const MP = {
       e: m.elite ? [m.elite.aura.key, m.elite.lvl] : 0, mdx: m.mdx, sc: m.scale, st };
   },
   onBorn(d, from) {
-    const M = G.mp; let p = M.px.get(d.id);
+    const M = G.mp; if (M.deadSeen.has(d.id)) return; let p = M.px.get(d.id);
     if (!p) {
       const own = G.monsters.find(x => x.id === d.id && !x.proxy);
       if (own) return;                                        // 是我自己的怪（不该发生）
@@ -7153,11 +7156,33 @@ const MP = {
     const M = G.mp; if (!M || !G.roster[M.lord] || !G.roster[M.lord].out) return;
     M.lord = G.me; MP.send({ t: 'lord' }); msg(`${myName()} 接管了房主（可以用 -fuck02~08 踢人、-KN）`, 8);
   },
+  // Reconcile complete ownership lists after transport replacement, and every
+  // five seconds. Chunk descriptions to stay below SCTP message-size limits.
+  resync(to) {
+    const M = G && G.mp; if (!M || M.dead) return;
+    const monsters = G.monsters.filter(m => !m.proxy && !m.dead && !m.neutral && !m.spirit);
+    const towers = G.towers.filter(t => !t.hide && mine(t));
+    MP.send({ t: 'sync', monsters: monsters.map(m => m.id), towers: towers.map(t => t.id), kills: me().kills }, to);
+    for (let i = 0; i < monsters.length; i += 24) MP.send({ t: 'born', l: monsters.slice(i, i + 24).map(m => MP.desc(m)) }, to);
+    for (let i = 0; i < towers.length; i += 24) MP.send({ t: 'tw', u: towers.slice(i, i + 24).map(t => MP.twDesc(t)), d: [] }, to);
+    MP.send({ t: 'state', slot: G.me, state: { build: G.build, heroChoice: G.heroChoice, kills: me().kills } }, to);
+  },
+  onSync(ev, from) {
+    const M = G.mp, alive = new Set(ev.monsters), towers = new Set(ev.towers);
+    for (const [id, m] of M.px) if (m.own === from && !alive.has(id)) {
+      m.dead = true; m.netDead = true; M.px.delete(id); M.hits.delete(id);
+    }
+    G.ghosts = G.ghosts.filter(t => t.pid !== from || towers.has(t.id));
+    if (G.selected?.ghost && G.selected.pid === from && !towers.has(G.selected.id)) G.selected = G.builder;
+    const p = G.roster[from]; if (p && Number.isFinite(ev.kills)) p.kills = ev.kills;
+    uiDirty();
+  },
   // ---- 每个模拟步
   frame(dt) {
     const M = G.mp; if (!M || M.dead) return;
     for (const p of G.roster) { const b = p && !p.out && p.builder; if (b && b.nx != null) { const k = Math.min(1, dt * 10); b.x += (b.nx - b.x) * k; b.y += (b.ny - b.y) * k; } }
-    if (MP.host()) { if (!M.wasHost) { M.wasHost = true; MP.takeover(); } MP.adopt(); }
+    if (MP.host()) MP.adopt();
+    if ((M.syncT += dt) >= 5) { M.syncT = 0; MP.resync(); }
     M.acc += dt; if (M.acc < 0.1) return; M.acc = 0;
     // 新怪的描述、状态变化、没了的怪
     const here = new Set(G.monsters), born = [], ms = [], mf = new Map(), gone = [];
@@ -7202,7 +7227,7 @@ const MP = {
       for (const id of M.tw.keys()) if (!now.has(id)) d.push(id);
       M.tw = now;
       if (u.length || d.length) MP.send({ t: 'tw', u, d });
-      const st = { build: G.build, heroChoice: G.heroChoice }, ss = JSON.stringify(st);
+      const st = { build: G.build, heroChoice: G.heroChoice, kills: me().kills }, ss = JSON.stringify(st);
       if (ss !== M.stateStr) { M.stateStr = ss; MP.send({ t: 'state', slot: G.me, state: st }); }
     }
     // 主机时钟 + 接管用的检查点（0.5 秒一次）
@@ -7221,7 +7246,7 @@ const MP = {
     G.sc = ev.sc; G.curUnit = ev.cu; G.waveNote = ev.note || ''; G.next = ev.nh != null ? { hint: ev.nh } : null;
     G.c9 = ev.c9; G.perfect = ev.pf; G.score = ev.score; G.hl = ev.hl; G.k7 = ev.k7; if (ev.kn != null) G.knWave = ev.kn; G.finalCountdown = !!ev.fc;
     if (ev.E) { const old = G.endless || {}; G.endless = Object.assign({}, ev.E, { goals: Object.assign({}, ev.E.goals, old.goals), segUp: old.segUp || ev.E.segUp, hintAt: old.hintAt || 0 }); }
-    M.ck = ev.ck;
+    M.ck = ev.ck && { ...ev.ck, timer: ev.timer };
     if (!G.endless) refreshHint();
   },
   // 主机走了，我成了主机：按最后一次检查点把波次接过来
@@ -7229,6 +7254,9 @@ const MP = {
     const M = G.mp, ck = M.ck;
     msg('原来的主机离开了，现在由你的机器负责波次和全局规则', 8);
     if (!ck) return;                                         // 还没收到过检查点（刚开局）：用自己开局时抽的
+    // Resume the last authoritative countdown; the local display may have
+    // run below zero while waiting for the lobby to confirm host departure.
+    G.timer = ck.timer;
     G.waveVars = ck.vars || {}; G.carryHint = ck.carry ?? undefined;
     G.next = ck.next ? { fn: ck.next[0], row: WR.fns[ck.next[0]].rows[ck.next[1]], hint: ck.next[2] } : null;
     const shifted = (el, fn) => { LSHIFT = el; try { asGlobal(fn); } finally { LSHIFT = null; } };
@@ -7281,7 +7309,8 @@ const MP = {
   // ---- 收到可靠通道的事件（netReceive 转过来）；返回 true 表示处理了
   receive(ev, from) {
     const M = G.mp, t = ev.t;
-    if (t === 'born') { for (const d of ev.l) MP.onBorn(d, from); }
+    if (t === 'sync') MP.onSync(ev, from);
+    else if (t === 'born') { for (const d of ev.l) MP.onBorn(d, from); }
     else if (t === 'ms') { for (const [id, ch] of ev.l) { const p = M.px.get(id); if (p && p.own === from) stApply(p, ch); } }
     else if (t === 'mf') { for (const [id, ch] of ev.l) { const m = G.monsters.find(x => x.id === id && !x.proxy); if (m && !m.dead) stApply(m, ch, true); } }
     else if (t === 'gone') { for (const id of ev.ids) { const p = M.px.get(id); if (p && p.own === from) { p.dead = true; p.netDead = true; M.px.delete(id); M.hits.delete(id); } } }
@@ -7942,6 +7971,8 @@ function preBoot() {
 // ---------------------------------------------------------------- 主循环
 function step(dt) {
   if (G.phase === 'over' || G.phase === 'win') return;
+  // Restore global scripts BEFORE evaluating an expired wave countdown.
+  if (G.mp && MP.host() && !G.mp.wasHost) { G.mp.wasHost = true; MP.takeover(); }
   G.t += dt;
   // 计时
   G.timer -= dt;
