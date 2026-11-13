@@ -3,7 +3,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
 const origin=process.env.GAME_URL||'https://greencircle.preview.greatsong.online';
 const count=Number(process.env.PLAYERS||4),duration=Number(process.env.SOAK_SECONDS||120),out=process.env.REPORT||'/tmp/greencircle-soak.json';
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
-const report={origin,players:count,startedAt:new Date().toISOString(),fixture:'Automated defense uses existing debug kill/hurt/build helpers; real wave scheduling, replication, lobby and TLS TURN. Static binary assets cached from local checkout. Network faults close RTC transports and block lobby HTTP.',events:[],errors:[]};
+const report={origin,players:count,startedAt:new Date().toISOString(),fixture:'Automated defense clears creatures after 1 second with existing debug kill/hurt/build helpers; real wave scheduling, replication, lobby and TLS TURN. Static binary assets cached from local checkout. Network faults close RTC transports and block lobby HTTP.',events:[],errors:[]};
 let browser,pages=[],contexts=[],offline=[];
 const staleSince=new Map(),killStable=new Map();
 async function consistency(label){
@@ -43,17 +43,17 @@ async function outage(victim,seconds){
  await healthy(pages.filter(Boolean).length);await delay(4000);await consistency('reconnected');
 }
 function log(event,data={}){const item={at:new Date().toISOString(),event,...data};report.events.push(item);fs.writeFileSync(out,JSON.stringify(report,null,2));console.log(JSON.stringify(item))}
-async function state(p){return p.evaluate(()=>{const g=__G(),n=GC_NET.debug;return {me:g.me,t:g.t,phase:g.phase,wave:g.wave,timer:g.timer,host:g.roster.find(p=>p&&!p.out)?.slot,players:g.roster.map(p=>p&&({slot:p.slot,out:p.out,kills:p.kills})),cap:__dbg.cap(),inGame:n.inGame,token:!!n.token,peers:[...n.peers.values()].map(p=>({open:p.open,state:p.pc?.connectionState,queue:p.protocol?.pending.size ?? p.queue.length,stage:p.stage,gen:p.gen})),towers:g.towers.filter(t=>!t.hide).map(t=>({id:t.id,lv:t.lv})),ghosts:g.ghosts.map(t=>({id:t.id,pid:t.pid,lv:t.lv})),monsters:g.monsters.filter(m=>!m.dead&&!m.neutral&&!m.spirit).map(m=>({id:m.id,own:m.own,proxy:!!m.proxy,hp:m.hp,x:Math.round(m.x),y:Math.round(m.y)})),mem:performance.memory?.usedJSHeapSize};})}
+async function state(p){return p.evaluate(()=>{const g=__G(),n=GC_NET.debug;return {me:g.me,t:g.t,phase:g.phase,overReason:g.phase==='over'?document.querySelector('#modal-box')?.textContent:null,wave:g.wave,timer:g.timer,host:g.roster.find(p=>p&&!p.out)?.slot,players:g.roster.map(p=>p&&({slot:p.slot,out:p.out,kills:p.kills})),cap:__dbg.cap(),inGame:n.inGame,token:!!n.token,peers:[...n.peers.values()].map(p=>({open:p.open,state:p.pc?.connectionState,queue:p.protocol?.pending.size ?? p.queue.length,stage:p.stage,gen:p.gen})),towers:g.towers.filter(t=>!t.hide).map(t=>({id:t.id,lv:t.lv})),ghosts:g.ghosts.map(t=>({id:t.id,pid:t.pid,lv:t.lv})),monsters:g.monsters.filter(m=>!m.dead&&!m.neutral&&!m.spirit).map(m=>({id:m.id,own:m.own,proxy:!!m.proxy,hp:m.hp,x:Math.round(m.x),y:Math.round(m.y)})),mem:performance.memory?.usedJSHeapSize};})}
 async function sample(label){const s=await Promise.all(pages.filter(Boolean).map(state));log(label,{states:s});return s}
 async function healthy(expected,timeout=45000){const start=Date.now();for(;;){const s=await Promise.all(pages.filter(Boolean).map(state));if(s.every(x=>x.inGame&&x.players.filter(p=>p&&!p.out).length===expected&&x.peers.length===expected-1&&x.peers.every(p=>p.open)))return s;if(Date.now()-start>timeout){log('unhealthy',{states:s});throw new Error('players did not reconnect / converge')}await delay(1000)}}
 async function fixture(p){await p.evaluate(()=>{const g=__G();g.gold=100000;g.foodCap=100;const pos=__dbg.NODES[__dbg.GATES[g.me][0]];const t=__dbg.buildTower('神圣塔',pos[0]+200,pos[1]+200);window.__fixtureTower=t.id;
-const ages=new Map();window.__defense=setInterval(()=>{const g=__G();if(!g.mp||g.mp.dead)return;for(const m of g.monsters){if(m.dead||m.neutral||m.spirit)continue;if(!ages.has(m.id))ages.set(m.id,performance.now());if(performance.now()-ages.get(m.id)>4000)__dbg.kill(m,g.builder)}for(const id of ages.keys())if(!g.monsters.some(m=>m.id===id&&!m.dead))ages.delete(id)},500);
+const ages=new Map();window.__defense=setInterval(()=>{const g=__G();if(!g.mp||g.mp.dead)return;for(const m of g.monsters){if(m.dead||m.neutral||m.spirit)continue;if(!ages.has(m.id))ages.set(m.id,performance.now());if(performance.now()-ages.get(m.id)>1000)__dbg.kill(m,g.builder)}for(const id of ages.keys())if(!g.monsters.some(m=>m.id===id&&!m.dead))ages.delete(id)},100);
 })}
 (async()=>{browser=await chromium.launch({channel:'chrome',headless:true,args:['--autoplay-policy=no-user-gesture-required','--disable-background-timer-throttling']});
 try{
  for(let i=0;i<count;i++){
  const c=await browser.newContext({viewport:{width:800,height:600}});contexts.push(c);offline[i]=false;
- await c.addInitScript(({origin})=>{localStorage.setItem('gc.net.url',origin+'/lobby');localStorage.setItem('gc.net.relay',String(Date.now()+3600000))},{origin});
+ await c.addInitScript(({origin})=>{window.__rtcErrors=[];const Native=window.RTCPeerConnection;window.RTCPeerConnection=class extends Native {constructor(...args){super(...args);this.addEventListener('icecandidateerror',e=>window.__rtcErrors.push({code:e.errorCode,text:e.errorText,url:e.url}));}};localStorage.setItem('gc.net.url',origin+'/lobby');localStorage.setItem('gc.net.relay',String(Date.now()+3600000))},{origin});
  await c.route('**/lobby/**',r=>offline[i]?r.abort('internetdisconnected'):r.continue());
  const assetRoot=path.resolve(__dirname,'../h5');
  await c.route('**/assets/**',async r=>{const u=new URL(r.request().url());if(/\.(js|json)$/.test(u.pathname))return r.continue();const f=path.resolve(assetRoot,'.'+decodeURIComponent(u.pathname));if(!f.startsWith(assetRoot+path.sep))return r.abort();try{await r.fulfill({path:f})}catch{await r.continue()}});
@@ -84,7 +84,7 @@ try{
    await pages[victim].evaluate(()=>{const t=__G().towers.find(t=>t.id===window.__fixtureTower);__dbg.sellTower(t);});
    await checkTowers();
   }
-  if(duration>=300&&!hostOutage&&elapsed>180000){hostOutage=true;log('host-short-outage');await outage(0,12);}
+  if(duration>=300&&!hostOutage&&elapsed>Math.min(180000,duration*250)){hostOutage=true;log('host-short-outage');await outage(0,12);}
   if(!hostLeft&&elapsed>Math.min(300000,duration*400)){
    log('host-exit');await pages[0].close();pages[0]=null;hostLeft=true;
    await healthy(count-1,50000);await checkTowers();
@@ -107,6 +107,7 @@ try{
   }return links;
  })))});
  report.wallSeconds=(Date.now()-Date.parse(report.startedAt))/1000;assert.deepEqual(report.errors,[]);report.passed=true;log('passed',{wallSeconds:report.wallSeconds});
-}catch(e){report.passed=false;report.failure=e.message;await sample('failed').catch(()=>{});log('failure',{message:e.message});process.exitCode=1}
+}catch(e){report.passed=false;report.failure=e.message;await sample('failed').catch(()=>{});
+ log('connection-diagnostics',{players:await Promise.all(pages.filter(Boolean).map(p=>p.evaluate(async()=>({errors:window.__rtcErrors,room:GC_NET.debug.room?.players.map(p=>({id:p.id,ready:p.ready,links:p.links})),peers:await Promise.all([...GC_NET.debug.peers.values()].map(async p=>({id:p.id,offerer:p.offerer,gen:p.gen,remoteSet:p.remoteSet,stats:p.pc?[...((await p.pc.getStats()).values())].filter(s=>['candidate-pair','local-candidate','remote-candidate','transport'].includes(s.type)):[]})))})).catch(()=>({unavailable:true}))))});log('failure',{message:e.message});process.exitCode=1}
 finally{for(const p of pages.filter(Boolean))await p.evaluate(()=>GC_NET.leave()).catch(()=>{});if(browser)await browser.close();fs.writeFileSync(out,JSON.stringify(report,null,2))}
 })().catch(e=>{console.error(e);process.exitCode=1});
