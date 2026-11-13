@@ -16,6 +16,26 @@ const WANT = {
   build: ['stand work', 'attack'],
 };
 const seqKey = n => n.toLowerCase().trim().replace(/\s*(-\s*)?\d+$/, '').trim();
+// 动作名 → 序列号。先找名字完全一样的（"Stand"），再找带编号的变体（"Stand - 2"）。
+// 站立还找不到时：先找 "Stand ..." 开头的组合名（HumanTower 的 "Stand Ready Attack"、TowerDefenseTower 的 "Stand First Attack Ready"），
+// 跳过升级 / 备用 / 工作这些特殊形态（不然箭塔会拿到炮塔 Upgrade Second 的样子）；再不行才用第 0 个——
+// 但第 0 个是 Birth / Death 这类时跳过它：建筑的第 0 个通常是 Birth，画出来就是建造中的脚手架
+const IDLE_SKIP = /\b(upgrade|alternate|work|victory|hit|swim|fast)\b/, NOT_IDLE = /^(birth|death|decay|dissipate|portrait)\b/;
+function seqMap(model) {
+  const names = model.sequences.map(s => s.name.toLowerCase().replace(/\s+/g, ' ').trim()), keys = names.map(seqKey), seq = {};
+  for (const [want, cands] of Object.entries(WANT)) {
+    for (const c of cands) {
+      let i = names.indexOf(c); if (i < 0) i = keys.indexOf(c);
+      if (i >= 0) { seq[want] = i; break; }
+    }
+  }
+  if (seq.idle == null) {
+    let i = names.findIndex(n => n.startsWith('stand ') && !IDLE_SKIP.test(n));
+    if (i < 0) i = NOT_IDLE.test(names[0] || '') ? names.findIndex(n => !NOT_IDLE.test(n) && !/\bupgrade\b/.test(n)) : 0;
+    if (i >= 0) seq.idle = i;
+  }
+  return seq;
+}
 // 原图包里没有 Splats 数据表（模型事件的脚印 / 血迹），给一张空表，不去请求
 const EMPTY_SLK = 'data:text/plain,' + encodeURIComponent('ID;PWXL;N;E\nB;X1;Y1;D0\nC;X1;Y1;K"ID"\nE\n');
 const solver = src => typeof src !== 'string' ? src
@@ -61,14 +81,7 @@ function create(canvas, sheets) {
     viewer.load(mdx, ghost ? src => src === mdx ? solver(src) + '?ghost' : solver(src) : solver).then(model => {
       if (!model || !model.sequences) { models.set(id, 'fail'); return; }
       if (ghost) translucent(model, viewer.gl);
-      const names = model.sequences.map(s => s.name.toLowerCase().trim()), keys = names.map(seqKey), seq = {};
-      for (const [want, cands] of Object.entries(WANT)) {
-        for (const c of cands) {                         // 先找名字完全一样的（"Stand"），再找带编号的变体
-          let i = names.indexOf(c); if (i < 0) i = keys.indexOf(c);
-          if (i >= 0) { seq[want] = i; break; }
-        }
-      }
-      models.set(id, { model, seq });
+      models.set(id, { model, seq: seqMap(model) });
     }, () => models.set(id, 'fail'));
     return 'loading';
   }
@@ -110,7 +123,7 @@ function create(canvas, sheets) {
       const sv = !retex ? solver : src => src === mdx ? solver(src) + '?' + retex[1] : solver(typeof src === 'string' && src.toLowerCase().replace(/\\/g, '/').endsWith(retex[0]) ? src.slice(0, -retex[0].length) + retex[1] : src);
       viewer.load(mdx, sv).then(model => {
         if (!model || !model.sequences) { models.set(id, 'fail'); return; }
-        const names = model.sequences.map(s => s.name.toLowerCase().trim()), md = { model, seq: { idle: Math.max(0, names.findIndex(n => seqKey(n) === 'stand')) } };
+        const md = { model, seq: seqMap(model) };
         const wait = m.wait; models.set(id, md); wait.forEach(f => f(md));
       }, () => models.set(id, 'fail'));
     }
