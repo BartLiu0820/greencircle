@@ -7,6 +7,8 @@
 'use strict';
 const http = require('http'), crypto = require('crypto');
 const { Room } = require('./room.js');
+const { serveStatic } = require('./static.js');
+const STATIC_DIR = process.env.STATIC_DIR;
 
 const PORT = +process.env.PORT || 8787;
 const STUN = (process.env.STUN_URLS ?? 'stun:stun.cloudflare.com:3478').split(',').map(s => s.trim()).filter(Boolean);
@@ -51,7 +53,11 @@ setInterval(() => {
 http.createServer((req, res) => {
   const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Cache-Control': 'no-store' };
   if (req.method === 'OPTIONS') { res.writeHead(204, cors); return res.end(); }
-  const url = new URL(req.url, 'http://x'), chunks = []; let size = 0;
+  const url = new URL(req.url, 'http://x');
+  const lobby = url.pathname === '/lobby' || url.pathname.startsWith('/lobby/');
+  if (STATIC_DIR && !lobby) return serveStatic(req, res, STATIC_DIR, url.pathname);
+  if (lobby) url.pathname = url.pathname.slice(6) || '/';
+  const chunks = []; let size = 0;
   req.on('data', c => { size += c.length; if (size > 256e3) req.destroy(); else chunks.push(c); });
   req.on('end', async () => {
     let body = {}, out;

@@ -1,0 +1,8 @@
+*
+!Dockerfile
+!server/
+!server/**
+!h5/
+!h5/**
+h5/assets/sprites/*.png
+h5/assets/portraits/*.png

@@ -8,18 +8,36 @@
 const GC = window.GC, UI = GC.ui;
 const LS_URL = 'gc.net.url', LS_RELAY = 'gc.net.relay';
 const STAGE_MS = 8000, GRACE_MS = 20000, SNAP_BUF = 16384;
-const defaultUrl = () => /^https?:$/.test(location.protocol) ? `${location.protocol}//${location.hostname}:8787` : 'http://localhost:8787';
+const LOCAL_PAGE = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) || location.protocol === 'file:';
+const defaultUrl = () => LOCAL_PAGE ? 'http://localhost:8787' : `${location.origin}/lobby`;
+function savedUrl(value) {
+  if (!value) return defaultUrl();
+  try {
+    const u = new URL(value);
+    // Migrate the old automatically saved :8787 address and bare website URL.
+    if (!LOCAL_PAGE && u.hostname === location.hostname && (u.port === '8787' || !u.pathname.replace(/\//g, ''))) return defaultUrl();
+    return value.replace(/\/+$/, '');
+  } catch (e) { return defaultUrl(); }
+}
 const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 忽略 */ } };
 
-const N = { url: lsGet(LS_URL) || defaultUrl(), name: '', code: null, token: null, id: null, room: null, ver: 0, chatSeq: 0, chat: [],
+const N = { url: savedUrl(lsGet(LS_URL)), name: '', code: null, token: null, id: null, room: null, ver: 0, chatSeq: 0, chat: [],
   peers: new Map(), ice: { iceServers: [], turn: false }, inGame: false, slots: [], lobbyOpen: false, lastLinks: '', pollGen: 0, stats: {} };
 
 async function api(method, path, body) {
-  const r = await fetch(N.url + path, { method, headers: body ? { 'Content-Type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) { const e = new Error(j.error || `请求失败（${r.status}）`); e.status = r.status; throw e; }
-  return j;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), path.includes('/poll?') ? 35000 : 10000);
+  try {
+    const r = await fetch(N.url + path, { method, signal: controller.signal, headers: body ? { 'Content-Type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined });
+    const j = await r.json().catch(() => { throw new Error('大厅地址未正确配置，请使用默认大厅后重试'); });
+    if (!r.ok) { const e = new Error(j.error || `请求失败（${r.status}）`); e.status = r.status; throw e; }
+    return j;
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error('连接大厅超时，请检查网络后重试');
+    if (e instanceof TypeError) throw new Error('无法连接大厅，请检查网络或使用默认大厅后重试');
+    throw e;
+  } finally { clearTimeout(timer); }
 }
 const post = (action, body = {}) => api('POST', `/rooms/${N.code}/${action}`, { ...body, token: N.token });
 
@@ -77,7 +95,7 @@ function syncPeers() {
   for (const pl of N.room.players) {
     if (pl.id === N.id || N.peers.has(pl.id)) continue;
     if (N.inGame && !N.slots.some(s => s.id === pl.id)) continue;
-    const p = { id: pl.id, name: pl.name, offerer: N.id > pl.id, pc: null, ctl: null, snap: null, open: false, gen: 0, stage: firstStage(), timer: 0, lostAt: 0, queue: [], rtt: null, pend: [], bye: false };
+    const p = { id: pl.id, name: pl.name, connectingSince: Date.now(), offerer: N.id > pl.id, pc: null, ctl: null, snap: null, open: false, gen: 0, stage: firstStage(), timer: 0, lostAt: 0, queue: [], rtt: null, pend: [], bye: false };
     N.peers.set(pl.id, p);
     if (p.offerer) connect(p);
   }
@@ -121,6 +139,7 @@ function makePc(p, stage, gen) {
 }
 async function connect(p, stage = p.stage) {
   const gen = p.gen + 1, pc = makePc(p, stage, gen);
+  if (N.lobbyOpen) renderRoom();
   try {
     await pc.setLocalDescription(await pc.createOffer());
     if (p.pc !== pc) return;
@@ -152,7 +171,6 @@ async function onSignal(s) {
 }
 // 本机开两个标签页试玩（页面在 localhost 上）：浏览器给的本机候选是 mDNS 名（xxxx.local），有的环境解析不了，
 // 这时两个标签页肯定在同一台机器上，另外补一条 127.0.0.1 的候选
-const LOCAL_PAGE = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) || location.protocol === 'file:';
 function loopback(c) {
   if (!LOCAL_PAGE || !c || !/ [0-9a-f-]+\.local /.test(c.candidate || '')) return [c];
   return [c, { ...c, candidate: c.candidate.replace(/ [0-9a-f-]+\.local /, ' 127.0.0.1 ') }];
@@ -160,7 +178,7 @@ function loopback(c) {
 function peerLost(p) {
   if (!N.peers.has(p.id)) return;
   const was = p.open; p.open = false;
-  if (was) { p.lostAt = Date.now(); reportLinks(); if (N.lobbyOpen) renderRoom(); }
+  if (was) { p.connectingSince = Date.now(); p.lostAt = Date.now(); reportLinks(); if (N.lobbyOpen) renderRoom(); }
   if (N.inGame) {
     if (p.bye || (N.room && N.token && !N.room.players.some(x => x.id === p.id))) return peerGone(p);
     if (was) setTimeout(() => { if (N.peers.get(p.id) === p && !p.open && p.lostAt) peerGone(p); }, GRACE_MS);   // 重连窗口
@@ -240,22 +258,31 @@ const esc = UI.escHtml;
 function showConnect(note = '') {
   N.lobbyOpen = true;
   UI.showModal(`<div class="w3dlg lobby"><h2>联机（房间码）</h2>
-    <label class="lb-row">大厅服务 <input id="lb-url" class="w3input" value="${esc(N.url)}" autocomplete="off"></label>
+    <details${LOCAL_PAGE ? ' open' : ''}><summary>连接设置</summary><label class="lb-row">大厅服务 <input id="lb-url" class="w3input" value="${esc(N.url)}" autocomplete="off"></label><button id="lb-default">使用默认大厅</button></details>
     <button class="w3btn" id="lb-create">创建房间</button>
     <div class="lb-row"><input id="lb-code" class="w3input" maxlength="4" placeholder="房间码（4 位）" autocomplete="off"><button class="w3btn" id="lb-join">加入房间</button></div>
     <button class="w3btn" id="lb-back">返回</button>
-    <div class="w3hint" id="lb-note">${note ? `<b style="color:#ff8f86">${esc(note)}</b><br>` : ''}玩家 <b>${esc(N.name)}</b>：联机时的身份就是这个名称（段位、账号成就、赞助都跟着它），同一个房间里不能重名。<br>大厅服务只负责凑人和打洞，对局数据在玩家之间直连。本机试玩：在项目目录运行 <code>node server/server.js</code></div></div>`, true);
-  const note_ = t => { document.getElementById('lb-note').innerHTML = `<b style="color:#ff8f86">${esc(t)}</b>`; };
+    <div class="w3hint" id="lb-note">${note ? `<b style="color:#ff8f86">${esc(note)}</b><br>` : ''}玩家 <b>${esc(N.name)}</b>：联机时的身份就是这个名称（段位、账号成就、赞助都跟着它），同一个房间里不能重名。<br>创建房间后，把生成的 4 位房间码告诉朋友。朋友打开同一个游戏网址，输入房间码加入。${LOCAL_PAGE ? '<br>本机试玩：先运行 <code>node server/server.js</code>' : ''}</div></div>`, true);
+  const note_ = t => { if (!document.getElementById('lb-note')) return; document.getElementById('lb-note').innerHTML = `<b style="color:#ff8f86">${esc(t)}</b>`; };
+  let pending = false;
+  document.getElementById('lb-default').onclick = () => { document.getElementById('lb-url').value = defaultUrl(); lsSet(LS_URL, defaultUrl()); };
   const enter = async make => {
+    if (pending) return;
     N.url = document.getElementById('lb-url').value.trim().replace(/\/+$/, '') || defaultUrl(); lsSet(LS_URL, N.url);
     const code = document.getElementById('lb-code').value.trim().toUpperCase();
     if (!make && !/^[A-Z0-9]{4}$/.test(code)) return note_('请输入 4 位房间码');
+    try { const u = new URL(N.url); if (!/^https?:$/.test(u.protocol) || (location.protocol === 'https:' && u.protocol !== 'https:')) throw new Error(); } catch (e) { return note_('请输入有效的 HTTPS 大厅地址，或点击使用默认大厅'); }
+    pending = true;
+    for (const id of ['lb-create', 'lb-join', 'lb-back', 'lb-url', 'lb-default']) document.getElementById(id).disabled = true;
+    note_('正在连接大厅…');
     try {
-      N.ice = await api('GET', '/ice').catch(() => ({ iceServers: [], turn: false }));
+      N.ice = await api('GET', '/ice');
+      if (!Array.isArray(N.ice.iceServers)) throw new Error('大厅地址未正确配置，请使用默认大厅后重试');
       const r = make ? await api('POST', '/rooms', { name: N.name, v: GC.version }) : await api('POST', `/rooms/${code}/join`, { name: N.name, v: GC.version });
       Object.assign(N, { code: r.code, token: r.token, id: r.id, ver: 0, chatSeq: 0, chat: [] });
       showRoom(); pollLoop(++N.pollGen);
-    } catch (e) { note_(e.status ? e.message : `连不上大厅服务 ${N.url}（先运行 node server/server.js）`); }
+    } catch (e) { note_(e.message); }
+    finally { pending = false; for (const id of ['lb-create', 'lb-join', 'lb-back', 'lb-url', 'lb-default']) { const el = document.getElementById(id); if (el) el.disabled = false; } }
   };
   document.getElementById('lb-create').onclick = () => enter(true);
   document.getElementById('lb-join').onclick = () => enter(false);
@@ -304,6 +331,8 @@ function renderRoom() {
   if (atEnd) box.scrollTop = box.scrollHeight;
   const ids = R.players.map(p => p.id), mesh = R.players.every(p => ids.every(id => id === p.id || p.links.includes(id)));
   const notReady = R.players.filter(p => !p.host && !p.ready).map(p => p.name);
+  const stuck = [...N.peers.values()].some(p => !p.open && Date.now() - p.connectingSince > 20000);
+  const connectionNote = stuck ? (N.ice.turn ? '连接较慢，正在尝试中继；可检查网络后重新加入。' : '暂时无法与队友直连。请尝试切换网络后重新加入；当前大厅尚未启用跨网络中继。') : '';
   const btn = $('lb-ready');
   if (host) {
     const why = notReady.length ? `等待准备：${notReady.join('、')}` : !mesh ? '玩家之间还在连接…' : null;
@@ -315,6 +344,7 @@ function renderRoom() {
     btn.onclick = () => post('me', { ready: !(me && me.ready) }).catch(() => {});
     $('lb-hint').innerHTML = `把房间码 <b>${N.code}</b> 告诉朋友。全员准备、互相连通后房主开始。版本 ${esc(R.v)}`;
   }
+  if (connectionNote) $('lb-hint').textContent = connectionNote;
 }
 
 window.GC_NET = { send, snap, leave, open(name) { N.name = name; if (N.token && N.room && !N.inGame) showRoom(); else { if (N.token || N.peers.size) leave(); showConnect(); } },

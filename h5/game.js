@@ -9703,7 +9703,7 @@ function showStart() {
   })).concat([
     { text: '演示：前两波', hint: MODES.demo.desc, fn: () => start('demo') },
     { text: '多人规模（2~8 人）', hint: '按原图多人局的规模开局：N 人开 N 个出怪口，怪物上限 40×N，最终波的龙和魔王也按人数。原版数值，联机前用来试玩', fn: pickPlayers },
-    { text: '联机（房间码）', hint: '和朋友一起玩：建房间把房间码发给朋友，或输入朋友的房间码加入。2~8 人，每人守自己的出怪口。需要先有大厅服务（本机试玩：node server/server.js）', fn: () => window.GC_NET ? window.GC_NET.open(player) : msg('联机模块没有加载') },
+    { text: '联机（房间码）', hint: '和朋友一起玩：建房间把房间码发给朋友，或输入朋友的房间码加入。2~8 人，每人守自己的出怪口。打开联机入口即可创建或加入房间', fn: () => window.GC_NET ? window.GC_NET.open(player) : msg('联机模块没有加载') },
     { text: '玩法简介', hint: '怎么玩、怎么操作', fn: intro },
     { text: `玩家 ${escHtml(player)} · 成就 ${profileOf(player).pts} 点（切换）`, hint: `账号成就 ${profileLine(player)}<br>点这里换一个玩家名称，各名称的账号成就分开记`, fn: askName },
   ]), '把鼠标移到选项上查看说明');
